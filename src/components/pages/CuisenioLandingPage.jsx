@@ -14,14 +14,14 @@ const CuisenioLandingPage = () => {
   ];
 
   const popularRecipes = [
-    { id: 1, title: "Homemade Pasta", contributor: "Sara Mezinai", image: "https://images.unsplash.com/photo-1551183053-bf91a22d2329?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" },
+    { id: 1, title: "Homemade Pasta", contributor: "Sara Mezinai", image: "https://plus.unsplash.com/premium_photo-1677000666741-17c3c57139a2?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
     { id: 2, title: "French Croissants", contributor: "Clara Elena", image: "https://images.unsplash.com/photo-1550617931-e17a7b70dce2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" },
-    { id: 3, title: "Sushi Rolls", contributor: "Steve Dylan", image: "https://images.unsplash.com/photo-1579584425555-c3cebd75fb32?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" },
+    { id: 3, title: "Sushi Rolls", contributor: "Steve Dylan", image: "https://images.unsplash.com/photo-1532347231146-80afc9e3df2b?q=80&w=1970&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
   ];
 
   const testimonials = [
-    { name: "Sophie Laurent", role: "Home Cook", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80", content: "A joy to learn from!" },
-    { name: "Mark Johnson", role: "Food Enthusiast", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80", content: "Elegant and easy to use." },
+    { name: "Sophie Laurent", role: "Home Cook", image: "https://imgs.search.brave.com/ia27djo5YRMh6Ew_Ail6wa4zVAJfWSQSpXFyyc3yzb8/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9yYXRp/bmdzLWltYWdlcy1w/cm9kLnB1bHNlLmVh/LmNvbS9GQzI1L2Z1/bGwvcGxheWVyLXBv/cnRyYWl0cy9wMjM1/MjEyLnBuZz9wYWRk/aW5nPTAuNw", content: "A joy to learn from!" },
+    { name: "Mark Johnson", role: "Food Enthusiast", image: "https://imgs.search.brave.com/hxtwMAeOheKejsPkk6YEcLObogliAHRrvssfVdj7EIs/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9kZXJp/dmF0ZXMua2lja2Vy/LmRlL2ltYWdlL2Zl/dGNoL3dfMTUwLGhf/MTc2LGNfZmlsbCxn/X2F1dG8scV9hdXRv/OmJlc3QvaHR0cHM6/Ly9tZWRpYWRiLmtp/Y2tlci5kZS8yMDI0/L2Z1c3NiYWxsL3Nw/aWVsZXIveGwvNzUw/MTNfNjAzXzIwMjMw/OTI1NjQ0LmpwZw", content: "Elegant and easy to use." },
     { name: "Leila Ahmed", role: "Aspiring Chef", image: "https://images.unsplash.com/photo-1487412723647-97c30d6828d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80", content: "Inspiring every day." },
   ];
 
@@ -98,7 +98,7 @@ const CuisenioLandingPage = () => {
           </div>
           <div className="lg:w-1/2">
             <img
-              src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+              src="https://plus.unsplash.com/premium_photo-1663126819381-2891489139a7?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="Cooking scene"
               className="w-full max-w-md mx-auto rounded-md object-cover"
             />
