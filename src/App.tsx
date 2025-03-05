@@ -20,7 +20,7 @@ function App() {
               </PrivateRoute>
             } 
           />
-          <Route path="/" element={<Login />} /> {/* Route par défaut */}
+          <Route path="/" element={<Login />} /> {}
         </Routes>
       </div>
     </Router>
