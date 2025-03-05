@@ -1,6 +1,8 @@
 // src/pages/auth/Register.tsx
+import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { FaEnvelope, FaLock, FaUser, FaUtensils } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../api/auth.service';
 import { RegisterRequest, Role } from '../../types/auth.types';
@@ -16,21 +18,15 @@ const Register: React.FC = () => {
 
   const onSubmit = async (data: RegisterRequest) => {
     try {
-      // Set default role if not specified
       data.role = data.role || Role.USER;
-      
       await authService.register(data);
       
-      // Optional: Automatically log in after registration
       const loginResponse = await authService.login({
         email: data.email,
         password: data.password
       });
 
-      // Store token
       authService.setToken(loginResponse.token);
-
-      // Redirect to profile or home page
       navigate('/profile');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
@@ -39,121 +35,124 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Créer un compte
-          </h2>
+    <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center px-4 py-12">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-[#FFE4E1]"
+      >
+        <div className="flex items-center justify-center mb-8">
+          <FaUtensils className="text-[#E57373] mr-3 text-3xl" />
+          <h1 className="text-3xl font-bold text-gray-800">Cuisenio</h1>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            {/* Username Input */}
-            <div className="mb-4">
-              <label htmlFor="username" className="sr-only">Nom d'utilisateur</label>
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaUser className="text-[#E57373] opacity-50" />
+              </div>
               <input
-                id="username"
                 type="text"
                 {...register('username', { 
-                  required: 'Le nom d\'utilisateur est obligatoire',
-                  minLength: { value: 3, message: 'Minimum 3 caractères' },
-                  maxLength: { value: 50, message: 'Maximum 50 caractères' }
+                  required: 'Username est requis',
+                  minLength: { value: 3, message: 'Username doit contenir au moins 3 caractères' }
                 })}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Nom d'utilisateur"
+                placeholder="Username"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
               />
               {errors.username && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.username.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
               )}
             </div>
+          </div>
 
-            {/* Last Name Input */}
-            <div className="mb-4">
-              <label htmlFor="lastName" className="sr-only">Nom de famille</label>
+          <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaUser className="text-[#E57373] opacity-50" />
+              </div>
               <input
-                id="lastName"
                 type="text"
                 {...register('lastName', { 
-                  required: 'Le nom de famille est obligatoire',
-                  minLength: { value: 2, message: 'Minimum 2 caractères' },
-                  maxLength: { value: 50, message: 'Maximum 50 caractères' }
+                  required: 'lastName est requis',
+                  minLength: { value: 3, message: 'lastName doit contenir au moins 3 caractères' }
                 })}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Nom de famille"
+                placeholder="Last name"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
               />
               {errors.lastName && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.lastName.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.lastName.message}</p>
               )}
             </div>
-
-            {/* Email Input */}
-            <div className="mb-4">
-              <label htmlFor="email" className="sr-only">Email</label>
+        
+          <div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaEnvelope className="text-[#E57373] opacity-50" />
+              </div>
               <input
-                id="email"
                 type="email"
                 {...register('email', { 
-                  required: 'L\'email est obligatoire',
+                  required: 'Email est requis',
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Format d\'email invalide'
+                    message: 'Email invalide'
                   }
                 })}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Adresse email"
+                placeholder="Email Address"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
               />
               {errors.email && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.email.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
               )}
             </div>
-
-            {/* Password Input */}
-            <div className="mb-4">
-              <label htmlFor="password" className="sr-only">Mot de passe</label>
+          </div>
+          
+          <div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaLock className="text-[#E57373] opacity-50" />
+              </div>
               <input
-                id="password"
                 type="password"
                 {...register('password', { 
-                  required: 'Le mot de passe est obligatoire',
-                  pattern: {
-                    value: /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\S+$).{8,}$/,
-                    message: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial'
-                  }
+                  required: 'Mot de passe est requis',
+                  minLength: { value: 6, message: 'Le mot de passe doit contenir au moins 6 caractères' }
                 })}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Mot de passe"
+                placeholder="Password"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
               />
               {errors.password && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.password.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
               )}
             </div>
           </div>
 
-          {/* API Error Message */}
           {apiError && (
-            <div className="text-red-500 text-center mb-4">
-              {apiError}
-            </div>
+            <div className="text-red-500 text-sm text-center">{apiError}</div>
           )}
-
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              S'inscrire
-            </button>
-          </div>
+          
+          <button 
+            type="submit" 
+            className="w-full bg-[#E57373] text-white py-3 rounded-lg hover:bg-[#EF5350] transition duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FFE4E1]"
+          >
+            Create Account
+          </button>
         </form>
-      </div>
+        
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account? {' '}
+            <a 
+              href="/login" 
+              className="text-[#E57373] hover:underline transition duration-300"
+            >
+              Sign In
+            </a>
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 };
