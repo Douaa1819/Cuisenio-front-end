@@ -1,4 +1,3 @@
-// src/api/auth.service.ts
 import client from './client';
 import {
     LoginRequest,
@@ -41,7 +40,6 @@ export const authService = {
         await client.delete(`${PROFILE_URL}`);
     },
 
-    // Store and remove token in local storage
     setToken(token: string) {
         localStorage.setItem('token', token);
     },

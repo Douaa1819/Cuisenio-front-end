@@ -1,160 +1,285 @@
-// src/pages/auth/Register.tsx
-import { motion } from 'framer-motion';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { FaEnvelope, FaLock, FaUser, FaUtensils } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../../api/auth.service';
-import { RegisterRequest, Role } from '../../types/auth.types';
+"use client";
 
-const Register: React.FC = () => {
+import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { authService } from "../../api/auth.service";
+import { Role } from "../../types/auth.types";
+
+import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
+import { Checkbox } from "../../components/ui/checkbox";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+
+const registerSchema = z.object({
+  username: z.string().min(3, { message: "Le nom d'utilisateur doit contenir au moins 3 caractères" }),
+  lastName: z.string().min(2, { message: "Le nom est requis" }),
+  email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
+  termsAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
+export default function RegisterForm() {
   const navigate = useNavigate();
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors }
-  } = useForm<RegisterRequest>();
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const onSubmit = async (data: RegisterRequest) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      lastName: "",
+      email: "",
+      password: "",
+      termsAccepted: false,
+    },
+  });
+
+  const onSubmit = async (data: RegisterFormValues) => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      data.role = data.role || Role.USER;
-      await authService.register(data);
-      
-      const loginResponse = await authService.login({
+      console.log("Submitting registration data:", data);      await authService.register({
+        username: data.username,
+        lastName: data.lastName,
         email: data.email,
-        password: data.password
+        password: data.password,
+        role: Role.USER, 
       });
 
-      authService.setToken(loginResponse.token);
-      navigate('/profile');
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      setApiError(err.response?.data?.message || 'Registration failed');
+      navigate("/login");
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      console.error("Registration error:", apiError);
+      setError(apiError?.response?.data?.message || "L'inscription a échoué. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center px-4 py-12">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-[#FFE4E1]"
+    <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center p-4 font-poppins">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-md"
       >
-        <div className="flex items-center justify-center mb-8">
-          <FaUtensils className="text-[#E57373] mr-3 text-3xl" />
-          <h1 className="text-3xl font-bold text-gray-800">Cuisenio</h1>
-        </div>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-[#E57373] opacity-50" />
-              </div>
-              <input
-                type="text"
-                {...register('username', { 
-                  required: 'Username est requis',
-                  minLength: { value: 3, message: 'Username doit contenir au moins 3 caractères' }
-                })}
-                placeholder="Username"
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
-              />
-              {errors.username && (
-                <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-[#E57373] opacity-50" />
-              </div>
-              <input
-                type="text"
-                {...register('lastName', { 
-                  required: 'lastName est requis',
-                  minLength: { value: 3, message: 'lastName doit contenir au moins 3 caractères' }
-                })}
-                placeholder="Last name"
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
-              />
-              {errors.lastName && (
-                <p className="text-red-500 text-xs mt-1">{errors.lastName.message}</p>
-              )}
-            </div>
-        
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaEnvelope className="text-[#E57373] opacity-50" />
-              </div>
-              <input
-                type="email"
-                {...register('email', { 
-                  required: 'Email est requis',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Email invalide'
-                  }
-                })}
-                placeholder="Email Address"
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-              )}
-            </div>
-          </div>
-          
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-[#E57373] opacity-50" />
-              </div>
-              <input
-                type="password"
-                {...register('password', { 
-                  required: 'Mot de passe est requis',
-                  minLength: { value: 6, message: 'Le mot de passe doit contenir au moins 6 caractères' }
-                })}
-                placeholder="Password"
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition duration-300"
-              />
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-              )}
-            </div>
-          </div>
-
-          {apiError && (
-            <div className="text-red-500 text-sm text-center">{apiError}</div>
-          )}
-          
-          <button 
-            type="submit" 
-            className="w-full bg-[#E57373] text-white py-3 rounded-lg hover:bg-[#EF5350] transition duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#FFE4E1]"
-          >
-            Create Account
-          </button>
-        </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account? {' '}
-            <a 
-              href="/login" 
-              className="text-[#E57373] hover:underline transition duration-300"
+        <Card className="w-full shadow-lg border border-[#FFE4E1] rounded-xl overflow-hidden">
+          <CardHeader className="space-y-2 text-center pb-4">
+            <motion.div 
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="flex justify-center mb-2"
             >
-              Sign In
-            </a>
-          </p>
-        </div>
+              <div className="bg-[#FFEBEE] p-3 rounded-full">
+                <ChefHat className="h-8 w-8 text-[#E57373]" />
+              </div>
+            </motion.div>
+            <CardTitle className="text-2xl font-bold text-gray-800">Créer un compte</CardTitle>
+            <CardDescription className="text-gray-600 px-4">Rejoignez notre communauté culinaire et commencez votre aventure</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 px-6">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <Alert variant="destructive" className="bg-red-50 text-red-700 border-red-200">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+             
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="block text-sm font-medium text-left text-gray-700">
+                  Prénom
+
+                  </Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Jean"
+                    className="bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
+                    {...register("username")}
+                  />
+                  {errors.username && (
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-red-500 text-xs mt-1"
+                    >
+                      {errors.username.message}
+                    </motion.p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="block text-sm font-medium text-left text-gray-700">
+                    Nom
+                  </Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Dupont"
+                    className="bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
+                    {...register("lastName")}
+                  />
+                  {errors.lastName && (
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-red-500 text-xs mt-1"
+                    >
+                      {errors.lastName.message}
+                    </motion.p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="block text-sm font-medium text-left text-gray-700">
+                  Email
+                </Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-4 w-4 text-[#E57373] opacity-80" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="vous@exemple.com"
+                    className="pl-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
+                    {...register("email")}
+                  />
+                </div>
+                {errors.email && (
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-red-500 text-xs mt-1"
+                  >
+                    {errors.email.message}
+                  </motion.p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="block text-sm font-medium text-left text-gray-700">
+                  Mot de passe
+                </Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-4 w-4 text-[#E57373] opacity-80" />
+                  </div>
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="pl-10 pr-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-red-500 text-xs mt-1"
+                  >
+                    {errors.password.message}
+                  </motion.p>
+                )}
+              </div>
+
+              <div className="flex items-start space-x-2 mb-1">
+                <Checkbox 
+                  id="termsAccepted" 
+                  className="mt-1"
+                  {...register("termsAccepted")} 
+                />
+                <Label htmlFor="termsAccepted" className="text-sm text-gray-600">
+                  J'accepte les <Link to="/terms" className="text-[#E57373] hover:underline">conditions d'utilisation</Link> et la <Link to="/privacy" className="text-[#E57373] hover:underline">politique de confidentialité</Link>
+                </Label>
+              </div>
+              {errors.termsAccepted && (
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-red-500 text-xs -mt-2"
+                >
+                  {errors.termsAccepted.message}
+                </motion.p>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Création du compte...
+                  </>
+                ) : (
+                  "Créer un compte"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
+            <p className="text-center text-sm text-gray-600 mt-4">
+              Vous avez déjà un compte ?{" "}
+              <Link to="/login" className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors">
+                Se connecter
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
       </motion.div>
     </div>
   );
-};
-
-export default Register;
+}

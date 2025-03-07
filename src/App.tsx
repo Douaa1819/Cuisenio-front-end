@@ -3,8 +3,9 @@ import './App.css';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import ProfilePage from './pages/profile/ProfilePage';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import LandingPage from './pages/LandingPage';
+import ProfilePage from './pages/profile/ProfilePage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
+    
           <Route 
             path="/profile" 
             element={
@@ -22,7 +24,7 @@ function App() {
               </PrivateRoute>
             } 
           />
-          <Route path="/" element={<Login />} /> {}
+          <Route path="/" element={<LandingPage />} />
         </Routes>
       </div>
     </Router>
