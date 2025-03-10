@@ -13,17 +13,20 @@ const PROFILE_URL = '/v1/profile';
 export const authService = {
     async register(data: RegisterRequest) {
         const response = await client.post(`${BASE_URL}/register`, data);
-        
+    
         return response.data;
     },
 
     async login(data: LoginRequest) {
         const response = await client.post(`${BASE_URL}/login`, data);
+        this.setToken(response.data.token);
+        console.log(response);
         return response.data;
     },
 
     async getProfile() {
         const response = await client.get<UserProfile>(`${PROFILE_URL}`);
+        console.log(response);
         return response.data;
     },
 
@@ -45,7 +48,9 @@ export const authService = {
     },
 
     getToken() {
-        return localStorage.getItem('token');
+        const t = localStorage.getItem('token');
+        console.log("tooooooooooken"+t);
+        return t;
     },
 
     removeToken() {

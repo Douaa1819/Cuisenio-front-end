@@ -45,10 +45,8 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        await authService.getProfile();
         setIsLoading(true)
-        // TO DO : fetch the profile from your API
-        //  const profileData = await authService.getProfile();
-        // setProfile(profileData);
 
         await new Promise((resolve) => setTimeout(resolve, 1000))
 

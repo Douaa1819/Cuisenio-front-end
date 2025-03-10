@@ -1,11 +1,12 @@
+import { CategoryRequest, CategoryResponse } from '../types/category.types';
 import client from './client';
-import { CategoryResponse, CategoryRequest } from '../types/category.types';
 
 const BASE_URL = '/v1/categories';
 
 export const categoryService = {
     async findAll(page: number = 0, size: number = 10) {
         const response = await client.get<Page<CategoryResponse>>(`${BASE_URL}?page=${page}&size=${size}`);
+        console.log(response);
         return response.data;
     },
 
