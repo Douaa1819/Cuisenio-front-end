@@ -4,6 +4,8 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ProfilePage from '../pages/profile/ProfilePage';
 import PrivateRoute from './PrivateRoute';
+import AdminDashboard from '../pages/dashboard/AdminDashboard';
+
 
 const AppRoutes = () => {
   return (
@@ -11,6 +13,10 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<AdminDashboard />} />
+
+
+
         <Route element={<PrivateRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
