@@ -191,20 +191,45 @@ export default function AdminDashboard() {
       case "overview":
         return (
           <div className="space-y-8">
-            {/* Statistiques */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Ingredients</p>
-                    <h3 className="text-2xl font-semibold">{ingredientCount}</h3>
-                  </div>
-                  <div className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md">
-                    <List className="h-5 w-5" />
-                  </div>
+          {/* Statistiques en une seule ligne */}
+          <div className="flex flex-wrap gap-6">
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 flex-1 min-w-[250px]">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Total Ingredients</p>
+                  <h3 className="text-2xl font-semibold">{ingredientCount}</h3>
+                </div>
+                <div className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md">
+                  <List className="h-5 w-5" />
                 </div>
               </div>
             </div>
+        
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 flex-1 min-w-[250px]">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Total Category</p>
+                  <h3 className="text-2xl font-semibold">5</h3>
+                </div>
+                <div className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md">
+                  <List className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+        
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 flex-1 min-w-[250px]">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Total Users</p>
+                  <h3 className="text-2xl font-semibold">15</h3>
+                </div>
+                <div className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md">
+                  <List className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+          </div>
+     
 
             {/* Liste des ingrédients récents */}
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
