@@ -113,7 +113,7 @@ export default function RegisterForm() {
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
               >
-                <Alert variant="destructive" className="bg-red-50 text-red-700 border-red-200">
+                <Alert variant="error" className="bg-red-50 text-red-700 border-red-200">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               </motion.div>

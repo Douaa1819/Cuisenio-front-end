@@ -33,14 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { Avatar } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Textarea } from "../../components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "../../components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "../../components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import {
   DropdownMenu,
@@ -56,6 +49,7 @@ import { Slider } from "../../components/ui/slider"
 import { Input } from "../../components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
+import { cn } from "../../lib/utils"
 
 interface ImageProps {
   src: string
@@ -83,14 +77,14 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
   )
 }
 
-// Enum pour les niveaux de difficulté
+// Enum for difficulty levels
 enum DifficultyLevel {
   EASY = "EASY",
   MEDIUM = "MEDIUM",
   HARD = "HARD",
 }
 
-// Interface pour les ingrédients
+// Interface for ingredients
 interface RecipeIngredientRequest {
   id?: number
   name: string
@@ -98,11 +92,45 @@ interface RecipeIngredientRequest {
   unit: string
 }
 
-// Interface pour les étapes
+// Interface for steps
 interface RecipeStepRequest {
   id?: number
   stepNumber: number
   description: string
+}
+
+// Interface for recipe
+interface Recipe {
+  id: number
+  title: string
+  chef: string
+  time: string
+  level: string
+  likes: number
+  comments: number
+  image: string
+  description: string
+}
+
+// Interface for comment
+type CommentType = {
+  id: number
+  user: string
+  avatar: string
+  date: string
+  text: string
+  likes: number
+  replies: Reply[]
+}
+
+// Interface for reply
+interface Reply {
+  id: number
+  user: string
+  avatar: string
+  date: string
+  text: string
+  likes: number
 }
 
 export default function CommunityPage() {
@@ -113,9 +141,11 @@ export default function CommunityPage() {
   const [replyText, setReplyText] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [addRecipeDialogOpen, setAddRecipeDialogOpen] = useState(false)
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false)
+  const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // États pour le formulaire d'ajout de recette
+  // Recipe form states
   const [recipeTitle, setRecipeTitle] = useState("")
   const [recipeDescription, setRecipeDescription] = useState("")
   const [recipeDifficulty, setRecipeDifficulty] = useState<DifficultyLevel | "">("")
@@ -139,18 +169,15 @@ export default function CommunityPage() {
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen)
 
   const handleCommentSubmit = () => {
-    // Implement comment submission logic
     console.log("Posted comment:", commentText)
     setCommentText("")
-    // Here you would typically add the comment to your comments array
+    setCommentDialogOpen(false)
   }
 
   const handleReplySubmit = (commentId: number) => {
-    // Implement reply submission logic
     console.log("Posted reply to comment", commentId, ":", replyText)
     setReplyText("")
     setActiveCommentId(null)
-    // Here you would typically add the reply to your comments array
   }
 
   const handleDifficultyChange = (value: string) => {
@@ -218,7 +245,7 @@ export default function CommunityPage() {
       const updatedSteps = [...steps]
       updatedSteps.splice(index, 1)
 
-      // Réindexer les étapes
+      // Reindex steps
       const reindexedSteps = updatedSteps.map((step, idx) => ({
         ...step,
         stepNumber: idx + 1,
@@ -232,11 +259,11 @@ export default function CommunityPage() {
   const handleSubmitRecipe = () => {
     // Validation
     if (!recipeTitle || !recipeDescription || !recipeDifficulty) {
-      alert("Veuillez remplir tous les champs obligatoires")
+      alert("Please fill in all required fields")
       return
     }
 
-    // Créer l'objet de recette
+    // Create recipe object
     const recipeData = {
       title: recipeTitle,
       description: recipeDescription,
@@ -244,7 +271,6 @@ export default function CommunityPage() {
       preparationTime: prepTime,
       cookingTime: cookTime,
       servings: servings,
-      // imageUrl sera géré séparément avec FormData
       category: [Number.parseInt(selectedCategory)],
       ingredients: ingredients.filter((ing) => ing.name.trim() !== ""),
       steps: steps.filter((step) => step.description.trim() !== ""),
@@ -253,16 +279,7 @@ export default function CommunityPage() {
     console.log("Recipe data:", recipeData)
     console.log("Recipe image:", recipeImage)
 
-    // Ici, vous enverriez les données au serveur
-    // Exemple avec FormData pour gérer l'image
-    // const formData = new FormData();
-    // formData.append('recipeData', JSON.stringify(recipeData));
-    // if (recipeImage) {
-    //   formData.append('imageUrl', recipeImage);
-    // }
-    // fetch('/api/recipes', { method: 'POST', body: formData });
-
-    // Réinitialiser le formulaire
+    // Reset form
     setRecipeTitle("")
     setRecipeDescription("")
     setRecipeDifficulty("")
@@ -276,6 +293,11 @@ export default function CommunityPage() {
     setSteps([{ stepNumber: 1, description: "" }])
     setCurrentStep(1)
     setAddRecipeDialogOpen(false)
+  }
+
+  const openCommentDialog = (recipe: Recipe) => {
+    setActiveRecipe(recipe)
+    setCommentDialogOpen(true)
   }
 
   const recipes = [
@@ -347,7 +369,7 @@ export default function CommunityPage() {
     },
   ]
 
-  const comments = [
+  const comments: CommentType[] = [
     {
       id: 1,
       user: "Claire Moreau",
@@ -386,7 +408,7 @@ export default function CommunityPage() {
     },
   ]
 
-  // Catégories pour les filtres
+  // Categories for filters
   const categories = [
     { value: "1", label: "Desserts" },
     { value: "2", label: "Plats principaux" },
@@ -398,7 +420,7 @@ export default function CommunityPage() {
     { value: "8", label: "Sauces et condiments" },
   ]
 
-  // Options de régime alimentaire
+  // Dietary preferences
   const dietaryPreferences = [
     { value: "vegetarian", label: "Végétarien" },
     { value: "vegan", label: "Végan" },
@@ -408,14 +430,14 @@ export default function CommunityPage() {
     { value: "paleo", label: "Paléo" },
   ]
 
-  // Niveaux de difficulté
+  // Difficulty levels
   const difficultyLevels = [
     { value: "EASY", label: "Facile" },
     { value: "MEDIUM", label: "Intermédiaire" },
     { value: "HARD", label: "Difficile" },
   ]
 
-  // Unités de mesure pour les ingrédients
+  // Measurement units
   const units = [
     { value: "g", label: "grammes (g)" },
     { value: "kg", label: "kilogrammes (kg)" },
@@ -452,7 +474,7 @@ export default function CommunityPage() {
               </Link>
             ))}
 
-            {/* Bouton Ajouter une recette */}
+            {/* Add Recipe Button */}
             <Button
               onClick={() => setAddRecipeDialogOpen(true)}
               className="bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5"
@@ -521,12 +543,12 @@ export default function CommunityPage() {
               </PopoverContent>
             </Popover>
 
-            {/* Menu utilisateur */}
+            {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
                   <Avatar className="h-8 w-8 border">
-                    <Image src="/placeholder.svg?height=40&width=40" alt="Profil" width={40} height={40} />
+                    <Image src="/placeholder.svg?height=40&width=40" alt="Profile" width={40} height={40} />
                   </Avatar>
                   <span className="text-sm font-medium hidden md:inline">Jean Dupont</span>
                   <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -577,13 +599,13 @@ export default function CommunityPage() {
           {/* Search and Filter Bar */}
           <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Rechercher des recettes, ingrédients, utilisateurs..."
+                  placeholder="Rechercher..."
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-rose-500 focus:ring focus:ring-rose-200 transition"
                 />
               </div>
@@ -592,7 +614,7 @@ export default function CommunityPage() {
                 <DialogTrigger asChild>
                   <Button variant="outline" className="bg-white border-gray-300 text-gray-700 flex items-center">
                     <Filter className="h-4 w-4 mr-2" />
-                    Filtres avancés
+                    Filtres
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -601,7 +623,7 @@ export default function CommunityPage() {
                   </DialogHeader>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                    {/* Catégories */}
+                    {/* Categories */}
                     <div>
                       <h4 className="font-medium mb-3">Catégories</h4>
                       <div className="grid grid-cols-2 gap-2">
@@ -622,7 +644,7 @@ export default function CommunityPage() {
                       </div>
                     </div>
 
-                    {/* Préférences alimentaires */}
+                    {/* Dietary preferences */}
                     <div>
                       <h4 className="font-medium mb-3">Préférences alimentaires</h4>
                       <div className="grid grid-cols-2 gap-2">
@@ -641,7 +663,7 @@ export default function CommunityPage() {
                       </div>
                     </div>
 
-                    {/* Temps de préparation */}
+                    {/* Preparation time */}
                     <div>
                       <h4 className="font-medium mb-3">Temps de préparation</h4>
                       <div className="px-2">
@@ -661,7 +683,7 @@ export default function CommunityPage() {
                       </div>
                     </div>
 
-                    {/* Niveau de difficulté */}
+                    {/* Difficulty level */}
                     <div>
                       <h4 className="font-medium mb-3">Niveau de difficulté</h4>
                       <div className="space-y-2">
@@ -681,7 +703,7 @@ export default function CommunityPage() {
                     </div>
                   </div>
 
-                  {/* Tri */}
+                  {/* Sort */}
                   <div className="border-t border-gray-200 pt-4">
                     <h4 className="font-medium mb-3">Trier par</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -767,252 +789,39 @@ export default function CommunityPage() {
             </TabsList>
 
             <TabsContent value="recettes" className="space-y-8">
-              {/* Featured Recipe */}
-              <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 transition-shadow hover:shadow-lg">
-                <div className="md:flex">
-                  <div className="md:w-1/2 relative h-64 md:h-auto">
-                    <Image
-                      src="/placeholder.svg?height=500&width=800"
-                      alt="Tarte aux Pommes"
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-rose-500 text-white hover:bg-rose-600">
-                        <TrendingUp className="h-3 w-3 mr-1" /> Tendance
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="md:w-1/2 p-6 md:p-8">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-2">Tarte aux Pommes Traditionnelle</h2>
-                        <div className="flex items-center text-sm text-gray-500 mb-2">
-                          <span className="flex items-center mr-4">
-                            <Clock className="h-3 w-3 mr-1" /> 60 min
-                          </span>
-                          <span>Niveau: Intermédiaire</span>
-                        </div>
-                        <div className="flex items-center mb-4 flex-wrap gap-2">
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Dessert</Badge>
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Français</Badge>
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Végétarien</Badge>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                          <Heart className="h-5 w-5 text-gray-500" />
-                        </button>
-                        <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                          <BookmarkIcon className="h-5 w-5 text-gray-500" />
-                        </button>
-                        <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                          <Share2 className="h-5 w-5 text-gray-500" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <p className="text-gray-600 mb-6">
-                      Une délicieuse tarte aux pommes avec une touche de cannelle et une pâte croustillante. Parfaite
-                      pour les après-midis d'automne ou comme dessert lors d'un dîner en famille.
-                    </p>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Avatar className="h-10 w-10 mr-3 border">
-                          <Image src="/placeholder.svg?height=50&width=50" alt="Marie Dubois" width={50} height={50} />
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">Marie Dubois</p>
-                          <p className="text-xs text-gray-500">Partagé il y a 3 jours</p>
-                        </div>
-                      </div>
-                      <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Comments Section as Cards */}
-                <div className="border-t border-gray-100 p-6 md:p-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-semibold text-lg flex items-center">
-                      <MessageCircle className="h-5 w-5 mr-2" /> Commentaires ({comments.length})
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    {comments.map((comment) => (
-                      <Card key={comment.id} className="overflow-hidden">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Avatar className="h-8 w-8 mr-2 border">
-                                <Image
-                                  src={comment.avatar || "/placeholder.svg"}
-                                  alt={comment.user}
-                                  width={40}
-                                  height={40}
-                                />
-                              </Avatar>
-                              <div>
-                                <p className="font-medium text-sm">{comment.user}</p>
-                                <p className="text-xs text-gray-500">{comment.date}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center text-gray-500">
-                              <button className="p-1 hover:text-rose-500">
-                                <Heart className="h-4 w-4" />
-                              </button>
-                              <span className="text-xs ml-1">{comment.likes}</span>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-2">
-                          <p className="text-sm text-gray-700">{comment.text}</p>
-
-                          {comment.replies && comment.replies.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <p className="text-xs text-gray-500 mb-2">
-                                {comment.replies.length} réponse{comment.replies.length > 1 ? "s" : ""}
-                              </p>
-                              {comment.replies.map((reply) => (
-                                <div key={reply.id} className="flex items-start gap-2 mb-2">
-                                  <Avatar className="h-6 w-6 flex-shrink-0 border">
-                                    <Image
-                                      src={reply.avatar || "/placeholder.svg"}
-                                      alt={reply.user}
-                                      width={30}
-                                      height={30}
-                                    />
-                                  </Avatar>
-                                  <div className="flex-1">
-                                    <div className="bg-gray-50 p-2 rounded-lg">
-                                      <p className="text-xs font-medium">{reply.user}</p>
-                                      <p className="text-xs text-gray-700">{reply.text}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter className="p-3 pt-0 flex justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-gray-500 hover:text-rose-500"
-                            onClick={() => setActiveCommentId(comment.id)}
-                          >
-                            Répondre
-                          </Button>
-
-                          {activeCommentId === comment.id && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md">
-                              <div className="flex gap-2">
-                                <Avatar className="h-6 w-6 flex-shrink-0 border">
-                                  <Image
-                                    src="/placeholder.svg?height=30&width=30"
-                                    alt="Votre avatar"
-                                    width={30}
-                                    height={30}
-                                  />
-                                </Avatar>
-                                <div className="flex-1 relative">
-                                  <Textarea
-                                    placeholder="Écrire une réponse..."
-                                    className="resize-none text-xs min-h-[60px]"
-                                    value={replyText}
-                                    onChange={(e) => setReplyText(e.target.value)}
-                                  />
-                                  <div className="flex justify-end mt-2 gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-xs"
-                                      onClick={() => {
-                                        setActiveCommentId(null)
-                                        setReplyText("")
-                                      }}
-                                    >
-                                      Annuler
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      className="text-xs bg-rose-500 hover:bg-rose-600 text-white"
-                                      disabled={!replyText.trim()}
-                                      onClick={() => handleReplySubmit(comment.id)}
-                                    >
-                                      Envoyer
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Add Comment */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <h4 className="text-sm font-medium mb-3">Ajouter un commentaire</h4>
-                    <div className="flex gap-3">
-                      <Avatar className="h-8 w-8 flex-shrink-0 border">
-                        <Image src="/placeholder.svg?height=40&width=40" alt="Votre avatar" width={40} height={40} />
-                      </Avatar>
-                      <div className="flex-1 relative">
-                        <Textarea
-                          placeholder="Partagez votre avis sur cette recette..."
-                          className="resize-none pr-12 text-sm"
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                        />
-                        <Button
-                          className={`absolute bottom-3 right-3 p-2 rounded-full ${
-                            commentText.trim()
-                              ? "bg-rose-500 hover:bg-rose-600 text-white"
-                              : "bg-gray-100 text-gray-400"
-                          }`}
-                          size="sm"
-                          disabled={!commentText.trim()}
-                          onClick={handleCommentSubmit}
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Other Recipes */}
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-xl">Recettes de la communauté</h3>
-                <Button variant="outline" className="text-sm">
-                  Voir tout
-                </Button>
-              </div>
-
+              {/* All Recipes as Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {recipes.map((recipe) => (
                   <Card
                     key={recipe.id}
-                    className="overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
+                    className={cn(
+                      "overflow-hidden group cursor-pointer hover:shadow-md transition-shadow",
+                      recipe.id === 1 ? "sm:col-span-2 lg:col-span-3" : "",
+                    )}
                   >
-                    <div className="relative h-48">
+                    <div className={cn("relative", recipe.id === 1 ? "h-64 md:h-80" : "h-48")}>
                       <Image
                         src={recipe.image || "/placeholder.svg"}
                         alt={recipe.title}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute top-0 right-0 p-2 flex space-x-1">
+                      {recipe.id === 1 && (
+                        <div className="absolute top-4 left-4">
+                          <Badge className="bg-rose-500 text-white hover:bg-rose-600">
+                            <TrendingUp className="h-3 w-3 mr-1" /> Tendance
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2 p-2 flex space-x-1">
                         <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
                           <Heart className="h-4 w-4 text-gray-600 hover:text-rose-500" />
                         </button>
                         <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
                           <BookmarkIcon className="h-4 w-4 text-gray-600 hover:text-rose-500" />
+                        </button>
+                        <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
+                          <Share2 className="h-4 w-4 text-gray-600 hover:text-rose-500" />
                         </button>
                       </div>
                     </div>
@@ -1027,20 +836,67 @@ export default function CommunityPage() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
-                    </CardContent>
-                    <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                      <div className="flex justify-between items-center w-full">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="flex items-center mr-3">
-                            <Heart className="h-3 w-3 mr-1" /> {recipe.likes}
-                          </span>
-                          <span className="flex items-center">
-                            <MessageCircle className="h-3 w-3 mr-1" /> {recipe.comments}
-                          </span>
+
+                      {recipe.id === 1 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Dessert</Badge>
+                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Français</Badge>
+                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Végétarien</Badge>
                         </div>
-                        <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">{recipe.level}</Badge>
-                      </div>
-                    </CardFooter>
+                      )}
+
+                      {recipe.id === 1 && (
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center">
+                            <Avatar className="h-8 w-8 mr-2 border">
+                              <Image
+                                src="/placeholder.svg?height=40&width=40"
+                                alt={recipe.chef}
+                                width={40}
+                                height={40}
+                              />
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">{recipe.chef}</p>
+                              <p className="text-xs text-gray-500">Partagé il y a 3 jours</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {recipe.id === 1 && (
+                        <div className="flex justify-between items-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-rose-500 border-rose-200"
+                            onClick={() => openCommentDialog(recipe)}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-1" /> Commenter
+                          </Button>
+                          <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
+                        </div>
+                      )}
+                    </CardContent>
+
+                    {recipe.id !== 1 && (
+                      <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                        <div className="flex justify-between items-center w-full">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <span className="flex items-center mr-3">
+                              <Heart className="h-3 w-3 mr-1" /> {recipe.likes}
+                            </span>
+                            <button
+                              className="flex items-center hover:text-rose-500"
+                              onClick={() => openCommentDialog(recipe)}
+                            >
+                              <MessageCircle className="h-3 w-3 mr-1" /> {recipe.comments}
+                            </button>
+                          </div>
+                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">{recipe.level}</Badge>
+                        </div>
+                      </CardFooter>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -1135,7 +991,149 @@ export default function CommunityPage() {
         </div>
       </main>
 
-      {/* Dialogue pour ajouter une recette */}
+      {/* Comment Dialog */}
+      <Dialog open={commentDialogOpen} onOpenChange={setCommentDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Commentaires - {activeRecipe?.title}</DialogTitle>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto py-4">
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <Card key={comment.id} className="overflow-hidden">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Avatar className="h-8 w-8 mr-2 border">
+                          <Image src={comment.avatar || "/placeholder.svg"} alt={comment.user} width={40} height={40} />
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">{comment.user}</p>
+                          <p className="text-xs text-gray-500">{comment.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-gray-500">
+                        <button className="p-1 hover:text-rose-500">
+                          <Heart className="h-4 w-4" />
+                        </button>
+                        <span className="text-xs ml-1">{comment.likes}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2">
+                    <p className="text-sm text-gray-700">{comment.text}</p>
+
+                    {comment.replies && comment.replies.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 mb-2">
+                          {comment.replies.length} réponse{comment.replies.length > 1 ? "s" : ""}
+                        </p>
+                        {comment.replies.map((reply) => (
+                          <div key={reply.id} className="flex items-start gap-2 mb-2">
+                            <Avatar className="h-6 w-6 flex-shrink-0 border">
+                              <Image src={reply.avatar || "/placeholder.svg"} alt={reply.user} width={30} height={30} />
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="bg-gray-50 p-2 rounded-lg">
+                                <p className="text-xs font-medium">{reply.user}</p>
+                                <p className="text-xs text-gray-700">{reply.text}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="p-3 pt-0 flex justify-between">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-gray-500 hover:text-rose-500"
+                      onClick={() => setActiveCommentId(comment.id)}
+                    >
+                      Répondre
+                    </Button>
+
+                    {activeCommentId === comment.id && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md">
+                        <div className="flex gap-2">
+                          <Avatar className="h-6 w-6 flex-shrink-0 border">
+                            <Image
+                              src="/placeholder.svg?height=30&width=30"
+                              alt="Votre avatar"
+                              width={30}
+                              height={30}
+                            />
+                          </Avatar>
+                          <div className="flex-1 relative">
+                            <Textarea
+                              placeholder="Écrire une réponse..."
+                              className="resize-none text-xs min-h-[60px]"
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                            />
+                            <div className="flex justify-end mt-2 gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => {
+                                  setActiveCommentId(null)
+                                  setReplyText("")
+                                }}
+                              >
+                                Annuler
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="text-xs bg-rose-500 hover:bg-rose-600 text-white"
+                                disabled={!replyText.trim()}
+                                onClick={() => handleReplySubmit(comment.id)}
+                              >
+                                Envoyer
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Add Comment */}
+          <div className="border-t border-gray-200 pt-4">
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8 flex-shrink-0 border">
+                <Image src="/placeholder.svg?height=40&width=40" alt="Votre avatar" width={40} height={40} />
+              </Avatar>
+              <div className="flex-1 relative">
+                <Textarea
+                  placeholder="Partagez votre avis sur cette recette..."
+                  className="resize-none pr-12 text-sm"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                />
+                <Button
+                  className={`absolute bottom-3 right-3 p-2 rounded-full ${
+                    commentText.trim() ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-gray-100 text-gray-400"
+                  }`}
+                  size="sm"
+                  disabled={!commentText.trim()}
+                  onClick={handleCommentSubmit}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Recipe Dialog */}
       <Dialog open={addRecipeDialogOpen} onOpenChange={setAddRecipeDialogOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1144,7 +1142,7 @@ export default function CommunityPage() {
 
           <div className="py-4">
             <div className="grid grid-cols-1 gap-6">
-              {/* Image de la recette */}
+              {/* Recipe image */}
               <div className="mb-4">
                 <Label htmlFor="recipe-image" className="block text-sm font-medium mb-2">
                   Image de la recette
@@ -1195,7 +1193,7 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              {/* Informations de base */}
+              {/* Basic information */}
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="recipe-title" className="block text-sm font-medium mb-1">
@@ -1309,7 +1307,7 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              {/* Ingrédients */}
+              {/* Ingredients */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <Label className="block text-sm font-medium">
@@ -1374,7 +1372,7 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              {/* Étapes */}
+              {/* Steps */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <Label className="block text-sm font-medium">

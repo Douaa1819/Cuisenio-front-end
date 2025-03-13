@@ -64,7 +64,7 @@ export default function LandingPage() {
               </Link>
             ))}
             <Link to="/auth/login">
-              <Button variant="default" className="bg-rose-500 hover:bg-rose-600 text-white">
+              <Button variant="primary" className="bg-rose-500 hover:bg-rose-600 text-white">
                 Connexion
               </Button>
             </Link>
