@@ -1,557 +1,573 @@
-// "use client"
+"use client"
 
-// import { useState, useEffect } from "react"
-// import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns"
-// import { fr } from "date-fns/locale"
-// import { Clock, Plus, Trash2, Edit, ChevronLeft, ChevronRight, Info } from "lucide-react"
-// import { Button } from "../../components/ui/button"
-// import { Card } from "../../components/ui/card"
-// import { Select } from "../../components/ui/select"
-// import { Input } from "../../components/ui/input"
-// import { Textarea } from "../../components/ui/textarea"
-// import { Dialog } from "../../components/ui/dialog"
-// import { useshowToast } from "../../hooks/use-showToast"
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { ArrowLeft, ArrowRight, Calendar, ChefHat, Clock, Download, Filter, Menu, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react'
+import { Button } from "../../components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
+import { Badge } from "../../components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog"
+import { Checkbox } from "../../components/ui/checkbox"
+import { Label } from "../../components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 
-// // Types basés sur votre backend DTOs
-// type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
-// type DayOfWeek = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY"
+interface ImageProps {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  className?: string;
+  fill?: boolean;
+}
 
-// interface Recipe {
-//   id: number
-//   title: string
-//   description: string
-//   difficultyLevel: string
-//   preparationTime: number
-//   cookingTime: number
-//   servings: number
-//   imageUrl: string
-// }
+interface MealItem {
+  name: string;
+  time: string;
+  image: string;
+}
 
-// interface MealPlan {
-//   id: number
-//   planningDate: string
-//   dayOfWeek: DayOfWeek
-//   mealType: MealType
-//   servings: number
-//   notes: string
-//   recipe: Recipe
-// }
+interface DayMeals {
+  [key: string]: MealItem;
+}
 
-// const dayNames = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
-// const mealTypeNames = {
-//   BREAKFAST: "Petit-déjeuner",
-//   LUNCH: "Déjeuner",
-//   DINNER: "Dîner",
-//   SNACK: "Collation",
-// }
+interface MealPlanType {
+  [key: string]: DayMeals;
+}
 
-// export default function MealPlannerPage() {
-//   const [mealPlans, setMealPlans] = useState<MealPlan[]>([])
-//   const [recipes, setRecipes] = useState<Recipe[]>([])
-//   const [selectedRecipe, setSelectedRecipe] = useState<number | null>(null)
-//   const [selectedDay, setSelectedDay] = useState<DayOfWeek>("MONDAY")
-//   const [selectedMealType, setSelectedMealType] = useState<MealType>("BREAKFAST")
-//   const [servings, setServings] = useState<number>(2)
-//   const [notes, setNotes] = useState<string>("")
-//   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-//   const [isEditMode, setIsEditMode] = useState(false)
-//   const [currentEditId, setCurrentEditId] = useState<number | null>(null)
-//   const [currentWeek, setCurrentWeek] = useState<Date>(new Date())
-//   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false)
-//   const { showToast } = useshowToast()
+const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
+  const style = fill ? {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const
+  } : {};
 
-//   // Obtenir le début et la fin de la semaine courante
-//   const getWeekDates = () => {
-//     const monday = startOfWeek(currentWeek, { weekStartsOn: 1 }) // Semaine commence le lundi
+  return (
+    <img
+      src={src || "/placeholder.svg"}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      style={style}
+    />
+  );
+};
 
-//     const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+export default function MealPlannerPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [currentWeek, setCurrentWeek] = useState("Cette semaine")
+  const [showFilters, setShowFilters] = useState(false)
+  const [openDialog, setOpenDialog] = useState<string | null>(null)
+  const [openAddDialog, setOpenAddDialog] = useState<string | null>(null)
 
-//     return { monday, days }
-//   }
+  const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen)
+  const toggleFilters = () => setShowFilters(!showFilters)
 
-//   const formatDate = (date: Date) => {
-//     return format(date, "yyyy-MM-dd")
-//   }
+  // Jours de la semaine
+  const weekDays = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+  
+  // Repas de la journée
+  const mealTypes = ["Petit-déjeuner", "Déjeuner", "Dîner"]
 
-//   const formatDisplayDate = (date: Date) => {
-//     return format(date, "d MMM", { locale: fr })
-//   }
+  // Exemple de plan de repas
+  const mealPlan: MealPlanType = {
+    "Lundi": {
+      "Petit-déjeuner": { name: "Smoothie aux fruits", time: "10 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Salade César", time: "20 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Poulet rôti aux herbes", time: "60 min", image: "/placeholder.svg?height=100&width=100" }
+    },
+    "Mardi": {
+      "Petit-déjeuner": { name: "Avocado toast", time: "15 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Wrap au poulet", time: "15 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Pâtes à la carbonara", time: "30 min", image: "/placeholder.svg?height=100&width=100" }
+    },
+    "Mercredi": {
+      "Petit-déjeuner": { name: "Porridge aux fruits", time: "10 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Buddha bowl", time: "25 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Saumon grillé", time: "25 min", image: "/placeholder.svg?height=100&width=100" }
+    },
+    "Jeudi": {
+      "Petit-déjeuner": { name: "Œufs brouillés", time: "10 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Quiche aux légumes", time: "45 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Curry de légumes", time: "35 min", image: "/placeholder.svg?height=100&width=100" }
+    },
+    "Vendredi": {
+      "Petit-déjeuner": { name: "Pancakes", time: "20 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Soupe de légumes", time: "30 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Pizza maison", time: "45 min", image: "/placeholder.svg?height=100&width=100" }
+    },
+    "Samedi": {
+      "Petit-déjeuner": { name: "Granola maison", time: "10 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Burger végétarien", time: "30 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Risotto aux champignons", time: "40 min", image: "/placeholder.svg?height=100&width=100" }
+    },
+    "Dimanche": {
+      "Petit-déjeuner": { name: "Brunch complet", time: "30 min", image: "/placeholder.svg?height=100&width=100" },
+      "Déjeuner": { name: "Rôti de bœuf", time: "90 min", image: "/placeholder.svg?height=100&width=100" },
+      "Dîner": { name: "Soupe miso", time: "20 min", image: "/placeholder.svg?height=100&width=100" }
+    }
+  }
 
-//   // Charger les plans de repas pour la semaine courante
-//   useEffect(() => {
-//     fetchMealPlans()
-//     fetchRecipes()
-//   }, [currentWeek])
+  // Exemple de liste de courses
+  const shoppingList = [
+    { category: "Fruits et Légumes", items: [
+      { name: "Avocats", quantity: "3", checked: false },
+      { name: "Tomates", quantity: "500g", checked: true },
+      { name: "Salade", quantity: "1", checked: false },
+      { name: "Carottes", quantity: "6", checked: false },
+      { name: "Pommes", quantity: "4", checked: true }
+    ]},
+    { category: "Viandes et Poissons", items: [
+      { name: "Poulet", quantity: "1kg", checked: false },
+      { name: "Saumon", quantity: "400g", checked: false },
+      { name: "Bœuf haché", quantity: "500g", checked: true }
+    ]},
+    { category: "Produits Laitiers", items: [
+      { name: "Œufs", quantity: "12", checked: false },
+      { name: "Fromage râpé", quantity: "200g", checked: false },
+      { name: "Yaourt nature", quantity: "4", checked: true }
+    ]},
+    { category: "Épicerie", items: [
+      { name: "Pâtes", quantity: "500g", checked: false },
+      { name: "Riz", quantity: "1kg", checked: true },
+      { name: "Huile d'olive", quantity: "1", checked: false },
+      { name: "Curry en poudre", quantity: "1", checked: false }
+    ]}
+  ]
 
-//   const fetchMealPlans = async () => {
-//     try {
-//       // Dans une vraie application, vous filtreriez par plage de dates
-//       // const response = await fetch('/api/meal-plans')
+  // Recettes suggérées
+  const suggestedRecipes = [
+    { id: 1, name: "Lasagnes végétariennes", time: "60 min", difficulty: "Moyen", image: "/placeholder.svg?height=200&width=200" },
+    { id: 2, name: "Salade niçoise", time: "20 min", difficulty: "Facile", image: "/placeholder.svg?height=200&width=200" },
+    { id: 3, name: "Poulet au citron", time: "45 min", difficulty: "Facile", image: "/placeholder.svg?height=200&width=200" },
+    { id: 4, name: "Tarte aux légumes", time: "50 min", difficulty: "Moyen", image: "/placeholder.svg?height=200&width=200" }
+  ]
 
-//       // Simulons des données pour le développement
-//       const { days } = getWeekDates()
-//       const mockMealPlans: MealPlan[] = []
+  return (
+    <div className="min-h-screen bg-white text-gray-800">
+      {/* Navigation */}
+      <header className="fixed top-0 left-0 w-full bg-white z-50 border-b border-gray-100">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <Link to="/" className="flex items-center space-x-2">
+            <ChefHat className="h-6 w-6 text-rose-500" />
+            <span className="font-medium text-xl">Cuisenio</span>
+          </Link>
 
-//       // Générer quelques plans de repas aléatoires
-//       for (let i = 0; i < 10; i++) {
-//         const randomDayIndex = Math.floor(Math.random() * 7)
-//         const randomMealType = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"][Math.floor(Math.random() * 4)] as MealType
+          <nav
+            className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-8 items-center shadow-md md:shadow-none z-50`}
+          >
+            {["Recettes", "Ingrédients", "Communauté", "Planificateur"].map((item) => (
+              <Link
+                key={item}
+                to={item === "Communauté" ? "/community" : item === "Planificateur" ? "/meal-planner" : "#"}
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  item === "Planificateur" ? "text-rose-500" : "text-gray-600 hover:text-rose-500"
+                }`}
+              >
+                {item}
+              </Link>
+            ))}
+            <Link to="/auth/login">
+              <Button variant="default" className="bg-rose-500 hover:bg-rose-600 text-white">
+                Connexion
+              </Button>
+            </Link>
+          </nav>
 
-//         // Vérifier qu'il n'y a pas déjà un repas pour ce jour et ce type
-//         const exists = mockMealPlans.some(
-//           (plan) => plan.dayOfWeek === dayNames[randomDayIndex] && plan.mealType === randomMealType,
-//         )
+          <button onClick={toggleMobileMenu} className="md:hidden text-gray-800">
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      </header>
 
-//         if (!exists) {
-//           mockMealPlans.push({
-//             id: i + 1,
-//             planningDate: formatDate(days[randomDayIndex]),
-//             dayOfWeek: dayNames[randomDayIndex] as DayOfWeek,
-//             mealType: randomMealType,
-//             servings: Math.floor(Math.random() * 4) + 1,
-//             notes: Math.random() > 0.7 ? "Notes pour ce repas" : "",
-//             recipe: {
-//               id: Math.floor(Math.random() * 20) + 1,
-//               title: `Recette ${Math.floor(Math.random() * 20) + 1}`,
-//               description: "Description de la recette",
-//               difficultyLevel: ["EASY", "MEDIUM", "HARD"][Math.floor(Math.random() * 3)],
-//               preparationTime: Math.floor(Math.random() * 30) + 10,
-//               cookingTime: Math.floor(Math.random() * 60) + 15,
-//               servings: Math.floor(Math.random() * 4) + 2,
-//               imageUrl: "/placeholder.svg?height=400&width=600",
-//             },
-//           })
-//         }
-//       }
+      {/* Main Content */}
+      <main className="pt-28 pb-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          {/* Meal Planner Header */}
+          <div className="mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Planificateur de Repas</h1>
+                <p className="text-gray-600">
+                  Organisez vos repas de la semaine et générez automatiquement votre liste de courses
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" /> Exporter
+                </Button>
+                <Button className="bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Nouveau Plan
+                </Button>
+              </div>
+            </div>
 
-//       setMealPlans(mockMealPlans)
-//     } catch (error) {
-//       showToast({
-//         title: "Erreur",
-//         description: "Impossible de charger les plans de repas",
-//         variant: "destructive",
-//       })
-//     }
-//   }
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Select value={currentWeek} onValueChange={setCurrentWeek}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Sélectionner une semaine" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semaine précédente">Semaine précédente</SelectItem>
+                    <SelectItem value="Cette semaine">Cette semaine</SelectItem>
+                    <SelectItem value="Semaine prochaine">Semaine prochaine</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                  onClick={toggleFilters}
+                >
+                  <Filter className="h-4 w-4" /> Filtres
+                </Button>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" /> Calendrier
+                </Button>
+              </div>
+            </div>
+          </div>
 
-//   const fetchRecipes = async () => {
-//     try {
-//       // Dans une vraie application, vous appelleriez votre API
-//       // const response = await fetch('/api/recipes')
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium mb-3">Filtres</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="diet" className="text-sm">Régime alimentaire</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="diet" className="w-full mt-1">
+                      <SelectValue placeholder="Tous" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="vegetarian">Végétarien</SelectItem>
+                      <SelectItem value="vegan">Végan</SelectItem>
+                      <SelectItem value="gluten-free">Sans gluten</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="time" className="text-sm">Temps de préparation</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="time" className="w-full mt-1">
+                      <SelectValue placeholder="Tous" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="15">Moins de 15 min</SelectItem>
+                      <SelectItem value="30">Moins de 30 min</SelectItem>
+                      <SelectItem value="60">Moins de 60 min</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="difficulty" className="text-sm">Difficulté</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="difficulty" className="w-full mt-1">
+                      <SelectValue placeholder="Tous" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="easy">Facile</SelectItem>
+                      <SelectItem value="medium">Moyen</SelectItem>
+                      <SelectItem value="hard">Difficile</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button variant="outline" size="sm" className="mr-2">Réinitialiser</Button>
+                <Button size="sm" className="bg-rose-500 hover:bg-rose-600 text-white">Appliquer</Button>
+              </div>
+            </div>
+          )}
 
-//       // Simulons des données pour le développement
-//       const mockRecipes: Recipe[] = Array.from({ length: 20 }, (_, i) => ({
-//         id: i + 1,
-//         title: `Recette ${i + 1}`,
-//         description: `Description de la recette ${i + 1}`,
-//         difficultyLevel: ["EASY", "MEDIUM", "HARD"][Math.floor(Math.random() * 3)],
-//         preparationTime: Math.floor(Math.random() * 30) + 10,
-//         cookingTime: Math.floor(Math.random() * 60) + 15,
-//         servings: Math.floor(Math.random() * 4) + 2,
-//         imageUrl: "/placeholder.svg?height=400&width=600",
-//       }))
+          {/* Meal Planner Tabs */}
+          <Tabs defaultValue="planner" className="mb-10">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="planner" className="text-sm">Planificateur</TabsTrigger>
+              <TabsTrigger value="shopping" className="text-sm">Liste de Courses</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="planner">
+              {/* Meal Planner Grid */}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="p-3 bg-gray-50 border text-left font-medium text-sm"></th>
+                      {weekDays.map(day => (
+                        <th key={day} className="p-3 bg-gray-50 border text-left font-medium text-sm">{day}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mealTypes.map(mealType => (
+                      <tr key={mealType}>
+                        <td className="p-3 border font-medium text-sm bg-gray-50">{mealType}</td>
+                        {weekDays.map(day => (
+                          <td key={`${day}-${mealType}`} className="p-2 border">
+                            {mealPlan[day]?.[mealType] ? (
+                              <div className="flex items-center gap-3">
+                                <div className="relative h-12 w-12 flex-shrink-0">
+                                  <Image
+                                    src={mealPlan[day][mealType].image || "/placeholder.svg"}
+                                    alt={mealPlan[day][mealType].name}
+                                    fill
+                                    className="object-cover rounded-md"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{mealPlan[day][mealType].name}</p>
+                                  <p className="text-xs text-gray-500 flex items-center">
+                                    <Clock className="h-3 w-3 mr-1" /> {mealPlan[day][mealType].time}
+                                  </p>
+                                </div>
+                                <Dialog open={openDialog === `${day}-${mealType}`} onOpenChange={(open) => setOpenDialog(open ? `${day}-${mealType}` : null)}>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => setOpenDialog(`${day}-${mealType}`)}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Modifier le repas</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                      <p className="text-sm font-medium">{day} - {mealType}</p>
+                                      <div className="grid grid-cols-1 gap-4">
+                                        {suggestedRecipes.map(recipe => (
+                                          <div key={recipe.id} className="flex items-center gap-3 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <div className="relative h-16 w-16 flex-shrink-0">
+                                              <Image
+                                                src={recipe.image || "/placeholder.svg"}
+                                                alt={recipe.name}
+                                                fill
+                                                className="object-cover rounded-md"
+                                              />
+                                            </div>
+                                            <div className="flex-1">
+                                              <p className="font-medium">{recipe.name}</p>
+                                              <div className="flex items-center text-sm text-gray-500">
+                                                <Clock className="h-3 w-3 mr-1" /> {recipe.time}
+                                                <Badge className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                                  {recipe.difficulty}
+                                                </Badge>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            ) : (
+                              <Dialog open={openAddDialog === `${day}-${mealType}`} onOpenChange={(open) => setOpenAddDialog(open ? `${day}-${mealType}` : null)}>
+                                <Button 
+                                  variant="ghost" 
+                                  className="w-full h-12 border-dashed border-2 border-gray-200 text-gray-400 hover:text-rose-500 hover:border-rose-200"
+                                  onClick={() => setOpenAddDialog(`${day}-${mealType}`)}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" /> Ajouter
+                                </Button>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Ajouter un repas</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="grid gap-4 py-4">
+                                    <p className="text-sm font-medium">{day} - {mealType}</p>
+                                    <div className="relative">
+                                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                      <input
+                                        type="text"
+                                        placeholder="Rechercher une recette..."
+                                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-rose-500 focus:ring focus:ring-rose-200 transition"
+                                      />
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4">
+                                      {suggestedRecipes.map(recipe => (
+                                        <div key={recipe.id} className="flex items-center gap-3 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                                          <div className="relative h-16 w-16 flex-shrink-0">
+                                            <Image
+                                              src={recipe.image || "/placeholder.svg"}
+                                              alt={recipe.name}
+                                              fill
+                                              className="object-cover rounded-md"
+                                            />
+                                          </div>
+                                          <div className="flex-1">
+                                            <p className="font-medium">{recipe.name}</p>
+                                            <div className="flex items-center text-sm text-gray-500">
+                                              <Clock className="h-3 w-3 mr-1" /> {recipe.time}
+                                              <Badge className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                                {recipe.difficulty}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="shopping">
+              {/* Shopping List */}
+              <div className="bg-white rounded-lg border border-gray-200">
+                <div className="p-4 border-b flex justify-between items-center">
+                  <h3 className="font-semibold flex items-center">
+                    <ShoppingBag className="h-5 w-5 mr-2 text-rose-500" /> Liste de Courses
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Download className="h-4 w-4" /> Exporter
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-rose-500 border-rose-200 hover:bg-rose-50">
+                      Tout effacer
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="p-4">
+                  {shoppingList.map((category, index) => (
+                    <div key={index} className="mb-6 last:mb-0">
+                      <h4 className="font-medium mb-3 pb-2 border-b">{category.category}</h4>
+                      <ul className="space-y-2">
+                        {category.items.map((item, itemIndex) => (
+                          <li key={itemIndex} className="flex items-center gap-3">
+                            <Checkbox id={`item-${index}-${itemIndex}`} checked={item.checked} />
+                            <Label
+                              htmlFor={`item-${index}-${itemIndex}`}
+                              className={`flex-1 flex justify-between ${item.checked ? 'line-through text-gray-400' : ''}`}
+                            >
+                              <span>{item.name}</span>
+                              <span className="text-gray-500">{item.quantity}</span>
+                            </Label>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-rose-500">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="p-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Ajouter un article..."
+                      className="flex-1 py-2 px-3 rounded-lg border border-gray-300 focus:border-rose-500 focus:ring focus:ring-rose-200 transition"
+                    />
+                    <Select defaultValue="fruits">
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fruits">Fruits et Légumes</SelectItem>
+                        <SelectItem value="meat">Viandes et Poissons</SelectItem>
+                        <SelectItem value="dairy">Produits Laitiers</SelectItem>
+                        <SelectItem value="grocery">Épicerie</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button className="bg-rose-500 hover:bg-rose-600 text-white">
+                      Ajouter
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
-//       setRecipes(mockRecipes)
-//     } catch (error) {
-//       showToast({
-//         title: "Erreur",
-//         description: "Impossible de charger les recettes",
-//         variant: "destructive",
-//       })
-//     }
-//   }
+          {/* Recipe Suggestions */}
+          <section className="mt-12">
+            <h2 className="text-2xl font-bold mb-6">Suggestions de Recettes</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {suggestedRecipes.map(recipe => (
+                <div key={recipe.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100 group cursor-pointer">
+                  <div className="relative h-48">
+                    <Image
+                      src={recipe.image || "/placeholder.svg"}
+                      alt={recipe.name}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white h-8 w-8 p-0 rounded-full"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-medium mb-1 group-hover:text-rose-500 transition-colors">
+                      {recipe.name}
+                    </h3>
+                    <div className="flex justify-between items-center text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" /> {recipe.time}
+                      </span>
+                      <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">
+                        {recipe.difficulty}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      </main>
 
-//   const handleAddMealPlan = async () => {
-//     if (!selectedRecipe) {
-//       showToast({
-//         title: "Erreur",
-//         description: "Veuillez sélectionner une recette",
-//         variant: "destructive",
-//       })
-//       return
-//     }
-
-//     const { days } = getWeekDates()
-//     const dayIndex = dayNames.indexOf(selectedDay)
-//     const planDate = days[dayIndex]
-
-//     const mealPlanData = {
-//       planningDate: formatDate(planDate),
-//       dayOfWeek: selectedDay,
-//       mealType: selectedMealType,
-//       servings: servings,
-//       notes: notes,
-//     }
-
-//     try {
-//       if (isEditMode && currentEditId) {
-//         // Mettre à jour un plan de repas existant
-//         // const response = await fetch(`/api/meal-plans/${currentEditId}`, {
-//         //   method: 'PUT',
-//         //   headers: { 'Content-Type': 'application/json' },
-//         //   body: JSON.stringify(mealPlanData),
-//         // })
-
-//         // Simuler la mise à jour
-//         setMealPlans(
-//           mealPlans.map((plan) =>
-//             plan.id === currentEditId
-//               ? {
-//                   ...plan,
-//                   ...mealPlanData,
-//                   recipe: recipes.find((r) => r.id === selectedRecipe) || plan.recipe,
-//                 }
-//               : plan,
-//           ),
-//         )
-
-//         showToast({
-//           title: "Succès",
-//           description: "Plan de repas mis à jour avec succès",
-//         })
-//       } else {
-//         // Créer un nouveau plan de repas
-//         // const response = await fetch(`/api/recipes/${selectedRecipe}/meal-plans`, {
-//         //   method: 'POST',
-//         //   headers: { 'Content-Type': 'application/json' },
-//         //   body: JSON.stringify(mealPlanData),
-//         // })
-
-//         // Simuler la création
-//         const newId = Math.max(...mealPlans.map((p) => p.id), 0) + 1
-//         const recipe = recipes.find((r) => r.id === selectedRecipe)
-
-//         if (recipe) {
-//           const newMealPlan: MealPlan = {
-//             id: newId,
-//             ...mealPlanData,
-//             recipe,
-//           }
-
-//           setMealPlans([...mealPlans, newMealPlan])
-//         }
-
-//         showToast({
-//           title: "Succès",
-//           description: "Plan de repas ajouté avec succès",
-//         })
-//       }
-
-//       // Réinitialiser le formulaire et rafraîchir les données
-//       resetForm()
-//       setIsAddDialogOpen(false)
-//     } catch (error) {
-//       showToast({
-//         title: "Erreur",
-//         description: "Une erreur est survenue lors de l'enregistrement",
-//         variant: "destructive",
-//       })
-//     }
-//   }
-
-//   const handleDeleteMealPlan = async (id: number) => {
-//     try {
-//       // Dans une vraie application, vous appelleriez votre API
-//       // const response = await fetch(`/api/meal-plans/${id}`, {
-//       //   method: 'DELETE',
-//       // })
-
-//       // Simuler la suppression
-//       setMealPlans(mealPlans.filter((plan) => plan.id !== id))
-
-//       showToast({
-//         title: "Succès",
-//         description: "Plan de repas supprimé avec succès",
-//       })
-//     } catch (error) {
-//       showToast({
-//         title: "Erreur",
-//         description: "Impossible de supprimer le plan de repas",
-//         variant: "destructive",
-//       })
-//     }
-//   }
-
-//   const handleEditMealPlan = (mealPlan: MealPlan) => {
-//     setSelectedRecipe(mealPlan.recipe.id)
-//     setSelectedDay(mealPlan.dayOfWeek)
-//     setSelectedMealType(mealPlan.mealType)
-//     setServings(mealPlan.servings)
-//     setNotes(mealPlan.notes)
-//     setIsEditMode(true)
-//     setCurrentEditId(mealPlan.id)
-//     setIsAddDialogOpen(true)
-//   }
-
-//   const resetForm = () => {
-//     setSelectedRecipe(null)
-//     setSelectedDay("MONDAY")
-//     setSelectedMealType("BREAKFAST")
-//     setServings(2)
-//     setNotes("")
-//     setIsEditMode(false)
-//     setCurrentEditId(null)
-//   }
-
-//   const navigateWeek = (direction: "prev" | "next") => {
-//     const newDate = direction === "prev" ? subWeeks(currentWeek, 1) : addWeeks(currentWeek, 1)
-//     setCurrentWeek(newDate)
-//   }
-
-//   // Grouper les plans de repas par jour et type de repas
-//   const getMealPlansByDay = (day: DayOfWeek) => {
-//     return mealPlans.filter((plan) => plan.dayOfWeek === day)
-//   }
-
-//   const getMealPlanByDayAndType = (day: DayOfWeek, mealType: MealType) => {
-//     return mealPlans.find((plan) => plan.dayOfWeek === day && plan.mealType === mealType)
-//   }
-
-//   const { monday, days } = getWeekDates()
-//   const weekRange = `${format(monday, "d MMM", { locale: fr })} - ${format(addDays(monday, 6), "d MMM yyyy", { locale: fr })}`
-
-//   return (
-//     <div className="container mx-auto px-4 py-8 max-w-7xl">
-//       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-//         <div className="flex items-center gap-2">
-//           <h1 className="text-3xl font-bold">Planificateur de Repas</h1>
-//           <button
-//             onClick={() => setIsInfoDialogOpen(true)}
-//             className="text-gray-400 hover:text-rose-500 transition-colors"
-//           >
-//             <Info className="h-5 w-5" />
-//           </button>
-//         </div>
-
-//         <div className="flex items-center gap-2">
-//           <Button variant="outline" onClick={() => navigateWeek("prev")} className="flex items-center gap-1">
-//             <ChevronLeft className="h-4 w-4" /> Précédente
-//           </Button>
-//           <div className="px-4 py-2 bg-rose-50 text-rose-700 rounded-md font-medium">{weekRange}</div>
-//           <Button variant="outline" onClick={() => navigateWeek("next")} className="flex items-center gap-1">
-//             Suivante <ChevronRight className="h-4 w-4" />
-//           </Button>
-//         </div>
-//       </div>
-
-//       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 mb-8">
-//         {days.map((day, index) => {
-//           const dayOfWeek = dayNames[index] as DayOfWeek
-//           const formattedDate = formatDisplayDate(day)
-//           const isToday = isSameDay(day, new Date())
-
-//           return (
-//             <Card key={index} className={`col-span-1 ${isToday ? "border-rose-300 bg-rose-50" : ""}`}>
-//               <div className={`p-3 border-b ${isToday ? "bg-rose-100 text-rose-800" : "bg-gray-50"}`}>
-//                 <div className="text-center font-medium">
-//                   {format(day, "EEEE", { locale: fr }).charAt(0).toUpperCase() +
-//                     format(day, "EEEE", { locale: fr }).slice(1)}
-//                 </div>
-//                 <div className="text-center text-sm text-gray-500">{formattedDate}</div>
-//               </div>
-
-//               <div className="p-3 space-y-3">
-//                 {(["BREAKFAST", "LUNCH", "DINNER", "SNACK"] as MealType[]).map((mealType) => {
-//                   const meal = getMealPlanByDayAndType(dayOfWeek, mealType)
-
-//                   return (
-//                     <div key={mealType} className={`p-2 border rounded-md ${meal ? "bg-white" : "bg-gray-50"}`}>
-//                       <div className="text-sm font-medium mb-1 text-gray-600">{mealTypeNames[mealType]}</div>
-
-//                       {meal ? (
-//                         <div className="space-y-2">
-//                           <div className="text-sm font-semibold">{meal.recipe.title}</div>
-//                           <div className="flex items-center text-xs text-gray-500">
-//                             <Clock className="h-3 w-3 mr-1" />
-//                             {meal.recipe.preparationTime + meal.recipe.cookingTime} min
-//                           </div>
-//                           <div className="flex justify-between mt-2">
-//                             <button
-//                               onClick={() => handleEditMealPlan(meal)}
-//                               className="p-1 text-gray-400 hover:text-rose-500 transition-colors"
-//                             >
-//                               <Edit className="h-4 w-4" />
-//                             </button>
-//                             <button
-//                               onClick={() => handleDeleteMealPlan(meal.id)}
-//                               className="p-1 text-gray-400 hover:text-rose-500 transition-colors"
-//                             >
-//                               <Trash2 className="h-4 w-4" />
-//                             </button>
-//                           </div>
-//                         </div>
-//                       ) : (
-//                         <button
-//                           className="w-full h-8 text-gray-400 hover:text-rose-500 flex items-center justify-center"
-//                           onClick={() => {
-//                             setSelectedDay(dayOfWeek)
-//                             setSelectedMealType(mealType)
-//                             setIsAddDialogOpen(true)
-//                           }}
-//                         >
-//                           <Plus className="h-4 w-4 mr-1" /> Ajouter
-//                         </button>
-//                       )}
-//                     </div>
-//                   )
-//                 })}
-//               </div>
-//             </Card>
-//           )
-//         })}
-//       </div>
-
-//       {/* Dialog d'ajout/modification de repas */}
-//       <Dialog
-//         isOpen={isAddDialogOpen}
-//         onClose={() => {
-//           resetForm()
-//           setIsAddDialogOpen(false)
-//         }}
-//         className="max-w-[500px]"
-//       >
-//         <div className="mb-4">
-//           <h2 className="text-xl font-bold">{isEditMode ? "Modifier le repas" : "Ajouter un repas"}</h2>
-//           <p className="text-sm text-gray-500">
-//             {isEditMode
-//               ? "Modifiez les détails de votre repas planifié."
-//               : "Sélectionnez une recette et configurez les détails de votre repas."}
-//           </p>
-//         </div>
-
-//         <div className="space-y-4">
-//           <div className="space-y-2">
-//             <label htmlFor="recipe" className="block text-sm font-medium">
-//               Recette
-//             </label>
-//             <Select
-//               id="recipe"
-//               value={selectedRecipe?.toString() || ""}
-//               onChange={(e) => setSelectedRecipe(Number(e.target.value))}
-//               className="w-full p-2 border rounded-md"
-//             >
-//               <option value="">Sélectionner une recette</option>
-//               {recipes.map((recipe) => (
-//                 <option key={recipe.id} value={recipe.id.toString()}>
-//                   {recipe.title}
-//                 </option>
-//               ))}
-//             </Select>
-//           </div>
-
-//           <div className="grid grid-cols-2 gap-4">
-//             <div className="space-y-2">
-//               <label htmlFor="day" className="block text-sm font-medium">
-//                 Jour
-//               </label>
-//               <Select
-//                 id="day"
-//                 value={selectedDay}
-//                 onChange={(e) => setSelectedDay(e.target.value as DayOfWeek)}
-//                 className="w-full p-2 border rounded-md"
-//               >
-//                 <option value="MONDAY">Lundi</option>
-//                 <option value="TUESDAY">Mardi</option>
-//                 <option value="WEDNESDAY">Mercredi</option>
-//                 <option value="THURSDAY">Jeudi</option>
-//                 <option value="FRIDAY">Vendredi</option>
-//                 <option value="SATURDAY">Samedi</option>
-//                 <option value="SUNDAY">Dimanche</option>
-//               </Select>
-//             </div>
-
-//             <div className="space-y-2">
-//               <label htmlFor="mealType" className="block text-sm font-medium">
-//                 Type de repas
-//               </label>
-//               <Select
-//                 id="mealType"
-//                 value={selectedMealType}
-//                 onChange={(e) => setSelectedMealType(e.target.value as MealType)}
-//                 className="w-full p-2 border rounded-md"
-//               >
-//                 <option value="BREAKFAST">Petit-déjeuner</option>
-//                 <option value="LUNCH">Déjeuner</option>
-//                 <option value="DINNER">Dîner</option>
-//                 <option value="SNACK">Collation</option>
-//               </Select>
-//             </div>
-//           </div>
-
-//           <div className="space-y-2">
-//             <label htmlFor="servings" className="block text-sm font-medium">
-//               Nombre de portions
-//             </label>
-//             <Input
-//               id="servings"
-//               type="number"
-//               min="1"
-//               value={servings}
-//               onChange={(e) => setServings(Number(e.target.value))}
-//               className="w-full p-2 border rounded-md"
-//             />
-//           </div>
-
-//           <div className="space-y-2">
-//             <label htmlFor="notes" className="block text-sm font-medium">
-//               Notes
-//             </label>
-//             <Textarea
-//               id="notes"
-//               placeholder="Notes supplémentaires..."
-//               value={notes}
-//               onChange={(e) => setNotes(e.target.value)}
-//               className="w-full p-2 border rounded-md min-h-[100px]"
-//             />
-//           </div>
-//         </div>
-
-//         <div className="flex justify-end gap-4 mt-6">
-//           <Button
-//             variant="outline"
-//             onClick={() => {
-//               resetForm()
-//               setIsAddDialogOpen(false)
-//             }}
-//           >
-//             Annuler
-//           </Button>
-//           <Button onClick={handleAddMealPlan} className="bg-rose-500 hover:bg-rose-600 text-white">
-//             {isEditMode ? "Mettre à jour" : "Ajouter"}
-//           </Button>
-//         </div>
-//       </Dialog>
-
-//       {/* Dialog d'information */}
-//       <Dialog isOpen={isInfoDialogOpen} onClose={() => setIsInfoDialogOpen(false)} className="max-w-[500px]">
-//         <div className="mb-4">
-//           <h2 className="text-xl font-bold">À propos du planificateur de repas</h2>
-//         </div>
-
-//         <div className="space-y-4 text-gray-700">
-//           <p>Le planificateur de repas vous permet d'organiser vos repas pour chaque jour de la semaine.</p>
-
-//           <div className="space-y-2">
-//             <h3 className="font-medium">Comment ça marche :</h3>
-//             <ul className="list-disc pl-5 space-y-1">
-//               <li>Cliquez sur "Ajouter" pour planifier un repas</li>
-//               <li>Sélectionnez une recette de votre choix</li>
-//               <li>Ajustez le nombre de portions selon vos besoins</li>
-//               <li>Ajoutez des notes si nécessaire</li>
-//               <li>Naviguez entre les semaines pour planifier à l'avance</li>
-//             </ul>
-//           </div>
-
-//           <p>Vous pouvez modifier ou supprimer vos repas planifiés à tout moment.</p>
-//         </div>
-
-//         <div className="flex justify-end mt-6">
-//           <Button onClick={() => setIsInfoDialogOpen(false)} className="bg-rose-500 hover:bg-rose-600 text-white">
-//             Compris
-//           </Button>
-//         </div>
-//       </Dialog>
-//     </div>
-//   )
-// }
-
+      {/* Footer */}
+      <footer className="py-8 px-4 bg-white border-t border-gray-100">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+              <ChefHat className="h-5 w-5 text-rose-500" />
+              <span className="font-medium">Cuisenio</span>
+            </div>
+            <div className="flex space-x-6">
+              {["Confidentialité", "Conditions", "Contact"].map((item) => (
+                <Link key={item} to="#" className="text-sm text-gray-500 hover:text-rose-500 transition-colors">
+                  {item}
+                </Link>
+              ))}
+            </div>
+            <div className="text-sm text-gray-500 mt-4 md:mt-0">
+              © {new Date().getFullYear()} Cuisenio. Tous droits réservés.
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
