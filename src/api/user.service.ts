@@ -16,6 +16,15 @@ const response = await client.get(routes.users.count);
 return response.data;
 },
 
+blockUser: async(userId: number): Promise<void> => {
+    await client.put(`${routes.users.base}/${userId}/block`);
+},
 
+unblockUser: async(userId: number): Promise<void> => {
+    await client.put(`${routes.users.base}/${userId}/unblock`);
+},
 
+delete:async(userId: number): Promise<void> => {
+    await client.delete(`${routes.users.base}/${userId}`);
 }
+  }

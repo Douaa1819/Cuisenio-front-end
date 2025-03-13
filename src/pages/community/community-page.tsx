@@ -22,7 +22,6 @@ import {
   LogOut,
   Settings,
   BookmarkIcon,
-  TrendingUp,
   Calendar,
   ChevronDown,
   Camera,
@@ -77,14 +76,12 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
   )
 }
 
-// Enum for difficulty levels
 enum DifficultyLevel {
   EASY = "EASY",
   MEDIUM = "MEDIUM",
   HARD = "HARD",
 }
 
-// Interface for ingredients
 interface RecipeIngredientRequest {
   id?: number
   name: string
@@ -92,14 +89,12 @@ interface RecipeIngredientRequest {
   unit: string
 }
 
-// Interface for steps
 interface RecipeStepRequest {
   id?: number
   stepNumber: number
   description: string
 }
 
-// Interface for recipe
 interface Recipe {
   id: number
   title: string
@@ -112,7 +107,6 @@ interface Recipe {
   description: string
 }
 
-// Interface for comment
 type CommentType = {
   id: number
   user: string
@@ -123,7 +117,6 @@ type CommentType = {
   replies: Reply[]
 }
 
-// Interface for reply
 interface Reply {
   id: number
   user: string
@@ -145,7 +138,6 @@ export default function CommunityPage() {
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Recipe form states
   const [recipeTitle, setRecipeTitle] = useState("")
   const [recipeDescription, setRecipeDescription] = useState("")
   const [recipeDifficulty, setRecipeDifficulty] = useState<DifficultyLevel | "">("")
@@ -159,7 +151,6 @@ export default function CommunityPage() {
   const [steps, setSteps] = useState<RecipeStepRequest[]>([{ stepNumber: 1, description: "" }])
   const [currentStep, setCurrentStep] = useState(1)
 
-  // Filter states
   const [filterCategory, setFilterCategory] = useState("")
   const [sortOption, setSortOption] = useState("")
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([])
@@ -245,7 +236,6 @@ export default function CommunityPage() {
       const updatedSteps = [...steps]
       updatedSteps.splice(index, 1)
 
-      // Reindex steps
       const reindexedSteps = updatedSteps.map((step, idx) => ({
         ...step,
         stepNumber: idx + 1,
@@ -263,7 +253,6 @@ export default function CommunityPage() {
       return
     }
 
-    // Create recipe object
     const recipeData = {
       title: recipeTitle,
       description: recipeDescription,
@@ -279,7 +268,6 @@ export default function CommunityPage() {
     console.log("Recipe data:", recipeData)
     console.log("Recipe image:", recipeImage)
 
-    // Reset form
     setRecipeTitle("")
     setRecipeDescription("")
     setRecipeDifficulty("")
@@ -408,7 +396,6 @@ export default function CommunityPage() {
     },
   ]
 
-  // Categories for filters
   const categories = [
     { value: "1", label: "Desserts" },
     { value: "2", label: "Plats principaux" },
@@ -420,7 +407,6 @@ export default function CommunityPage() {
     { value: "8", label: "Sauces et condiments" },
   ]
 
-  // Dietary preferences
   const dietaryPreferences = [
     { value: "vegetarian", label: "Végétarien" },
     { value: "vegan", label: "Végan" },
@@ -430,14 +416,12 @@ export default function CommunityPage() {
     { value: "paleo", label: "Paléo" },
   ]
 
-  // Difficulty levels
   const difficultyLevels = [
     { value: "EASY", label: "Facile" },
     { value: "MEDIUM", label: "Intermédiaire" },
     { value: "HARD", label: "Difficile" },
   ]
 
-  // Measurement units
   const units = [
     { value: "g", label: "grammes (g)" },
     { value: "kg", label: "kilogrammes (kg)" },
@@ -768,7 +752,7 @@ export default function CommunityPage() {
                   Facile
                 </Badge>
                 <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
-                  <TrendingUp className="h-3 w-3 mr-1" /> Tendance
+                 Tendance
                 </Badge>
               </div>
             </div>
@@ -808,8 +792,8 @@ export default function CommunityPage() {
                       />
                       {recipe.id === 1 && (
                         <div className="absolute top-4 left-4">
-                          <Badge className="bg-rose-500 text-white hover:bg-rose-600">
-                            <TrendingUp className="h-3 w-3 mr-1" /> Tendance
+                          <Badge className=" text-whit">
+                          Tendance
                           </Badge>
                         </div>
                       )}

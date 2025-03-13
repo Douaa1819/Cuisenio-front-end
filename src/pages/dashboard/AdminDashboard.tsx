@@ -6,6 +6,7 @@ import { AxiosError } from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { authService } from "../../api/auth.service";
 import { userService } from "../../api/user.service";
+import { UserDTO } from "../../types/user.types";
 
 import {
   BarChart3,
@@ -14,7 +15,10 @@ import {
   ChefHat,
   List,
   LogOut,
+  Trash2,
+  Unlock,
   Plus,
+  Lock,
   Search,
   Tag,
   Users,
@@ -40,6 +44,7 @@ export default function AdminDashboard() {
   const [ingredientCount, setIngredientCount] = useState<number>(0);
   const [categoryCount, setCategoryCount] = useState<number>(0);
   const [usersCount, setUsersCount] = useState<number>(0);
+  const [users, setUsers] = useState<UserDTO[]>([]);
 
   const navigate = useNavigate();
 
@@ -49,7 +54,49 @@ export default function AdminDashboard() {
     fetchCategoryCount();
     fetchCategories();
     fetchUsersCount();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await userService.listUser();
+      setUsers(data.content);
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {  
+        tokenExpired(error, navigate);  
+      }
+    }
+  };
+
+  const handleBlockUser = async (userId: number) => {
+    try {
+      await userService.blockUser(userId);
+      setSuccessMessage("User blocked successfully!");
+      setShowSuccessModal(true);
+      fetchUsers(); // Refresh user list
+      
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to block user:", error);
+    }
+  };
+
+  const handleUnblockUser = async (userId: number) => {
+    try {
+      await userService.unblockUser(userId);
+      setSuccessMessage("User unblocked successfully!");
+      setShowSuccessModal(true);
+      fetchUsers(); // Refresh user list
+      
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to unblock user:", error);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -97,7 +144,23 @@ export default function AdminDashboard() {
             setShowSuccessModal(false);
         }, 2000);
     }
-};
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    try {
+      await userService.delete(id);
+      setSuccessMessage("User deleted successfully!");
+      setShowSuccessModal(true);
+      fetchUsers();; 
+      
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+    }
+  };
+
 
   const handleDeleteCategory = async (id: number) => {
     try {
@@ -168,7 +231,7 @@ export default function AdminDashboard() {
       fetchIngredients();
       fetchIngredientCount();
       fetchUsersCount();
-      fetchCategoryCount ();
+      fetchCategoryCount();
       setNewIngredient({ name: "" });
 
       setTimeout(() => {
@@ -226,6 +289,77 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+      </div>
+    );
+  };
+
+  const renderUsersSection = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <h3 className="font-medium">User Management</h3>
+            <div className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {usersCount} users
+            </div>
+          </div>
+        </div>
+
+        {/* Users Table */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Username</th>
+              <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Last Name</th>
+              <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Email</th>
+              <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Registration Date</th>
+              <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Status</th>
+              <th className="text-right py-3 px-4 font-medium text-sm text-gray-500">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <td className="py-3 px-4">{user.username}</td>
+                <td className="py-3 px-4">{user.lastName}</td>
+                <td className="py-3 px-4">{user.email}</td>
+                <td className="py-3 px-4">{new Date(user.registrationDate).toLocaleDateString()}</td>
+                <td className="py-3 px-4">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.isblocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                    {user.isblocked ? 'Blocked' : 'Active'}
+                  </span>
+                </td>
+                <td className="py-3 px-4 text-right flex items-center justify-end space-x-2">
+                  {user.isblocked ? (
+                    <button
+                      onClick={() => handleUnblockUser(user.id)}
+                      className="flex items-center text-blue-500 hover:text-blue-700 px-3 py-1 rounded-md transition"
+                    >
+                      <Unlock className="h-4 w-4 mr-1" /> Unblock
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleBlockUser(user.id)}
+                      className="flex items-center text-red-500 hover:text-red-700 px-3 py-1 rounded-md transition"
+                    >
+                      <Lock className="h-4 w-4 mr-1" /> Block
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDeleteUser(user.id)}
+                    className="flex items-center text-gray-500 hover:text-red-600 px-3 py-1 rounded-md transition bg-gray-100 hover:bg-red-100"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
       </div>
     );
   };
@@ -376,6 +510,8 @@ export default function AdminDashboard() {
           </div>
         );
 
+        case "users":
+          return renderUsersSection();
       default:
         return (
           <div className="bg-white rounded-lg shadow-sm p-12 border border-gray-100 text-center">
