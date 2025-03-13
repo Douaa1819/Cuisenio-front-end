@@ -7,7 +7,7 @@ import AdminDashboard from './pages/dashboard/AdminDashboard';
 import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import CreateRecipePage from './pages/recipes/create-recipe-page';
-// import CommunityPage from './pages/community/community-page';
+import CommunityPage from './pages/community/community-page';
 import MealPlannerPage from './pages/meal-planner/meal-planner-page';
 
 function App() {
@@ -19,7 +19,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/Add-recipe" element={<CreateRecipePage />} />
-        {/* <Route path="/home" element={<CommunityPage />} /> */}
+        <Route path="/home" element={<CommunityPage />} />
         <Route path="/planeer" element={<MealPlannerPage />} />
 
 
