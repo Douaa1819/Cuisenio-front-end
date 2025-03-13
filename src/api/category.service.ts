@@ -1,5 +1,6 @@
-import { CategoryRequest, CategoryResponse } from '../types/category.types';
+import { CategoryCountResponse, CategoryRequest, CategoryResponse } from '../types/category.types';
 import client from './client';
+
 
 const BASE_URL = '/v1/categories';
 
@@ -19,6 +20,12 @@ export const categoryService = {
         const response = await client.post<CategoryResponse>(BASE_URL, data);
         return response.data;
     },
+
+    getCount : async (): Promise<CategoryCountResponse>=>{
+        const response = await client.get<CategoryCountResponse>(`${BASE_URL}/count`);
+        return response.data;
+    }
+,
 
     async update(id: number, data: CategoryRequest) {
         const response = await client.put<CategoryResponse>(`${BASE_URL}/${id}`, data);

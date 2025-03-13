@@ -4,6 +4,9 @@ import { ingredientService } from "../../api/ingredient.service";
 import { IngredientResponse, IngredientRequest } from "../../types/ingredient.types";
 import { AxiosError } from "axios";
 import { AnimatePresence, motion } from "framer-motion";
+import { authService } from "../../api/auth.service";
+import { userService } from "../../api/user.service";
+
 import {
   BarChart3,
   Bell,
@@ -13,10 +16,8 @@ import {
   LogOut,
   Plus,
   Search,
-  Settings,
   Tag,
   Users,
-  Utensils,
   X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -37,13 +38,17 @@ export default function AdminDashboard() {
   const [ingredients, setIngredients] = useState<IngredientResponse[]>([]);
   const [newIngredient, setNewIngredient] = useState<IngredientRequest>({ name: "" });
   const [ingredientCount, setIngredientCount] = useState<number>(0);
+  const [categoryCount, setCategoryCount] = useState<number>(0);
+  const [usersCount, setUsersCount] = useState<number>(0);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchIngredients();
     fetchIngredientCount();
+    fetchCategoryCount();
     fetchCategories();
+    fetchUsersCount();
   }, []);
 
   const fetchCategories = async () => {
@@ -75,6 +80,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+        await authService.logout();
+        setSuccessMessage("Déconnexion réussie !");
+        setShowSuccessModal(true);
+        setTimeout(() => {
+            setShowSuccessModal(false);
+            navigate('/login'); 
+        }, 2000);
+    } catch (error) {
+        console.error('Erreur lors de la déconnexion :', error);
+        setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.");
+        setShowSuccessModal(true);
+        setTimeout(() => {
+            setShowSuccessModal(false);
+        }, 2000);
+    }
+};
+
   const handleDeleteCategory = async (id: number) => {
     try {
       await categoryService.delete(id);
@@ -90,7 +114,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Récupérer le nombre total d'ingrédients
   const fetchIngredientCount = async () => {
     try {
       const data = await ingredientService.getCount();
@@ -102,10 +125,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchIngredients = async () => {
+  const fetchUsersCount = async () => {
     try {
-      const data = await ingredientService.findAll();
-      setIngredients(data.content); // Utilisez data.content au lieu de data
+      const data = await userService.getCount();
+      setUsersCount(data.count);
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         tokenExpired(error, navigate);
@@ -113,7 +136,28 @@ export default function AdminDashboard() {
     }
   };
 
-  // Ajouter un nouvel ingrédient
+  const fetchCategoryCount = async () => {
+    try {
+      const data = await categoryService.getCount();
+      setCategoryCount(data.count);
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        tokenExpired(error, navigate);
+      }
+    }
+  };
+
+  const fetchIngredients = async () => {
+    try {
+      const data = await ingredientService.findAll();
+      setIngredients(data.content); 
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        tokenExpired(error, navigate);
+      }
+    }
+  };
+
   const handleAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -123,6 +167,8 @@ export default function AdminDashboard() {
       setShowSuccessModal(true);
       fetchIngredients();
       fetchIngredientCount();
+      fetchUsersCount();
+      fetchCategoryCount ();
       setNewIngredient({ name: "" });
 
       setTimeout(() => {
@@ -133,7 +179,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Supprimer un ingrédient
   const handleDeleteIngredient = async (id: number) => {
     try {
       await ingredientService.delete(id);
@@ -141,6 +186,7 @@ export default function AdminDashboard() {
       setShowSuccessModal(true);
       fetchIngredients();
       fetchIngredientCount();
+      fetchUsersCount();
 
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -150,7 +196,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Section pour afficher les catégories
   const renderCategoriesSection = () => {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
@@ -185,7 +230,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // Afficher la section active
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
@@ -209,7 +253,7 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total Category</p>
-                  <h3 className="text-2xl font-semibold">5</h3>
+                  <h3 className="text-2xl font-semibold">{categoryCount}</h3>
                 </div>
                 <div className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md">
                   <List className="h-5 w-5" />
@@ -221,7 +265,7 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total Users</p>
-                  <h3 className="text-2xl font-semibold">15</h3>
+                  <h3 className="text-2xl font-semibold">{usersCount}</h3>
                 </div>
                 <div className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md">
                   <List className="h-5 w-5" />
@@ -357,9 +401,7 @@ export default function AdminDashboard() {
               { name: "Dashboard", icon: <BarChart3 className="h-5 w-5" />, section: "overview" },
               { name: "Ingredients", icon: <Tag className="h-5 w-5" />, section: "ingredients" },
               { name: "Categories", icon: <List className="h-5 w-5" />, section: "categories" },
-              { name: "Recipes", icon: <Utensils className="h-5 w-5" />, section: "recipes" },
               { name: "Users", icon: <Users className="h-5 w-5" />, section: "users" },
-              { name: "Settings", icon: <Settings className="h-5 w-5" />, section: "settings" },
             ].map((item) => (
               <button
                 key={item.name}
@@ -378,7 +420,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-600 transition-all duration-200">
+          <button  onClick={handleLogout} className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-600 transition-all duration-200">
             <LogOut className="h-5 w-5" />
             <span>Logout</span>
           </button>

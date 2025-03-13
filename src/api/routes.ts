@@ -1,4 +1,3 @@
-// src/api/routes.ts
 export const routes = {
     auth: {
       login: '/v1/auth/login',
@@ -19,6 +18,12 @@ export const routes = {
       detail: (id: number) => `/v1/recipes/${id}`,
       comments: (id: number) => `/v1/recipes/${id}/comments`,
     },
+    users: {
+        base: '/v1/admin/users',
+        detail: (id: number) => `/v1/admin/users${id}`,
+        count: '/v1/admin/users/count',
+
+      },
     mealPlanner: {
       base: '/v1/meal-planners',
       detail: (id: number) => `/v1/meal-planners/${id}`,

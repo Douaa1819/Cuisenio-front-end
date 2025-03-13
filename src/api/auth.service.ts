@@ -49,8 +49,14 @@ export const authService = {
 
     getToken() {
         const t = localStorage.getItem('token');
-        console.log("tooooooooooken"+t);
+        console.log("token"+t);
         return t;
+    },
+
+    async logout() {
+        this.removeToken();
+
+        window.location.href = '/login'; 
     },
 
     removeToken() {
