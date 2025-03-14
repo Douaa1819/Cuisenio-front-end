@@ -9,6 +9,7 @@ import ProfilePage from './pages/profile/ProfilePage';
 import CreateRecipePage from './pages/recipes/create-recipe-page';
 import CommunityPage from './pages/community/community-page';
 import MealPlannerPage from './pages/meal-planner/meal-planner-page';
+import NotFoundPage from './pages/not-found-page';
 
 function App() {
   return (
@@ -19,9 +20,10 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/Add-recipe" element={<CreateRecipePage />} />
-        
+        <Route path="/NotFound" element={<NotFoundPage />} />
+
         <Route path="/home" element={<CommunityPage />} />
-        <Route path="/planeer" element={<MealPlannerPage />} />
+        <Route path="/meal-planner" element={<MealPlannerPage />} />
 
 
           <Route 

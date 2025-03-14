@@ -1,18 +1,21 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+export interface User {
+  id?: number
+  username?: string
+  email?: string
+  profilePicture?: string
+  role?: string
+}
+
 export interface AuthState {
   token: string | null
-  user: {
-    id?: number
-    username?: string
-    email?: string
-    profilePicture?: string
-  } | null
+  user: User | null
   isAuthenticated: boolean
-  login: (token: string, userData: { id?: number; username?: string; email?: string; profilePicture?: string }) => void
+  login: (token: string, userData: User) => void
   logout: () => void
-  updateUser: (userData: { id?: number; username?: string; email?: string; profilePicture?: string }) => void
+  updateUser: (userData: Partial<User>) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -30,4 +33,3 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 )
-

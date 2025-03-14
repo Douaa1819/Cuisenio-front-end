@@ -1,43 +1,42 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ChefHat, Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { ChefHat, Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react"
+import { Link } from "react-router-dom"
+import { motion } from "framer-motion"
 
-import { authService } from "../../api/auth.service";
-import { Alert, AlertDescription } from "../../components/ui/alert";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { useAuthStore } from "../../store/auth.store";
+import { authService } from "../../api/auth.service"
+import { Alert, AlertDescription } from "../../components/ui/alert"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { useAuthStore } from "../../store/auth.store"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
   rememberMe: z.boolean().optional(),
-});
+})
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<typeof loginSchema>
 
 interface ApiError {
   response?: {
     data?: {
-      message?: string;
-    };
-  };
+      message?: string
+    }
+  }
 }
 
 export default function LoginForm() {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const login = useAuthStore((state) => state.login);
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const login = useAuthStore((state) => state.login)
 
   const {
     register,
@@ -50,30 +49,39 @@ export default function LoginForm() {
       password: "",
       rememberMe: false,
     },
-  });
+  })
 
   const onSubmit = async (formData: LoginFormValues) => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
 
     try {
       const response = await authService.login({
         email: formData.email,
         password: formData.password,
-      });
-      login(response.token); 
-      navigate("/profile");
+      })
+
+      // Utiliser le login du store avec le token et les données utilisateur
+      login(response.token, {
+        id: response.id,
+        username: response.username,
+        email: response.email,
+        profilePicture: response.profilePicture,
+        role: response.role,
+      })
+
+      // La redirection est gérée dans le service d'authentification
+      // en fonction du rôle de l'utilisateur
     } catch (err: unknown) {
-      const apiError = err as ApiError;
-      setError(apiError?.response?.data?.message || "La connexion a échoué. Veuillez vérifier vos identifiants.");
-    } finally {
-      setIsLoading(false);
+      const apiError = err as ApiError
+      setError(apiError?.response?.data?.message || "La connexion a échoué. Veuillez vérifier vos identifiants.")
+      setIsLoading(false)
     }
-  };
+  }
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+    setShowPassword(!showPassword)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center p-4 font-poppins">
@@ -85,7 +93,7 @@ export default function LoginForm() {
       >
         <Card className="w-full shadow-lg border border-[#FFE4E1] rounded-xl overflow-hidden">
           <CardHeader className="space-y-2 text-center pb-6">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
@@ -129,11 +137,7 @@ export default function LoginForm() {
                   />
                 </div>
                 {errors.email && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-xs mt-1"
-                  >
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
                     {errors.email.message}
                   </motion.p>
                 )}
@@ -144,7 +148,10 @@ export default function LoginForm() {
                   <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
                     Mot de passe
                   </Label>
-                  <Link to="/auth/forgot-password" className="text-xs text-[#E57373] hover:underline hover:text-[#EF5350] transition-colors">
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-xs text-[#E57373] hover:underline hover:text-[#EF5350] transition-colors"
+                  >
                     Mot de passe oublié ?
                   </Link>
                 </div>
@@ -164,27 +171,19 @@ export default function LoginForm() {
                     onClick={togglePasswordVisibility}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {errors.password && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-xs mt-1"
-                  >
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
                     {errors.password.message}
                   </motion.p>
                 )}
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow" 
+              <Button
+                type="submit"
+                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -201,7 +200,10 @@ export default function LoginForm() {
           <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
             <p className="text-center text-sm text-gray-600 mt-4">
               Vous n'avez pas de compte ?{" "}
-              <Link to="/register" className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors">
+              <Link
+                to="/register"
+                className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors"
+              >
                 S'inscrire
               </Link>
             </p>
@@ -209,5 +211,6 @@ export default function LoginForm() {
         </Card>
       </motion.div>
     </div>
-  );
+  )
 }
+
