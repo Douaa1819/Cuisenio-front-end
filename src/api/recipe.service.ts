@@ -1,88 +1,53 @@
-import client from "../api/client"
+import client  from "./client"
+import type { RecipeDetailsRequest, RecipeResponse } from "../types/recipe.types"
 
-export interface RecipeRequest {
-  title: string
-  description: string
-  difficultyLevel: string
-  preparationTime: number
-  cookingTime: number
-  servings: number
-  imageUrl: File
-  categoryIds: number[]
-}
+const BASE_URL = "/api/recipes"
 
-export interface RecipeDetailsRequest {
-  ingredients: {
-    ingredientId: number
-    quantity: number
-    unit: string
-  }[]
-  steps: {
-    stepNumber: number
-    description: string
-  }[]
-}
-
-export interface RecipeResponse {
-  id: number
-  title: string
-  description: string
-  difficultyLevel: string
-  preparationTime: number
-  cookingTime: number
-  servings: number
-  imageUrl: string
-  categories: string[]
-  user: {
-    id: number
-    name: string
-    avatar?: string
-  }
-  creationDate: string
-}
-
-export const RecipeService = {
-  createRecipe: async (recipeData: RecipeRequest, detailsData: RecipeDetailsRequest): Promise<RecipeResponse> => {
-    const formData = new FormData()
-
-    // Ajouter les données de base de la recette
-    formData.append("title", recipeData.title)
-    formData.append("description", recipeData.description)
-    formData.append("difficultyLevel", recipeData.difficultyLevel)
-    formData.append("preparationTime", recipeData.preparationTime.toString())
-    formData.append("cookingTime", recipeData.cookingTime.toString())
-    formData.append("servings", recipeData.servings.toString())
-    formData.append("imageUrl", recipeData.imageUrl)
-
-    recipeData.categoryIds.forEach((categoryId) => {
-      formData.append("categoryIds", categoryId.toString())
-    })
-
-    // Appel API pour créer la recette
-    const response = await client.post("/api/recipes", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    })
-
-    // Ajouter les détails (ingrédients et étapes)
-    await client.post(`/api/recipes/${response.data.id}/details`, detailsData, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    return response.data
-  },
-
-  getAllRecipes: async (page = 0, size = 10): Promise<{ content: RecipeResponse[]; totalPages: number }> => {
-    const response = await client.get(`/api/recipes?page=${page}&size=${size}`)
-    return response.data
+export const recipeService = {
+  getAllRecipes: async (page = 0, size = 10, sort = "creationDate") => {
+    try {
+      const response = await client.get(`${BASE_URL}?page=${page}&size=${size}&sort=${sort}`)
+      return response.data
+    } catch (error) {
+      console.error("Error fetching recipes:", error)
+      throw error
+    }
   },
 
   getRecipeById: async (id: number): Promise<RecipeResponse> => {
-    const response = await client.get(`/api/recipes/${id}`)
-    return response.data
+    try {
+      const response = await client.get(`${BASE_URL}/${id}`)
+      return response.data
+    } catch (error) {
+      console.error(`Error fetching recipe with id ${id}:`, error)
+      throw error
+    }
+  },
+  getSavedRecipes: async (page = 0, size = 10, sort = "creationDate") => {
+    try {
+      const response = await client.get(`${BASE_URL}/saved?page=${page}&size=${size}&sort=${sort}`)
+      return response.data
+    } catch (error) {
+      console.error("Error fetching saved recipes:", error)
+      throw error
+    }
+  },
+
+  createRecipe: async (recipeData: FormData, detailsData: RecipeDetailsRequest) => {
+    try {
+      const response = await client.post(BASE_URL, recipeData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        params: {
+          detailsRequest: JSON.stringify(detailsData),
+        },
+      })
+      return response.data
+    } catch (error) {
+      console.error("Error creating recipe:", error)
+      throw error
+    }
   },
 
   searchRecipes: async (
@@ -91,37 +56,41 @@ export const RecipeService = {
     maxPrepTime?: number,
     maxCookTime?: number,
     categoryType?: string,
+    isApproved?: boolean,
     page = 0,
     size = 10,
-  ): Promise<{ content: RecipeResponse[]; totalPages: number }> => {
-    let url = `/api/recipes/search?page=${page}&size=${size}`
+    sort = "creationDate",
+  ) => {
+    try {
+      const params = new URLSearchParams()
 
-    if (query) url += `&query=${encodeURIComponent(query)}`
-    if (difficultyLevel) url += `&difficultyLevel=${difficultyLevel}`
-    if (maxPrepTime) url += `&maxPrepTime=${maxPrepTime}`
-    if (maxCookTime) url += `&maxCookTime=${maxCookTime}`
-    if (categoryType) url += `&categoryType=${categoryType}`
+      if (query) params.append("query", query)
+      if (difficultyLevel) params.append("difficultyLevel", difficultyLevel)
+      if (maxPrepTime) params.append("maxPrepTime", maxPrepTime.toString())
+      if (maxCookTime) params.append("maxCookTime", maxCookTime.toString())
+      if (categoryType) params.append("categoryType", categoryType)
+      if (isApproved !== undefined) params.append("isApproved", isApproved.toString())
 
-    const response = await client.get(url)
-    return response.data
+      params.append("page", page.toString())
+      params.append("size", size.toString())
+      params.append("sort", sort)
+
+      const response = await client.get(`${BASE_URL}/search?${params.toString()}`)
+      return response.data
+    } catch (error) {
+      console.error("Error searching recipes:", error)
+      throw error
+    }
   },
 
-  likeRecipe: async (id: number): Promise<void> => {
-    await client.post(`/api/recipes/${id}/like`)
-  },
-
-  favoriteRecipe: async (id: number): Promise<void> => {
-    await client.post(`/api/recipes/${id}/favorite`)
-  },
-
-  getComments: async (id: number): Promise<{ id: number; content: string; creationDate: string; user: { id: number; name: string; avatar?: string } }> => {
-    const response = await client.get(`/api/recipes/${id}/comments`)
-    return response.data
-},
-
-addComment: async (id: number, content: string): Promise<{ id: number; content: string; creationDate: string; user: { id: number; name: string; avatar?: string } }> => {
-    const response = await client.post(`/api/recipes/${id}/comments`, { content })
-    return response.data
+  getMyRecipes: async (page = 0, size = 10, sort = "creationDate") => {
+    try {
+      const response = await client.get(`${BASE_URL}/my-recipes?page=${page}&size=${size}&sort=${sort}`)
+      return response.data
+    } catch (error) {
+      console.error("Error fetching my recipes:", error)
+      throw error
+    }
   },
 }
 

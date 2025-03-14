@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       await userService.blockUser(userId);
       setSuccessMessage("User blocked successfully!");
       setShowSuccessModal(true);
-      fetchUsers(); // Refresh user list
+      fetchUsers(); 
       
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
       await userService.unblockUser(userId);
       setSuccessMessage("User unblocked successfully!");
       setShowSuccessModal(true);
-      fetchUsers(); // Refresh user list
+      fetchUsers(); 
       
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -359,8 +359,8 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
-    </div>
       </div>
+    </div>
     );
   };
 
@@ -523,7 +523,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <div className="w-64 bg-white border-r border-gray-200 fixed h-full">
         <div className="p-6">
@@ -532,7 +532,7 @@ export default function AdminDashboard() {
             <h1 className="text-xl font-medium">Cuisenio</h1>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-2">
             {[
               { name: "Dashboard", icon: <BarChart3 className="h-5 w-5" />, section: "overview" },
               { name: "Ingredients", icon: <Tag className="h-5 w-5" />, section: "ingredients" },
@@ -564,7 +564,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="ml-64 flex-1">
+      <div className="ml-64 flex-1 ">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 py-4 px-6 flex justify-between items-center">
           <div className="relative w-64">

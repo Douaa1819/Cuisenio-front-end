@@ -19,6 +19,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/Add-recipe" element={<CreateRecipePage />} />
+        
         <Route path="/home" element={<CommunityPage />} />
         <Route path="/planeer" element={<MealPlannerPage />} />
 

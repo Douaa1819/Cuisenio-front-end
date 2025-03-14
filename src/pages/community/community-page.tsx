@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Link } from "react-router-dom"
 import {
   ChefHat,
@@ -32,7 +32,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { Avatar } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Textarea } from "../../components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "../../components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "../../components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import {
   DropdownMenu,
@@ -49,6 +56,15 @@ import { Input } from "../../components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { cn } from "../../lib/utils"
+import { useRecipe } from "../../hooks/useRecipe"
+import { useAuthStore } from "../../store/auth.store"
+import type {
+  DifficultyLevel,
+  RecipeResponse,
+  RecipeIngredientRequest,
+  RecipeStepRequest,
+  RecipeDetailsRequest,
+} from "../../types/recipe.types"
 
 interface ImageProps {
   src: string
@@ -76,37 +92,6 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
   )
 }
 
-enum DifficultyLevel {
-  EASY = "EASY",
-  MEDIUM = "MEDIUM",
-  HARD = "HARD",
-}
-
-interface RecipeIngredientRequest {
-  id?: number
-  name: string
-  quantity: string
-  unit: string
-}
-
-interface RecipeStepRequest {
-  id?: number
-  stepNumber: number
-  description: string
-}
-
-interface Recipe {
-  id: number
-  title: string
-  chef: string
-  time: string
-  level: string
-  likes: number
-  comments: number
-  image: string
-  description: string
-}
-
 type CommentType = {
   id: number
   user: string
@@ -127,6 +112,10 @@ interface Reply {
 }
 
 export default function CommunityPage() {
+  const { isAuthenticated } = useAuthStore()
+  const { recipes, loading, error, page, totalPages, fetchRecipes, searchRecipes, createRecipe, nextPage, prevPage } =
+    useRecipe({ pageSize: 9 })
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [commentText, setCommentText] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
@@ -135,7 +124,7 @@ export default function CommunityPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [addRecipeDialogOpen, setAddRecipeDialogOpen] = useState(false)
   const [commentDialogOpen, setCommentDialogOpen] = useState(false)
-  const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null)
+  const [activeRecipe, setActiveRecipe] = useState<RecipeResponse | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [recipeTitle, setRecipeTitle] = useState("")
@@ -147,7 +136,10 @@ export default function CommunityPage() {
   const [recipeImage, setRecipeImage] = useState<File | null>(null)
   const [recipeImagePreview, setRecipeImagePreview] = useState<string>("")
   const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [ingredients, setIngredients] = useState<RecipeIngredientRequest[]>([{ name: "", quantity: "", unit: "" }])
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([])
+  const [ingredients, setIngredients] = useState<RecipeIngredientRequest[]>([
+    { ingredientId: 0, quantity: "", unit: "" },
+  ])
   const [steps, setSteps] = useState<RecipeStepRequest[]>([{ stepNumber: 1, description: "" }])
   const [currentStep, setCurrentStep] = useState(1)
 
@@ -156,6 +148,25 @@ export default function CommunityPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([])
   const [timeRange, setTimeRange] = useState([15, 60])
   const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
+
+  // Handle search with filters
+  const handleSearch = useCallback(() => {
+    const difficulty = difficultyFilter.length > 0 ? difficultyFilter[0] : undefined
+    searchRecipes(
+      searchTerm,
+      difficulty,
+      timeRange[1], // maxPrepTime
+      undefined, // maxCookTime
+      filterCategory || undefined,
+      undefined, // isApproved
+    )
+  }, [searchTerm, difficultyFilter, timeRange, filterCategory, searchRecipes])
+
+  // Apply filters
+  const applyFilters = () => {
+    handleSearch()
+    setShowFilters(false)
+  }
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen)
 
@@ -187,6 +198,14 @@ export default function CommunityPage() {
     }
   }
 
+  const handleIngredientSelection = (value: string) => {
+    if (selectedIngredients.includes(value)) {
+      setSelectedIngredients(selectedIngredients.filter((item) => item !== value))
+    } else {
+      setSelectedIngredients([...selectedIngredients, value])
+    }
+  }
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
@@ -202,7 +221,7 @@ export default function CommunityPage() {
   }
 
   const addIngredient = () => {
-    setIngredients([...ingredients, { name: "", quantity: "", unit: "" }])
+    setIngredients([...ingredients, { ingredientId: 0, quantity: "", unit: "" }])
   }
 
   const updateIngredient = (index: number, field: keyof RecipeIngredientRequest, value: string) => {
@@ -246,116 +265,79 @@ export default function CommunityPage() {
     }
   }
 
-  const handleSubmitRecipe = () => {
+  const handleSubmitRecipe = async () => {
     // Validation
     if (!recipeTitle || !recipeDescription || !recipeDifficulty) {
-      alert("Please fill in all required fields")
+      alert("Veuillez remplir tous les champs obligatoires")
       return
     }
 
-    const recipeData = {
-      title: recipeTitle,
-      description: recipeDescription,
-      difficultyLevel: recipeDifficulty,
-      preparationTime: prepTime,
-      cookingTime: cookTime,
-      servings: servings,
-      category: [Number.parseInt(selectedCategory)],
-      ingredients: ingredients.filter((ing) => ing.name.trim() !== ""),
-      steps: steps.filter((step) => step.description.trim() !== ""),
+    try {
+      // Create FormData for the recipe
+      const formData = new FormData()
+      formData.append("title", recipeTitle)
+      formData.append("description", recipeDescription)
+      formData.append("difficultyLevel", recipeDifficulty)
+      formData.append("preparationTime", prepTime.toString())
+      formData.append("cookingTime", cookTime.toString())
+      formData.append("servings", servings.toString())
+
+      if (recipeImage) {
+        formData.append("imageUrl", recipeImage)
+      }
+
+      formData.append("categoryIds", selectedCategory)
+
+      // Create recipe details object
+      const recipeDetails: RecipeDetailsRequest = {
+        ingredients: ingredients.filter((ing) => ing.quantity.trim() !== ""),
+        steps: steps.filter((step) => step.description.trim() !== ""),
+      }
+
+      // Call the API to create the recipe
+      await createRecipe(formData, recipeDetails)
+
+      // Reset form
+      setRecipeTitle("")
+      setRecipeDescription("")
+      setRecipeDifficulty("")
+      setPrepTime(15)
+      setCookTime(0)
+      setServings(4)
+      setRecipeImage(null)
+      setRecipeImagePreview("")
+      setSelectedCategory("")
+      setSelectedIngredients([])
+      setIngredients([{ ingredientId: 0, quantity: "", unit: "" }])
+      setSteps([{ stepNumber: 1, description: "" }])
+      setCurrentStep(1)
+      setAddRecipeDialogOpen(false)
+
+      // Refresh recipes
+      fetchRecipes()
+    } catch (error) {
+      console.error("Error creating recipe:", error)
+      alert("Échec de la création de la recette. Veuillez réessayer.")
     }
-
-    console.log("Recipe data:", recipeData)
-    console.log("Recipe image:", recipeImage)
-
-    setRecipeTitle("")
-    setRecipeDescription("")
-    setRecipeDifficulty("")
-    setPrepTime(15)
-    setCookTime(0)
-    setServings(4)
-    setRecipeImage(null)
-    setRecipeImagePreview("")
-    setSelectedCategory("")
-    setIngredients([{ name: "", quantity: "", unit: "" }])
-    setSteps([{ stepNumber: 1, description: "" }])
-    setCurrentStep(1)
-    setAddRecipeDialogOpen(false)
   }
 
-  const openCommentDialog = (recipe: Recipe) => {
+  const openCommentDialog = (recipe: RecipeResponse) => {
     setActiveRecipe(recipe)
     setCommentDialogOpen(true)
   }
 
-  const recipes = [
-    {
-      id: 1,
-      title: "Tarte aux Pommes Traditionnelle",
-      chef: "Marie Dubois",
-      time: "60 min",
-      level: "Intermédiaire",
-      likes: 124,
-      comments: 18,
-      image: "/placeholder.svg?height=400&width=600",
-      description: "Une délicieuse tarte aux pommes avec une touche de cannelle et une pâte croustillante.",
-    },
-    {
-      id: 2,
-      title: "Risotto aux Champignons",
-      chef: "Thomas Martin",
-      time: "45 min",
-      level: "Intermédiaire",
-      likes: 98,
-      comments: 12,
-      image: "/placeholder.svg?height=400&width=600",
-      description: "Un risotto crémeux aux champignons sauvages et parmesan.",
-    },
-    {
-      id: 3,
-      title: "Poulet Rôti aux Herbes",
-      chef: "Sophie Laurent",
-      time: "75 min",
-      level: "Facile",
-      likes: 156,
-      comments: 24,
-      image: "/placeholder.svg?height=400&width=600",
-      description: "Un poulet rôti juteux avec un mélange d'herbes fraîches et d'ail.",
-    },
-    {
-      id: 4,
-      title: "Salade Niçoise",
-      chef: "Jean Dupont",
-      time: "25 min",
-      level: "Facile",
-      likes: 87,
-      comments: 9,
-      image: "/placeholder.svg?height=400&width=600",
-      description: "Une salade fraîche et colorée avec des ingrédients méditerranéens.",
-    },
-    {
-      id: 5,
-      title: "Tiramisu Classique",
-      chef: "Lucie Moreau",
-      time: "30 min",
-      level: "Intermédiaire",
-      likes: 142,
-      comments: 21,
-      image: "/placeholder.svg?height=400&width=600",
-      description: "Un dessert italien crémeux au café et au mascarpone.",
-    },
-    {
-      id: 6,
-      title: "Ratatouille Provençale",
-      chef: "Pierre Martin",
-      time: "55 min",
-      level: "Intermédiaire",
-      likes: 112,
-      comments: 16,
-      image: "/placeholder.svg?height=400&width=600",
-      description: "Un plat végétarien coloré avec des légumes d'été mijotés.",
-    },
-  ]
+  // Handle search term changes
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchTerm) {
+        handleSearch()
+      } else {
+        fetchRecipes()
+      }
+    }, 500)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchTerm])
 
   const comments: CommentType[] = [
     {
@@ -407,6 +389,17 @@ export default function CommunityPage() {
     { value: "8", label: "Sauces et condiments" },
   ]
 
+  const ingredientsList = [
+    { value: "1", label: "Farine" },
+    { value: "2", label: "Sucre" },
+    { value: "3", label: "Sel" },
+    { value: "4", label: "Beurre" },
+    { value: "5", label: "Œufs" },
+    { value: "6", label: "Lait" },
+    { value: "7", label: "Levure" },
+    { value: "8", label: "Chocolat" },
+  ]
+
   const dietaryPreferences = [
     { value: "vegetarian", label: "Végétarien" },
     { value: "vegan", label: "Végan" },
@@ -432,6 +425,31 @@ export default function CommunityPage() {
     { value: "pincée", label: "pincée" },
     { value: "unité", label: "unité(s)" },
   ]
+
+  if (loading && recipes.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement des recettes...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && recipes.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">Une erreur est survenue</div>
+          <p className="text-gray-600">Impossible de charger les recettes. Veuillez réessayer plus tard.</p>
+          <Button onClick={() => fetchRecipes()} className="mt-4 bg-rose-500 hover:bg-rose-600 text-white">
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -459,107 +477,120 @@ export default function CommunityPage() {
             ))}
 
             {/* Add Recipe Button */}
-            <Button
-              onClick={() => setAddRecipeDialogOpen(true)}
-              className="bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5"
-            >
-              <Plus className="h-4 w-4" /> Ajouter une recette
-            </Button>
+            {isAuthenticated && (
+              <Button
+                onClick={() => setAddRecipeDialogOpen(true)}
+                className="bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" /> Ajouter une recette
+              </Button>
+            )}
 
             {/* Notifications */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 relative">
-                  <Bell className="h-5 w-5 text-gray-600" />
-                  <span className="absolute top-0 right-0 h-2 w-2 bg-rose-500 rounded-full"></span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0">
-                <div className="p-3 border-b border-gray-100">
-                  <h3 className="font-medium">Notifications</h3>
-                </div>
-                <div className="max-h-[300px] overflow-y-auto">
-                  <div className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8 flex-shrink-0 border">
-                        <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
-                      </Avatar>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Marie Dubois</span> a aimé votre recette
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Il y a 2 heures</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8 flex-shrink-0 border">
-                        <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
-                      </Avatar>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Thomas Martin</span> a commenté votre recette
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Il y a 5 heures</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-3 hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8 flex-shrink-0 border">
-                        <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
-                      </Avatar>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Sophie Laurent</span> vous a mentionné dans un commentaire
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Il y a 1 jour</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-2 border-t border-gray-100 text-center">
-                  <Button variant="ghost" className="text-rose-500 text-sm p-0 h-auto">
-                    Voir toutes les notifications
+            {isAuthenticated && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 relative">
+                    <Bell className="h-5 w-5 text-gray-600" />
+                    <span className="absolute top-0 right-0 h-2 w-2 bg-rose-500 rounded-full"></span>
                   </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0">
+                  <div className="p-3 border-b border-gray-100">
+                    <h3 className="font-medium">Notifications</h3>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <div className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-8 w-8 flex-shrink-0 border">
+                          <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
+                        </Avatar>
+                        <div>
+                          <p className="text-sm">
+                            <span className="font-medium">Marie Dubois</span> a aimé votre recette
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">Il y a 2 heures</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-8 w-8 flex-shrink-0 border">
+                          <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
+                        </Avatar>
+                        <div>
+                          <p className="text-sm">
+                            <span className="font-medium">Thomas Martin</span> a commenté votre recette
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">Il y a 5 heures</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-8 w-8 flex-shrink-0 border">
+                          <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
+                        </Avatar>
+                        <div>
+                          <p className="text-sm">
+                            <span className="font-medium">Sophie Laurent</span> vous a mentionné dans un commentaire
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">Il y a 1 jour</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2 border-t border-gray-100 text-center">
+                    <Button variant="ghost" className="text-rose-500 text-sm p-0 h-auto">
+                      Voir toutes les notifications
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
 
             {/* User menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
-                  <Avatar className="h-8 w-8 border">
-                    <Image src="/placeholder.svg?height=40&width=40" alt="Profile" width={40} height={40} />
-                  </Avatar>
-                  <span className="text-sm font-medium hidden md:inline">Jean Dupont</span>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <BookmarkIcon className="mr-2 h-4 w-4" />
-                  <span>Mes recettes sauvegardées</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Paramètres</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Déconnexion</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
+                    <Avatar className="h-8 w-8 border">
+                      <Image src="/placeholder.svg?height=40&width=40" alt="Profile" width={40} height={40} />
+                    </Avatar>
+                    <span className="text-sm font-medium hidden md:inline">Utilisateur</span>
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <BookmarkIcon className="mr-2 h-4 w-4" />
+                    <span>Mes recettes sauvegardées</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Paramètres</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600"
+                    onClick={() => useAuthStore.getState().logout()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Déconnexion</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <Button className="bg-rose-500 hover:bg-rose-600 text-white">Se connecter</Button>
+              </Link>
+            )}
           </nav>
 
           <button onClick={toggleMobileMenu} className="md:hidden text-gray-800">
@@ -692,10 +723,10 @@ export default function CommunityPage() {
                     <h4 className="font-medium mb-3">Trier par</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {[
-                        { value: "recent", label: "Plus récent" },
-                        { value: "popular", label: "Plus populaire" },
-                        { value: "trending", label: "Tendance" },
-                        { value: "comments", label: "Plus commenté" },
+                        { value: "creationDate,desc", label: "Plus récent" },
+                        { value: "averageRating,desc", label: "Plus populaire" },
+                        { value: "totalComments,desc", label: "Plus commenté" },
+                        { value: "preparationTime,asc", label: "Temps de préparation" },
                       ].map((option) => (
                         <div key={option.value} className="flex items-center space-x-2">
                           <Checkbox
@@ -724,7 +755,7 @@ export default function CommunityPage() {
                     >
                       Réinitialiser
                     </Button>
-                    <Button className="bg-rose-500 hover:bg-rose-600 text-white" onClick={() => setShowFilters(false)}>
+                    <Button className="bg-rose-500 hover:bg-rose-600 text-white" onClick={applyFilters}>
                       Appliquer les filtres
                     </Button>
                   </div>
@@ -752,7 +783,7 @@ export default function CommunityPage() {
                   Facile
                 </Badge>
                 <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
-                 Tendance
+                  Tendance
                 </Badge>
               </div>
             </div>
@@ -775,115 +806,144 @@ export default function CommunityPage() {
             <TabsContent value="recettes" className="space-y-8">
               {/* All Recipes as Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recipes.map((recipe) => (
-                  <Card
-                    key={recipe.id}
-                    className={cn(
-                      "overflow-hidden group cursor-pointer hover:shadow-md transition-shadow",
-                      recipe.id === 1 ? "sm:col-span-2 lg:col-span-3" : "",
-                    )}
-                  >
-                    <div className={cn("relative", recipe.id === 1 ? "h-64 md:h-80" : "h-48")}>
-                      <Image
-                        src={recipe.image || "/placeholder.svg"}
-                        alt={recipe.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      {recipe.id === 1 && (
-                        <div className="absolute top-4 left-4">
-                          <Badge className=" text-whit">
-                          Tendance
-                          </Badge>
-                        </div>
+                {recipes.length > 0 ? (
+                  recipes.map((recipe, index) => (
+                    <Card
+                      key={recipe.id}
+                      className={cn(
+                        "overflow-hidden group cursor-pointer hover:shadow-md transition-shadow",
+                        index === 0 ? "sm:col-span-2 lg:col-span-3" : "",
                       )}
-                      <div className="absolute top-2 right-2 p-2 flex space-x-1">
-                        <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
-                          <Heart className="h-4 w-4 text-gray-600 hover:text-rose-500" />
-                        </button>
-                        <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
-                          <BookmarkIcon className="h-4 w-4 text-gray-600 hover:text-rose-500" />
-                        </button>
-                        <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
-                          <Share2 className="h-4 w-4 text-gray-600 hover:text-rose-500" />
-                        </button>
-                      </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-medium mb-1 group-hover:text-rose-500 transition-colors">
-                        {recipe.title}
-                      </h3>
-                      <div className="flex justify-between text-sm text-gray-500 mb-2">
-                        <span>Par {recipe.chef}</span>
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" /> {recipe.time}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
-
-                      {recipe.id === 1 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Dessert</Badge>
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Français</Badge>
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">Végétarien</Badge>
+                    >
+                      <div className={cn("relative", index === 0 ? "h-64 md:h-80" : "h-48")}>
+                        <Image
+                          src={recipe.imageUrl || "/placeholder.svg?height=400&width=600"}
+                          alt={recipe.title}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        {recipe.averageRating >= 4.5 && (
+                          <div className="absolute top-4 left-4">
+                            <Badge className="bg-rose-500 text-white">Tendance</Badge>
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2 p-2 flex space-x-1">
+                          <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
+                            <Heart className="h-4 w-4 text-gray-600 hover:text-rose-500" />
+                          </button>
+                          <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
+                            <BookmarkIcon className="h-4 w-4 text-gray-600 hover:text-rose-500" />
+                          </button>
+                          <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
+                            <Share2 className="h-4 w-4 text-gray-600 hover:text-rose-500" />
+                          </button>
                         </div>
-                      )}
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="text-lg font-medium mb-1 group-hover:text-rose-500 transition-colors">
+                          {recipe.title}
+                        </h3>
+                        <div className="flex justify-between text-sm text-gray-500 mb-2">
+                          <span>Par {recipe.chef?.username || "Chef inconnu"}</span>
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)} min
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
 
-                      {recipe.id === 1 && (
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center">
-                            <Avatar className="h-8 w-8 mr-2 border">
-                              <Image
-                                src="/placeholder.svg?height=40&width=40"
-                                alt={recipe.chef}
-                                width={40}
-                                height={40}
-                              />
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium">{recipe.chef}</p>
-                              <p className="text-xs text-gray-500">Partagé il y a 3 jours</p>
+                        {index === 0 && recipe.categories && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {recipe.categories.map((category) => (
+                              <Badge key={category.id} className="bg-rose-100 text-rose-700 hover:bg-rose-200">
+                                {category.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {index === 0 && (
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center">
+                              <Avatar className="h-8 w-8 mr-2 border">
+                                <Image
+                                  src={recipe.chef?.profilePicture || "/placeholder.svg?height=40&width=40"}
+                                  alt={recipe.chef?.username || "Chef"}
+                                  width={40}
+                                  height={40}
+                                />
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{recipe.chef?.username}</p>
+                                <p className="text-xs text-gray-500">
+                                  Partagé le {new Date(recipe.creationDate).toLocaleDateString()}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {recipe.id === 1 && (
-                        <div className="flex justify-between items-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-rose-500 border-rose-200"
-                            onClick={() => openCommentDialog(recipe)}
-                          >
-                            <MessageCircle className="h-4 w-4 mr-1" /> Commenter
-                          </Button>
-                          <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
-                        </div>
-                      )}
-                    </CardContent>
-
-                    {recipe.id !== 1 && (
-                      <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                        <div className="flex justify-between items-center w-full">
-                          <div className="flex items-center text-sm text-gray-500">
-                            <span className="flex items-center mr-3">
-                              <Heart className="h-3 w-3 mr-1" /> {recipe.likes}
-                            </span>
-                            <button
-                              className="flex items-center hover:text-rose-500"
+                        {index === 0 && (
+                          <div className="flex justify-between items-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-rose-500 border-rose-200"
                               onClick={() => openCommentDialog(recipe)}
                             >
-                              <MessageCircle className="h-3 w-3 mr-1" /> {recipe.comments}
-                            </button>
+                              <MessageCircle className="h-4 w-4 mr-1" /> Commenter
+                            </Button>
+                            <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
                           </div>
-                          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">{recipe.level}</Badge>
-                        </div>
-                      </CardFooter>
-                    )}
-                  </Card>
-                ))}
+                        )}
+                      </CardContent>
+
+                      {index !== 0 && (
+                        <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                          <div className="flex justify-between items-center w-full">
+                            <div className="flex items-center text-sm text-gray-500">
+                              <span className="flex items-center mr-3">
+                                <Heart className="h-3 w-3 mr-1" /> {recipe.totalRatings || 0}
+                              </span>
+                              <button
+                                className="flex items-center hover:text-rose-500"
+                                onClick={() => openCommentDialog(recipe)}
+                              >
+                                <MessageCircle className="h-3 w-3 mr-1" /> {recipe.totalComments || 0}
+                              </button>
+                            </div>
+                            <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">
+                              {recipe.difficultyLevel === "EASY"
+                                ? "Facile"
+                                : recipe.difficultyLevel === "MEDIUM"
+                                  ? "Intermédiaire"
+                                  : "Difficile"}
+                            </Badge>
+                          </div>
+                        </CardFooter>
+                      )}
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-10">
+                    <p className="text-gray-500">Aucune recette trouvée</p>
+                  </div>
+                )}
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-8 gap-2">
+                  <Button variant="outline" onClick={prevPage} disabled={page === 0} className="px-4">
+                    Précédent
+                  </Button>
+                  <span className="flex items-center px-4">
+                    Page {page + 1} sur {totalPages}
+                  </span>
+                  <Button variant="outline" onClick={nextPage} disabled={page >= totalPages - 1} className="px-4">
+                    Suivant
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="discussions">
@@ -1238,7 +1298,7 @@ export default function CommunityPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {difficultyLevels.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
+                          <SelectItem key={level.value} value={level.value as DifficultyLevel}>
                             {level.label}
                           </SelectItem>
                         ))}
@@ -1307,14 +1367,34 @@ export default function CommunityPage() {
                   </Button>
                 </div>
 
+                <div className="mb-4">
+                  <Label htmlFor="ingredients-select" className="block text-sm font-medium mb-2">
+                    Sélectionner des ingrédients
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {ingredientsList.map((ingredient) => (
+                      <div key={ingredient.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`ingredient-${ingredient.value}`}
+                          checked={selectedIngredients.includes(ingredient.value)}
+                          onChange={() => handleIngredientSelection(ingredient.value)}
+                        />
+                        <Label htmlFor={`ingredient-${ingredient.value}`} className="text-sm cursor-pointer">
+                          {ingredient.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="space-y-3 max-h-[300px] overflow-y-auto p-1">
                   {ingredients.map((ingredient, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <div className="flex-1">
                         <Input
                           placeholder="Nom de l'ingrédient"
-                          value={ingredient.name}
-                          onChange={(e) => updateIngredient(index, "name", e.target.value)}
+                          value={ingredient.quantity}
+                          onChange={(e) => updateIngredient(index, "quantity", e.target.value)}
                           className="mb-2"
                         />
                       </div>

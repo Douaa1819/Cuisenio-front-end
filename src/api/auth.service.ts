@@ -3,7 +3,6 @@ import {
     LoginRequest,
     RegisterRequest,
     UpdatePasswordRequest,
-    UpdateProfileRequest,
     UserProfile
 } from '../types/auth.types';
 
@@ -30,7 +29,7 @@ export const authService = {
         return response.data;
     },
 
-    async updateProfile(data: UpdateProfileRequest) {
+    async updateProfile(data: FormData) {
         const response = await client.put<UserProfile>(`${PROFILE_URL}`, data);
         return response.data;
     },
@@ -61,5 +60,26 @@ export const authService = {
 
     removeToken() {
         localStorage.removeItem('token');
-    }
-};
+    },
+    getCurrentUser: async () => {
+        try {
+          const response = await client.get('/api/profile');
+          return response.data;
+        } catch (error) {
+          console.error('Error fetching current user:', error);
+          throw error;
+        }
+      },
+    
+      // Verify token validity
+      verifyToken: async (token: string) => {
+        try {
+          const response = await client.post(`${BASE_URL}/verify-token`, { token });
+          return response.data;
+        } catch (error) {
+          console.error('Token verification error:', error);
+          throw error;
+        }
+      }
+    };
+    
