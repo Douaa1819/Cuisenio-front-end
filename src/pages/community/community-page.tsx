@@ -4,6 +4,8 @@ import type React from "react"
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Link } from "react-router-dom"
+import { categoryService } from "../../api/category.service";
+import { CategoryResponse } from "../../types/category.types";
 import {
   ChefHat,
   Clock,
@@ -32,6 +34,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { Avatar } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Textarea } from "../../components/ui/textarea"
+import { ingredientService } from "../../api/ingredient.service";
+import { IngredientDetail, IngredientResponse } from "../../types/ingredient.types";
 import {
   Dialog,
   DialogContent,
@@ -63,7 +67,7 @@ import type {
   RecipeResponse,
   RecipeIngredientRequest,
   RecipeStepRequest,
-  RecipeDetailsRequest,
+  RecipeRequest,
 } from "../../types/recipe.types"
 
 interface ImageProps {
@@ -115,7 +119,8 @@ export default function CommunityPage() {
   const { isAuthenticated } = useAuthStore()
   const { recipes, loading, error, page, totalPages, fetchRecipes, searchRecipes, createRecipe, nextPage, prevPage } =
     useRecipe({ pageSize: 9 })
-
+    const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
+    const [ingredientDetails, setIngredientDetails] = useState<IngredientDetail[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [commentText, setCommentText] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
@@ -136,7 +141,6 @@ export default function CommunityPage() {
   const [recipeImage, setRecipeImage] = useState<File | null>(null)
   const [recipeImagePreview, setRecipeImagePreview] = useState<string>("")
   const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([])
   const [ingredients, setIngredients] = useState<RecipeIngredientRequest[]>([
     { ingredientId: 0, quantity: "", unit: "" },
   ])
@@ -148,21 +152,22 @@ export default function CommunityPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([])
   const [timeRange, setTimeRange] = useState([15, 60])
   const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
+  const [ingredientsList, setIngredientsList] = useState<IngredientResponse[]>([]);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
 
-  // Handle search with filters
   const handleSearch = useCallback(() => {
     const difficulty = difficultyFilter.length > 0 ? difficultyFilter[0] : undefined
     searchRecipes(
       searchTerm,
       difficulty,
-      timeRange[1], // maxPrepTime
-      undefined, // maxCookTime
+      timeRange[1], 
+      undefined, 
       filterCategory || undefined,
-      undefined, // isApproved
+      undefined, 
     )
   }, [searchTerm, difficultyFilter, timeRange, filterCategory, searchRecipes])
 
-  // Apply filters
+
   const applyFilters = () => {
     handleSearch()
     setShowFilters(false)
@@ -198,13 +203,13 @@ export default function CommunityPage() {
     }
   }
 
-  const handleIngredientSelection = (value: string) => {
-    if (selectedIngredients.includes(value)) {
-      setSelectedIngredients(selectedIngredients.filter((item) => item !== value))
-    } else {
-      setSelectedIngredients([...selectedIngredients, value])
-    }
-  }
+  // const handleIngredientSelection = (value: string) => {
+  //   if (selectedIngredients.includes(value)) {
+  //     setSelectedIngredients(selectedIngredients.filter((item) => item !== value))
+  //   } else {
+  //     setSelectedIngredients([...selectedIngredients, value])
+  //   }
+  // }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -220,23 +225,21 @@ export default function CommunityPage() {
     }
   }
 
-  const addIngredient = () => {
-    setIngredients([...ingredients, { ingredientId: 0, quantity: "", unit: "" }])
-  }
 
-  const updateIngredient = (index: number, field: keyof RecipeIngredientRequest, value: string) => {
-    const updatedIngredients = [...ingredients]
-    updatedIngredients[index] = { ...updatedIngredients[index], [field]: value }
-    setIngredients(updatedIngredients)
-  }
 
-  const removeIngredient = (index: number) => {
-    if (ingredients.length > 1) {
-      const updatedIngredients = [...ingredients]
-      updatedIngredients.splice(index, 1)
-      setIngredients(updatedIngredients)
-    }
-  }
+  // const updateIngredient = (index: number, field: keyof RecipeIngredientRequest, value: string) => {
+  //   const updatedIngredients = [...ingredients]
+  //   updatedIngredients[index] = { ...updatedIngredients[index], [field]: value }
+  //   setIngredients(updatedIngredients)
+  // }
+
+  // const removeIngredient = (index: number) => {
+  //   if (ingredients.length > 1) {
+  //     const updatedIngredients = [...ingredients]
+  //     updatedIngredients.splice(index, 1)
+  //     setIngredients(updatedIngredients)
+  //   }
+  // }
 
   const addStep = () => {
     const nextStepNumber = steps.length + 1
@@ -266,14 +269,13 @@ export default function CommunityPage() {
   }
 
   const handleSubmitRecipe = async () => {
-    // Validation
+    
     if (!recipeTitle || !recipeDescription || !recipeDifficulty) {
       alert("Veuillez remplir tous les champs obligatoires")
       return
     }
 
     try {
-      // Create FormData for the recipe
       const formData = new FormData()
       formData.append("title", recipeTitle)
       formData.append("description", recipeDescription)
@@ -288,16 +290,21 @@ export default function CommunityPage() {
 
       formData.append("categoryIds", selectedCategory)
 
-      // Create recipe details object
-      const recipeDetails: RecipeDetailsRequest = {
+      const recipeDetails: RecipeRequest = {
+        title: recipeTitle,
+        description: recipeDescription,
+        difficultyLevel: recipeDifficulty,
+        preparationTime: prepTime,
+        cookingTime: cookTime,
+        imageUrl: recipeImage || undefined,
+        categoryIds: [parseInt(selectedCategory)],
+        servings: servings,
         ingredients: ingredients.filter((ing) => ing.quantity.trim() !== ""),
         steps: steps.filter((step) => step.description.trim() !== ""),
       }
+      
+      await createRecipe(recipeDetails)
 
-      // Call the API to create the recipe
-      await createRecipe(formData, recipeDetails)
-
-      // Reset form
       setRecipeTitle("")
       setRecipeDescription("")
       setRecipeDifficulty("")
@@ -313,7 +320,6 @@ export default function CommunityPage() {
       setCurrentStep(1)
       setAddRecipeDialogOpen(false)
 
-      // Refresh recipes
       fetchRecipes()
     } catch (error) {
       console.error("Error creating recipe:", error)
@@ -326,7 +332,19 @@ export default function CommunityPage() {
     setCommentDialogOpen(true)
   }
 
-  // Handle search term changes
+  
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      try {
+        const response = await ingredientService.findAll()
+        setIngredientsList(response.content)
+      } catch (error) {
+        console.error("Error fetching ingredients:", error)
+      }
+    }
+
+    fetchIngredients()
+  }, [])
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchTerm) {
@@ -339,6 +357,18 @@ export default function CommunityPage() {
     return () => clearTimeout(delayDebounceFn)
   }, [searchTerm])
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoryService.findAll();
+        setCategories(response.content);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
   const comments: CommentType[] = [
     {
       id: 1,
@@ -376,29 +406,9 @@ export default function CommunityPage() {
         },
       ],
     },
+
   ]
 
-  const categories = [
-    { value: "1", label: "Desserts" },
-    { value: "2", label: "Plats principaux" },
-    { value: "3", label: "Entrées" },
-    { value: "4", label: "Soupes" },
-    { value: "5", label: "Salades" },
-    { value: "6", label: "Boissons" },
-    { value: "7", label: "Apéritifs" },
-    { value: "8", label: "Sauces et condiments" },
-  ]
-
-  const ingredientsList = [
-    { value: "1", label: "Farine" },
-    { value: "2", label: "Sucre" },
-    { value: "3", label: "Sel" },
-    { value: "4", label: "Beurre" },
-    { value: "5", label: "Œufs" },
-    { value: "6", label: "Lait" },
-    { value: "7", label: "Levure" },
-    { value: "8", label: "Chocolat" },
-  ]
 
   const dietaryPreferences = [
     { value: "vegetarian", label: "Végétarien" },
@@ -411,8 +421,8 @@ export default function CommunityPage() {
 
   const difficultyLevels = [
     { value: "EASY", label: "Facile" },
-    { value: "MEDIUM", label: "Intermédiaire" },
-    { value: "HARD", label: "Difficile" },
+    { value: "INTERMEDIATE", label: "Intermédiaire" },
+    { value: "ADVANCED", label: "Difficile" },
   ]
 
   const units = [
@@ -450,6 +460,47 @@ export default function CommunityPage() {
       </div>
     )
   }
+
+  
+
+  const handleIngredientSelection = (ingredientId: number) => {
+    setSelectedIngredients((prevSelectedIngredients) => {
+      if (prevSelectedIngredients.includes(ingredientId)) {
+        // Remove from selection and also remove its details
+        setIngredientDetails((prevDetails) =>
+          prevDetails.filter((detail) => detail.ingredientId !== ingredientId)
+        );
+        return prevSelectedIngredients.filter((id) => id !== ingredientId);
+      } else {
+        // Add to selection and initialize quantity & unit
+        setIngredientDetails((prevDetails) => [
+          ...prevDetails,
+          { ingredientId, quantity: "", unit: "" },
+        ]);
+        return [...prevSelectedIngredients, ingredientId];
+      }
+    });
+  };
+
+  const handleQuantityChange = (ingredientId: number, value: string) => {
+    setIngredientDetails((prevDetails) =>
+      prevDetails.map((detail) =>
+        detail.ingredientId === ingredientId
+          ? { ...detail, quantity: value }
+          : detail
+      )
+    );
+  };
+
+  const handleUnitChange = (ingredientId: number, value: string) => {
+    setIngredientDetails((prevDetails) =>
+      prevDetails.map((detail) =>
+        detail.ingredientId === ingredientId
+          ? { ...detail, unit: value }
+          : detail
+      )
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -640,24 +691,24 @@ export default function CommunityPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                     {/* Categories */}
                     <div>
-                      <h4 className="font-medium mb-3">Catégories</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        {categories.map((category) => (
-                          <div key={category.value} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`category-${category.value}`}
-                              checked={filterCategory === category.value}
-                              onChange={() =>
-                                setFilterCategory(filterCategory === category.value ? "" : category.value)
-                              }
-                            />
-                            <Label htmlFor={`category-${category.value}`} className="text-sm cursor-pointer">
-                              {category.label}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
+                    <h4 className="font-medium mb-3">Catégories</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {categories.map((category) => (
+                        <div key={category.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`category-${category.id}`}
+                            checked={filterCategory === category.id.toString()}
+                            onChange={() =>
+                              setFilterCategory(filterCategory === category.id.toString() ? "" : category.id.toString())
+                            }
+                          />
+                          <Label htmlFor={`category-${category.id}`} className="text-sm cursor-pointer">
+                            {category.name}
+                          </Label>
+                        </div>
+                      ))}
                     </div>
+                  </div>
 
                     {/* Dietary preferences */}
                     <div>
@@ -1184,7 +1235,7 @@ export default function CommunityPage() {
             <DialogTitle>Ajouter une nouvelle recette</DialogTitle>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="py-4"></div>
             <div className="grid grid-cols-1 gap-6">
               {/* Recipe image */}
               <div className="mb-4">
@@ -1267,24 +1318,24 @@ export default function CommunityPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="recipe-category" className="block text-sm font-medium mb-1">
-                      Catégorie <span className="text-rose-500">*</span>
-                    </Label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger id="recipe-category">
-                        <SelectValue placeholder="Sélectionner une catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
+              <div>
+                <Label htmlFor="recipe-category" className="block text-sm font-medium mb-1">
+                  Catégorie <span className="text-rose-500">*</span>
+                </Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger id="recipe-category">
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
                   <div>
                     <Label htmlFor="recipe-difficulty" className="block text-sm font-medium mb-1">
                       Niveau de difficulté <span className="text-rose-500">*</span>
@@ -1324,7 +1375,8 @@ export default function CommunityPage() {
 
                   <div>
                     <Label htmlFor="cook-time" className="block text-sm font-medium mb-1">
-                      Temps de cuisson (min)
+                      Temps de cuisson <br />
+                      (min)
                     </Label>
                     <Input
                       id="cook-time"
@@ -1337,7 +1389,7 @@ export default function CommunityPage() {
 
                   <div>
                     <Label htmlFor="servings" className="block text-sm font-medium mb-1">
-                      Nombre de portions <span className="text-rose-500">*</span>
+                      Nombre de <br />portions <span className="text-rose-500">*</span>
                     </Label>
                     <Input
                       id="servings"
@@ -1357,83 +1409,69 @@ export default function CommunityPage() {
                   <Label className="block text-sm font-medium">
                     Ingrédients <span className="text-rose-500">*</span>
                   </Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs flex items-center gap-1"
-                    onClick={addIngredient}
-                  >
-                    <Plus className="h-3 w-3" /> Ajouter
-                  </Button>
                 </div>
 
-                <div className="mb-4">
-                  <Label htmlFor="ingredients-select" className="block text-sm font-medium mb-2">
-                    Sélectionner des ingrédients
-                  </Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {ingredientsList.map((ingredient) => (
-                      <div key={ingredient.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`ingredient-${ingredient.value}`}
-                          checked={selectedIngredients.includes(ingredient.value)}
-                          onChange={() => handleIngredientSelection(ingredient.value)}
-                        />
-                        <Label htmlFor={`ingredient-${ingredient.value}`} className="text-sm cursor-pointer">
-                          {ingredient.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            <div className="mb-4">
+            <Label 
+    htmlFor="ingredients-select" 
+    className="block text-sm font-medium mb-3"
+  >
+    Sélectionner des ingrédients
+  </Label>
+  
+  <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 border border-gray-200 rounded-md">
+    {ingredientsList.map((ingredient) => (
+      <div key={ingredient.id} className="pb-3 border-b border-gray-100 last:border-0">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id={`ingredient-${ingredient.id}`}
+            checked={selectedIngredients.includes(ingredient.id)}
+            onChange={() => handleIngredientSelection(ingredient.id)}
+            className="h-4 w-4"
+          />
+          <Label 
+            htmlFor={`ingredient-${ingredient.id}`} 
+            className="text-sm font-medium cursor-pointer"
+          >
+            {ingredient.name}
+          </Label>
+        </div>
 
-                <div className="space-y-3 max-h-[300px] overflow-y-auto p-1">
-                  {ingredients.map((ingredient, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <Input
-                          placeholder="Nom de l'ingrédient"
-                          value={ingredient.quantity}
-                          onChange={(e) => updateIngredient(index, "quantity", e.target.value)}
-                          className="mb-2"
-                        />
-                      </div>
-                      <div className="w-20">
-                        <Input
-                          placeholder="Quantité"
-                          value={ingredient.quantity}
-                          onChange={(e) => updateIngredient(index, "quantity", e.target.value)}
-                          className="mb-2"
-                        />
-                      </div>
-                      <div className="w-32">
-                        <Select
-                          value={ingredient.unit}
-                          onValueChange={(value) => updateIngredient(index, "unit", value)}
-                        >
-                          <SelectTrigger className="mb-2">
-                            <SelectValue placeholder="Unité" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {units.map((unit) => (
-                              <SelectItem key={unit.value} value={unit.value}>
-                                {unit.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-gray-400 hover:text-rose-500"
-                        onClick={() => removeIngredient(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+        {selectedIngredients.includes(ingredient.id) && (
+          <div className="mt-2 ml-6 flex flex-wrap items-center gap-2">
+            <div className="flex-1 min-w-[120px]">
+              <Input
+                placeholder="Quantité"
+                type="number"
+                value={
+                  ingredientDetails.find((detail) => detail.ingredientId === ingredient.id)
+                    ?.quantity || ""
+                }
+                onChange={(e) => handleQuantityChange(ingredient.id, e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <select
+                value={
+                  ingredientDetails.find((detail) => detail.ingredientId === ingredient.id)
+                    ?.unit || ""
+                }
+                onChange={(e) => handleUnitChange(ingredient.id, e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md bg-white"
+              >
+                <option value="">Unité</option>
+                {units.map((unit) => (
+                  <option key={unit.value} value={unit.value}>
+                    {unit.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+    ))}
               </div>
 
               {/* Steps */}

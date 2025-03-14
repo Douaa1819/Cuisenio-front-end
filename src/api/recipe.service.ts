@@ -1,7 +1,7 @@
 import client  from "./client"
-import type { RecipeDetailsRequest, RecipeResponse } from "../types/recipe.types"
+import type { RecipeRequest, RecipeResponse } from "../types/recipe.types"
 
-const BASE_URL = "/api/recipes"
+const BASE_URL = "/v1/recipes"
 
 export const recipeService = {
   getAllRecipes: async (page = 0, size = 10, sort = "creationDate") => {
@@ -33,14 +33,11 @@ export const recipeService = {
     }
   },
 
-  createRecipe: async (recipeData: FormData, detailsData: RecipeDetailsRequest) => {
+  createRecipe: async (detailsData: RecipeRequest) => {
     try {
-      const response = await client.post(BASE_URL, recipeData, {
+      const response = await client.post(BASE_URL, detailsData, {
         headers: {
           "Content-Type": "multipart/form-data",
-        },
-        params: {
-          detailsRequest: JSON.stringify(detailsData),
         },
       })
       return response.data

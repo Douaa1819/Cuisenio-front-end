@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { recipeService } from "../api/recipe.service"
 import type { RecipeResponse } from "../types/recipe.types"
-import type { RecipeDetailsRequest } from "../types/recipe.types"
+import type { RecipeRequest } from "../types/recipe.types"
 
 interface UseRecipeProps {
   initialPage?: number
@@ -50,10 +50,10 @@ export const useRecipe = ({ initialPage = 0, pageSize = 10, sortBy = "creationDa
     }
   }
 
-  const createRecipe = async (recipeData: FormData, detailsData: RecipeDetailsRequest) => {
+  const createRecipe = async (detailsData: RecipeRequest) => {
     setLoading(true)
     try {
-      const newRecipe = await recipeService.createRecipe(recipeData, detailsData)
+      const newRecipe = await recipeService.createRecipe(detailsData)
       // Refresh recipes after creating a new one
       fetchRecipes()
       return newRecipe

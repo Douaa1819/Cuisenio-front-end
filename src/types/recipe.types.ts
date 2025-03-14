@@ -41,12 +41,10 @@ export interface RecipeRequest {
   servings: number
   imageUrl?: File
   categoryIds: number[]
-}
-
-export interface RecipeDetailsRequest {
   ingredients: RecipeIngredientRequest[]
   steps: RecipeStepRequest[]
 }
+
 
 export interface RecipeResponse {
   id: number

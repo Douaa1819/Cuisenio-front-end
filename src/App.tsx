@@ -34,6 +34,8 @@ function App() {
               </PrivateRoute>
             } 
           />
+          <Route path="*" element={<NotFoundPage />} />
+
           <Route path="/" element={<LandingPage />} />
         </Routes>
       </div>

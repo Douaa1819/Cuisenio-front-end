@@ -10,3 +10,9 @@ export interface IngredientResponse {
   export interface IngredientCountResponse {
     count: number;
   }
+
+  export interface IngredientDetail {
+    ingredientId: number;
+    quantity: string;
+    unit: string;
+  }
