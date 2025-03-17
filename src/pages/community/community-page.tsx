@@ -26,7 +26,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { Avatar } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { Checkbox } from "../../components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
@@ -44,6 +44,7 @@ import { Slider } from "../../components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Textarea } from "../../components/ui/textarea"
 import { useRecipe } from "../../hooks/useRecipe"
+import { useComments } from "../../hooks/useComments"
 import { cn } from "../../lib/utils"
 import { useAuthStore } from "../../store/auth.store"
 import type { RecipeResponse } from "../../types/recipe.types"
@@ -78,25 +79,6 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
   )
 }
 
-type CommentType = {
-  id: number
-  user: string
-  avatar: string
-  date: string
-  text: string
-  likes: number
-  replies: Reply[]
-}
-
-interface Reply {
-  id: number
-  user: string
-  avatar: string
-  date: string
-  text: string
-  likes: number
-}
-
 export default function CommunityPage() {
   const { isAuthenticated } = useAuthStore()
   const { recipes, loading, error, page, totalPages, fetchRecipes, searchRecipes, createRecipe, nextPage, prevPage } =
@@ -111,8 +93,8 @@ export default function CommunityPage() {
   const [addRecipeDialogOpen, setAddRecipeDialogOpen] = useState(false)
   const [commentDialogOpen, setCommentDialogOpen] = useState(false)
   const [activeRecipe, setActiveRecipe] = useState<RecipeResponse | null>(null)
-  const [successMessage, setSuccessMessage] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("")
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const [filterCategory, setFilterCategory] = useState("")
   const [sortOption, setSortOption] = useState("")
@@ -121,18 +103,14 @@ export default function CommunityPage() {
   const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [recipeId, setRecipeId] = useState<number | null>(null)
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+
+  // Use the comments hook
+  const { comments, loading: commentsLoading, error: commentsError, fetchComments, addComment } = useComments()
 
   const handleSearch = useCallback(() => {
     const difficulty = difficultyFilter.length > 0 ? difficultyFilter[0] : undefined
-    searchRecipes(
-      searchTerm,
-      difficulty,
-      timeRange[1], 
-      undefined, 
-      filterCategory || undefined,
-      undefined, 
-    )
+    searchRecipes(searchTerm, difficulty, timeRange[1], undefined, filterCategory || undefined, undefined)
   }, [searchTerm, difficultyFilter, timeRange, filterCategory, searchRecipes])
 
   const applyFilters = () => {
@@ -142,10 +120,20 @@ export default function CommunityPage() {
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen)
 
-  const handleCommentSubmit = () => {
-    console.log("Posted comment:", commentText)
-    setCommentText("")
-    setCommentDialogOpen(false)
+  const handleCommentSubmit = async () => {
+    if (!activeRecipe || !commentText.trim()) return
+
+    try {
+      await addComment(activeRecipe.id, commentText)
+      setCommentText("")
+      setSuccessMessage("Commentaire ajouté avec succès!")
+      setShowSuccessModal(true)
+      setTimeout(() => {
+        setShowSuccessModal(false)
+      }, 2000)
+    } catch (error) {
+      console.error("Error posting comment:", error)
+    }
   }
 
   const handleReplySubmit = (commentId: number) => {
@@ -172,12 +160,15 @@ export default function CommunityPage() {
 
   const openCommentDialog = (recipe: RecipeResponse) => {
     setActiveRecipe(recipe)
+    fetchComments(recipe.id)
     setCommentDialogOpen(true)
   }
+
   const handleAddImageClick = (recipeId: number) => {
     setRecipeId(recipeId)
     setIsPopupOpen(true)
   }
+
   useEffect(() => {
     fetchRecipes()
   }, [fetchRecipes])
@@ -194,62 +185,24 @@ export default function CommunityPage() {
     return () => clearTimeout(delayDebounceFn)
   }, [searchTerm, handleSearch, fetchRecipes])
 
-   const handleLogout = async () => {
-      try {
-          await authService.logout();
-          setSuccessMessage("Déconnexion réussie !");
-          setShowSuccessModal(true);
-          setTimeout(() => {
-              setShowSuccessModal(false);
-              navigate('/login'); 
-          }, 2000);
-      } catch (error) {
-          console.error('Erreur lors de la déconnexion :', error);
-          setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.");
-          setShowSuccessModal(true);
-          setTimeout(() => {
-              setShowSuccessModal(false);
-          }, 2000);
-      }
-    };
-  const comments: CommentType[] = [
-    {
-      id: 1,
-      user: "Claire Moreau",
-      avatar: "/placeholder.svg?height=50&width=50",
-      date: "Il y a 2 jours",
-      text: "J'ai essayé cette recette hier soir et c'était délicieux ! J'ai ajouté un peu plus de cannelle et le résultat était parfait. Merci pour le partage !",
-      likes: 8,
-      replies: [],
-    },
-    {
-      id: 2,
-      user: "Lucas Bernard",
-      avatar: "/placeholder.svg?height=50&width=50",
-      date: "Il y a 5 jours",
-      text: "Super recette ! Simple à réaliser et très savoureuse. Toute ma famille a adoré.",
-      likes: 5,
-      replies: [],
-    },
-    {
-      id: 3,
-      user: "Emma Petit",
-      avatar: "/placeholder.svg?height=50&width=50",
-      date: "Il y a 1 semaine",
-      text: "Est-ce qu'on peut remplacer le beurre par de l'huile d'olive ? J'aimerais essayer une version plus légère.",
-      likes: 2,
-      replies: [
-        {
-          id: 1,
-          user: "Marie Dubois",
-          avatar: "/placeholder.svg?height=50&width=50",
-          date: "Il y a 6 jours",
-          text: "Bonjour Emma ! Oui, vous pouvez remplacer le beurre par de l'huile d'olive pour une version plus légère. La texture sera un peu différente, mais toujours délicieuse !",
-          likes: 3,
-        },
-      ],
-    },
-  ]
+  const handleLogout = async () => {
+    try {
+      await authService.logout()
+      setSuccessMessage("Déconnexion réussie !")
+      setShowSuccessModal(true)
+      setTimeout(() => {
+        setShowSuccessModal(false)
+        navigate("/login")
+      }, 2000)
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion :", error)
+      setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.")
+      setShowSuccessModal(true)
+      setTimeout(() => {
+        setShowSuccessModal(false)
+      }, 2000)
+    }
+  }
 
   const categories = [
     { value: "1", label: "Desserts" },
@@ -302,6 +255,9 @@ export default function CommunityPage() {
     )
   }
 
+  // Rest of the component remains the same until the comment dialog
+
+  // Replace the comment dialog content with this:
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       {/* Navigation */}
@@ -315,7 +271,7 @@ export default function CommunityPage() {
           <nav
             className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
           >
-            {[ "Communauté", "Planificateur"].map((item) => (
+            {["Communauté", "Planificateur"].map((item) => (
               <Link
                 key={item}
                 to={item === "Communauté" ? "/home" : item === "Planificateur" ? "/meal-planner" : "#"}
@@ -402,7 +358,7 @@ export default function CommunityPage() {
 
             {/* User menu */}
             {isAuthenticated ? (
-                <DropdownMenu>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
                     <Avatar className="h-8 w-8 border">
@@ -412,27 +368,27 @@ export default function CommunityPage() {
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </Button>
                 </DropdownMenuTrigger>
-      
+
                 <DropdownMenuContent align="end" className="w-56 border-amber-50">
                   <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-      
+
                   <Link to="/profile">
                     <DropdownMenuItem className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       <span>Profil</span>
                     </DropdownMenuItem>
                   </Link>
-      
+
                   <Link to="/mes-recettes">
                     <DropdownMenuItem className="cursor-pointer">
                       <BookmarkIcon className="mr-2 h-4 w-4" />
                       <span>Mes recettes sauvegardées</span>
                     </DropdownMenuItem>
                   </Link>
-      
+
                   <DropdownMenuSeparator />
-      
+
                   <DropdownMenuItem className="cursor-pointer text-red-600" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Se déconnecter</span>
@@ -909,109 +865,119 @@ export default function CommunityPage() {
           </DialogHeader>
 
           <div className="max-h-[60vh] overflow-y-auto py-4">
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <Card key={comment.id} className="overflow-hidden">
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Avatar className="h-8 w-8 mr-2 border">
-                          <Image src={comment.avatar || "/placeholder.svg"} alt={comment.user} width={40} height={40} />
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">{comment.user}</p>
-                          <p className="text-xs text-gray-500">{comment.date}</p>
+            {commentsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500"></div>
+              </div>
+            ) : commentsError ? (
+              <div className="text-center py-8">
+                <p className="text-red-500 mb-2">Impossible de charger les commentaires</p>
+                <Button variant="outline" size="sm" onClick={() => activeRecipe && fetchComments(activeRecipe.id)}>
+                  Réessayer
+                </Button>
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <MessageCircle className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                <p>Aucun commentaire pour cette recette</p>
+                <p className="text-sm mt-1">Soyez le premier à donner votre avis !</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {comments.map((comment) => (
+                  <Card key={comment.id} className="overflow-hidden">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Avatar className="h-8 w-8 mr-2 border">
+                            <Image
+                              src="/placeholder.svg?height=40&width=40"
+                              alt={comment.user.username}
+                              width={40}
+                              height={40}
+                            />
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-sm">{comment.user.username}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center text-gray-500">
+                          <button className="p-1 hover:text-rose-500">
+                            <Heart className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center text-gray-500">
-                        <button className="p-1 hover:text-rose-500">
-                          <Heart className="h-4 w-4" />
-                        </button>
-                        <span className="text-xs ml-1">{comment.likes}</span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-2">
-                    <p className="text-sm text-gray-700">{comment.text}</p>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2">
+                      <p className="text-sm text-gray-700">{comment.content}</p>
+                    </CardContent>
+                    <CardFooter className="p-3 pt-0 flex justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-gray-500 hover:text-rose-500"
+                        onClick={() => setActiveCommentId(comment.id)}
+                      >
+                        Répondre
+                      </Button>
 
-                    {comment.replies && comment.replies.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-500 mb-2">
-                          {comment.replies.length} réponse{comment.replies.length > 1 ? "s" : ""}
-                        </p>
-                        {comment.replies.map((reply) => (
-                          <div key={reply.id} className="flex items-start gap-2 mb-2">
+                      {activeCommentId === comment.id && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md">
+                          <div className="flex gap-2">
                             <Avatar className="h-6 w-6 flex-shrink-0 border">
-                              <Image src={reply.avatar || "/placeholder.svg"} alt={reply.user} width={30} height={30} />
+                              <Image
+                                src="/placeholder.svg?height=30&width=30"
+                                alt="Votre avatar"
+                                width={30}
+                                height={30}
+                              />
                             </Avatar>
-                            <div className="flex-1">
-                              <div className="bg-gray-50 p-2 rounded-lg">
-                                <p className="text-xs font-medium">{reply.user}</p>
-                                <p className="text-xs text-gray-700">{reply.text}</p>
+                            <div className="flex-1 relative">
+                              <Textarea
+                                placeholder="Écrire une réponse..."
+                                className="resize-none text-xs min-h-[60px]"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                              />
+                              <div className="flex justify-end mt-2 gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() => {
+                                    setActiveCommentId(null)
+                                    setReplyText("")
+                                  }}
+                                >
+                                  Annuler
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="text-xs bg-rose-500 hover:bg-rose-600 text-white"
+                                  disabled={!replyText.trim()}
+                                  onClick={() => handleReplySubmit(comment.id)}
+                                >
+                                  Envoyer
+                                </Button>
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter className="p-3 pt-0 flex justify-between">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-gray-500 hover:text-rose-500"
-                      onClick={() => setActiveCommentId(comment.id)}
-                    >
-                      Répondre
-                    </Button>
-
-                    {activeCommentId === comment.id && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md">
-                        <div className="flex gap-2">
-                          <Avatar className="h-6 w-6 flex-shrink-0 border">
-                            <Image
-                              src="/placeholder.svg?height=30&width=30"
-                              alt="Votre avatar"
-                              width={30}
-                              height={30}
-                            />
-                          </Avatar>
-                          <div className="flex-1 relative">
-                            <Textarea
-                              placeholder="Écrire une réponse..."
-                              className="resize-none text-xs min-h-[60px]"
-                              value={replyText}
-                              onChange={(e) => setReplyText(e.target.value)}
-                            />
-                            <div className="flex justify-end mt-2 gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-xs"
-                                onClick={() => {
-                                  setActiveCommentId(null)
-                                  setReplyText("")
-                                }}
-                              >
-                                Annuler
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="text-xs bg-rose-500 hover:bg-rose-600 text-white"
-                                disabled={!replyText.trim()}
-                                onClick={() => handleReplySubmit(comment.id)}
-                              >
-                                Envoyer
-                              </Button>
-                            </div>
-                          </div>
                         </div>
-                      </div>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
+                      )}
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Add Comment */}
@@ -1079,8 +1045,8 @@ export default function CommunityPage() {
         <ImageUploadDialog open={isPopupOpen} onOpenChange={setIsPopupOpen} recipeId={recipeId} />
       )}
 
-         {/* Success Modal */}
-         <AnimatePresence>
+      {/* Success Modal */}
+      <AnimatePresence>
         {showSuccessModal && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1101,11 +1067,6 @@ export default function CommunityPage() {
         )}
       </AnimatePresence>
     </div>
-    
   )
-
-
-  
-   
 }
 

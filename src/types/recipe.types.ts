@@ -104,3 +104,20 @@ export interface PageResponse<T> {
   empty: boolean
 }
 
+
+export interface RecipeCommentRequest {
+  content: string;
+}
+
+export interface RecipeCommentResponse {
+  id: number;
+  content: string;
+  createdAt: string;
+  approved: boolean;
+  user: {
+    id: number;
+    username: string;
+    lastName: string;
+  };
+}
+

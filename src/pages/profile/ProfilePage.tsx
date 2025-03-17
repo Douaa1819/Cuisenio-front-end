@@ -29,7 +29,6 @@ import {
   Home,
   Calendar,
   CookingPot,
-  Users,
 } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
@@ -359,20 +358,14 @@ export default function ProfilePage() {
             className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
           >
             <Link
-              to="/"
+              to="/home"
               className="text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-[#E57373] flex items-center gap-1.5"
             >
               <Home className="h-4 w-4" />
               <span>Accueil</span>
             </Link>
 
-            <Link
-              to="/home"
-              className="text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-[#E57373] flex items-center gap-1.5"
-            >
-              <Users className="h-4 w-4" />
-              <span>Communauté</span>
-            </Link>
+         
 
             <Link
               to="/meal-planner"

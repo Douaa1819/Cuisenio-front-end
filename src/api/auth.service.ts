@@ -14,7 +14,6 @@ export const authService = {
     const response = await client.post(`${BASE_URL}/login`, data)
     this.setToken(response.data.token)
 
-    // Check user role and redirect accordingly
     if (response.data.role === "ADMIN") {
       window.location.href = "/dashboard"
     } else {
@@ -69,7 +68,6 @@ export const authService = {
     }
   },
 
-  // Verify token validity
   verifyToken: async (token: string) => {
     try {
       const response = await client.post(`${BASE_URL}/verify-token`, { token })
