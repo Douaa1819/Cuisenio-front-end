@@ -1,144 +1,114 @@
-"use client"
+import { RecipeFormData } from './../pages/community/validation/recipe-validation';
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { recipeService } from "../api/recipe.service"
 import type { RecipeResponse } from "../types/recipe.types"
-import type { RecipeRequest } from "../types/recipe.types"
 
-interface UseRecipeProps {
-  initialPage?: number
+interface UseRecipeOptions {
   pageSize?: number
-  sortBy?: string
 }
 
-export const useRecipe = ({ initialPage = 0, pageSize = 10, sortBy = "creationDate" }: UseRecipeProps = {}) => {
-  const [recipes, setRecipes] = useState<RecipeResponse[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<Error | null>(null)
-  const [page, setPage] = useState<number>(initialPage)
-  const [totalPages, setTotalPages] = useState<number>(0)
-  const [totalElements, setTotalElements] = useState<number>(0)
+// Change the export to be a named export instead of default
+export const useRecipe = (options: UseRecipeOptions = {}) => {
+  const { pageSize = 10 } = options
 
-  const fetchRecipes = useCallback(
-    async (pageNumber = page) => {
+  const [recipes, setRecipes] = useState<RecipeResponse[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+
+  // Fetch recipes
+  const fetchRecipes = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await recipeService.getAllRecipes()
+      setRecipes(response.content || [])
+      setTotalPages(response.totalPages || 0)
+      setError(null)
+    } catch (error) {
+      setError(error as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [page, pageSize])
+
+  // Search recipes
+  const searchRecipes = useCallback(
+    async (
+      query?: string,
+      difficultyLevel?: string,
+      maxPrepTime?: number,
+      maxCookTime?: number,
+      categoryType?: string,
+      isApproved?: boolean,
+    ) => {
       setLoading(true)
       try {
-        const response = await recipeService.getAllRecipes(pageNumber, pageSize, sortBy)
-        setRecipes(response.content)
-        setTotalPages(response.totalPages)
-        setTotalElements(response.totalElements)
+        const response = await recipeService.searchRecipes(
+          query,
+          difficultyLevel,
+          maxPrepTime,
+          maxCookTime,
+          categoryType,
+          isApproved,
+          page,
+          pageSize,
+        )
+        setRecipes(response.content || [])
+        setTotalPages(response.totalPages || 0)
         setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("An unknown error occurred"))
+      } catch (error) {
+        setError(error as Error)
       } finally {
         setLoading(false)
       }
     },
-    [page, pageSize, sortBy],
+    [page, pageSize],
   )
 
-  const fetchRecipeById = async (id: number) => {
+  // Create recipe
+  const createRecipe = async (recipeFormData: RecipeFormData) => {
     setLoading(true)
     try {
-      const recipe = await recipeService.getRecipeById(id)
-      return recipe
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("An unknown error occurred"))
-      return null
-    } finally {
+      const response = await recipeService.createRecipe(recipeFormData)
+        
       setLoading(false)
+      return response
+    } catch (error) {
+
+      setError(error as Error)
+      setLoading(false)
+      throw error
     }
   }
 
-  const createRecipe = async (detailsData: RecipeRequest) => {
+  const addImageToRecipe = async (id: number,formData: FormData) => {
     setLoading(true)
     try {
-      const newRecipe = await recipeService.createRecipe(detailsData)
-      // Refresh recipes after creating a new one
-      fetchRecipes()
-      return newRecipe
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("An unknown error occurred"))
-      return null
-    } finally {
+      const response = await recipeService.addImageToRecipe(id,formData)
       setLoading(false)
+      return response
+    } catch (error) {
+
+      setError(error as Error)
+      setLoading(false)
+      throw error
     }
   }
 
-  const searchRecipes = async (
-    query?: string,
-    difficultyLevel?: string,
-    maxPrepTime?: number,
-    maxCookTime?: number,
-    categoryType?: string,
-    isApproved?: boolean,
-    pageNumber = page,
-  ) => {
-    setLoading(true)
-    try {
-      const response = await recipeService.searchRecipes(
-        query,
-        difficultyLevel,
-        maxPrepTime,
-        maxCookTime,
-        categoryType,
-        isApproved,
-        pageNumber,
-        pageSize,
-        sortBy,
-      )
-      setRecipes(response.content)
-      setTotalPages(response.totalPages)
-      setTotalElements(response.totalElements)
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("An unknown error occurred"))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getMyRecipes = async (pageNumber = page) => {
-    setLoading(true)
-    try {
-      const response = await recipeService.getMyRecipes(pageNumber, pageSize, sortBy)
-      setRecipes(response.content)
-      setTotalPages(response.totalPages)
-      setTotalElements(response.totalElements)
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("An unknown error occurred"))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const nextPage = () => {
+  // Pagination
+  const nextPage = useCallback(() => {
     if (page < totalPages - 1) {
-      const nextPageNumber = page + 1
-      setPage(nextPageNumber)
-      fetchRecipes(nextPageNumber)
+      setPage(page + 1)
     }
-  }
+  }, [page, totalPages])
 
-  const prevPage = () => {
+  const prevPage = useCallback(() => {
     if (page > 0) {
-      const prevPageNumber = page - 1
-      setPage(prevPageNumber)
-      fetchRecipes(prevPageNumber)
+      setPage(page - 1)
     }
-  }
-
-  const goToPage = (pageNumber: number) => {
-    if (pageNumber >= 0 && pageNumber < totalPages) {
-      setPage(pageNumber)
-      fetchRecipes(pageNumber)
-    }
-  }
-
-  useEffect(() => {
-    fetchRecipes()
-  }, [fetchRecipes])
+  }, [page])
 
   return {
     recipes,
@@ -146,15 +116,12 @@ export const useRecipe = ({ initialPage = 0, pageSize = 10, sortBy = "creationDa
     error,
     page,
     totalPages,
-    totalElements,
     fetchRecipes,
-    fetchRecipeById,
-    createRecipe,
     searchRecipes,
-    getMyRecipes,
+    createRecipe,
     nextPage,
     prevPage,
-    goToPage,
+    addImageToRecipe,
   }
 }
 

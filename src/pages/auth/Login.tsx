@@ -60,16 +60,16 @@ export default function LoginForm() {
         email: formData.email,
         password: formData.password,
       })
+      console.log(response);
 
-      // Utiliser le login du store avec le token et les données utilisateur
       login(response.token, {
         id: response.id,
         username: response.username,
         email: response.email,
         profilePicture: response.profilePicture,
         role: response.role,
+        
       })
-
       // La redirection est gérée dans le service d'authentification
       // en fonction du rôle de l'utilisateur
     } catch (err: unknown) {

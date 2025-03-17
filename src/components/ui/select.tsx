@@ -12,10 +12,8 @@ export interface SelectProps extends React.ComponentProps<typeof SelectPrimitive
 const Select = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   SelectProps
->(({ label, helperText, error, children, ...props }) => {
+>(({ label, helperText, error, children, ...props }, ref) => {
   const id = React.useId();
-  // We need a ref to access the trigger element for focused state
-  // Merge refs
 
   return (
     <SelectPrimitive.Root {...props}>
@@ -25,13 +23,11 @@ const Select = React.forwardRef<
             {label}
           </label>
         )}
-        {children}
-        {helperText && !error && (
-          <p className="text-xs text-gray-500">{helperText}</p>
-        )}
-        {error && (
-          <p className="text-xs text-red-500">{error}</p>
-        )}
+        <SelectPrimitive.Trigger ref={ref}>
+          {children}
+        </SelectPrimitive.Trigger>
+        {helperText && !error && <p className="text-xs text-gray-500">{helperText}</p>}
+        {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     </SelectPrimitive.Root>
   );
@@ -43,9 +39,7 @@ const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
-    error?: boolean;
-  }
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & { error?: boolean; }
 >(({ className, children, error, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
@@ -133,8 +127,6 @@ const SelectItem = React.forwardRef<
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
-
-
 
 export {
   Select,

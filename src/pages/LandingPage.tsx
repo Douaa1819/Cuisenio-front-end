@@ -1,4 +1,3 @@
-"use client"
 
 import { ArrowRight, Bookmark, BookOpen, ChefHat, Clock, Menu, Search, Users, X } from "lucide-react"
 import { useState } from "react"
@@ -54,16 +53,8 @@ export default function LandingPage() {
           <nav
             className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-8 items-center shadow-md md:shadow-none z-50`}
           >
-            {["Recettes", "Ingrédients", "Communauté"].map((item) => (
-              <Link
-                key={item}
-                to="#"
-                className="text-gray-600 hover:text-rose-500 transition-colors duration-200 text-sm font-medium"
-              >
-                {item}
-              </Link>
-            ))}
-            <Link to="/auth/login">
+           
+            <Link to="/login">
               <Button variant="primary" className="bg-rose-500 hover:bg-rose-600 text-white">
                 Connexion
               </Button>
@@ -98,7 +89,7 @@ export default function LandingPage() {
             <div className="lg:w-1/2">
               <div className="relative rounded-lg overflow-hidden shadow-lg">
                 <Image
-                  src="/placeholder.svg?height=600&width=800"
+                  src="../public/assets/images/first.webp"
                   alt="Cuisine interactive"
                   width={800}
                   height={600}

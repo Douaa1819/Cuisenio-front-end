@@ -14,9 +14,14 @@ export const routes = {
       count: '/v1/ingredients/count',
     },
     recipes: {
-      base: '/v1/recipes',
+      base: '/api/recipes',
       detail: (id: number) => `/v1/recipes/${id}`,
       comments: (id: number) => `/v1/recipes/${id}/comments`,
+      unsave: (id: number) => `/api/recipes/${id}/unsave`,
+      saved: "/api/recipes/saved",
+      addImage: (id: number) => `/api/recipes/add-image/${id}`,
+
+
     },
     users: {
         base: '/v1/admin/users',

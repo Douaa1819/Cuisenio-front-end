@@ -13,6 +13,7 @@ export interface IngredientResponse {
 
   export interface IngredientDetail {
     ingredientId: number;
+    recipeId: number;
     quantity: string;
     unit: string;
   }

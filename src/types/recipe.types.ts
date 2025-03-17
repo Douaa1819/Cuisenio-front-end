@@ -1,11 +1,10 @@
-// Enums
+
 export enum DifficultyLevel {
   EASY = "EASY",
-  MEDIUM = "MEDIUM",
-  HARD = "HARD",
+  MEDIUM = "INTERMEDIATE",
+  HARD = "ADVANCED",
 }
 
-// Recipe Ingredient
 export interface RecipeIngredientRequest {
   ingredientId: number
   quantity: string
@@ -19,7 +18,6 @@ export interface RecipeIngredientResponse {
   unit: string
 }
 
-// Recipe Step
 export interface RecipeStepRequest {
   stepNumber: number
   description: string
@@ -31,7 +29,7 @@ export interface RecipeStepResponse {
   description: string
 }
 
-// Recipe
+
 export interface RecipeRequest {
   title: string
   description: string
@@ -76,7 +74,7 @@ export interface RecipeResponse {
   totalComments: number
 }
 
-// Pagination
+
 export interface PageResponse<T> {
   content: T[]
   pageable: {
