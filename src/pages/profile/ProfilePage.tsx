@@ -126,7 +126,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile>({
     username: user?.username || "chefmaster",
     lastName: "",
-    email: user?.email || "john.doe@example.com",
+    email: user?.email || "master@example.com",
     profilePicture: user?.profilePicture,
     role: user?.role,
   })
@@ -165,11 +165,9 @@ export default function ProfilePage() {
     const fetchUserRecipes = async () => {
       try {
         setLoadingRecipes(true)
-        // Fetch recipes created by the user
         const myRecipesResponse = await recipeService.getMyRecipes()
         setUserRecipes(myRecipesResponse.content || [])
 
-        // Fetch saved/bookmarked recipes
         const savedRecipesResponse = await recipeService.getSavedRecipes()
         setSavedRecipes(savedRecipesResponse.content || [])
 
@@ -239,7 +237,6 @@ export default function ProfilePage() {
 
       await authService.updateProfile(formDataToSend)
 
-      // Fetch updated profile
       const updatedProfile = await authService.getProfile()
       setProfile(updatedProfile)
       updateUser(updatedProfile)
@@ -263,7 +260,6 @@ export default function ProfilePage() {
     e.preventDefault()
     setPasswordError(null)
 
-    // Validate passwords
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setPasswordError("Les mots de passe ne correspondent pas")
       return
@@ -284,7 +280,6 @@ export default function ProfilePage() {
 
       await authService.updatePassword(passwordData)
 
-      // Reset form and close dialog
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -292,7 +287,6 @@ export default function ProfilePage() {
       })
       setPasswordDialogOpen(false)
 
-      // Show success message
       setSuccessMessage("Mot de passe mis à jour avec succès!")
       setShowSuccessModal(true)
 
@@ -373,7 +367,7 @@ export default function ProfilePage() {
             </Link>
 
             <Link
-              to="/community"
+              to="/home"
               className="text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-[#E57373] flex items-center gap-1.5"
             >
               <Users className="h-4 w-4" />
@@ -422,7 +416,7 @@ export default function ProfilePage() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/community" className="cursor-pointer flex items-center">
+                  <Link to="/home" className="cursor-pointer flex items-center">
                     <CookingPot className="mr-2 h-4 w-4" />
                     <span>Mes recettes</span>
                   </Link>
@@ -431,12 +425,7 @@ export default function ProfilePage() {
                   <Lock className="mr-2 h-4 w-4" />
                   <span>Changer le mot de passe</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Paramètres</span>
-                  </Link>
-                </DropdownMenuItem>
+             
                 {profile.role === "ADMIN" && (
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer flex items-center">
@@ -665,7 +654,7 @@ export default function ProfilePage() {
                             <Badge className="bg-[#FFE4E1] text-[#E57373] hover:bg-[#FFCDD2]">
                               {recipe.difficultyLevel === "EASY"
                                 ? "Facile"
-                                : recipe.difficultyLevel === "MEDIUM"
+                                : recipe.difficultyLevel === "INTERMEDIATE"
                                   ? "Intermédiaire"
                                   : "Difficile"}
                             </Badge>
@@ -737,7 +726,7 @@ export default function ProfilePage() {
                             {recipe.title}
                           </h3>
                           <div className="flex justify-between text-sm text-gray-500 mb-2">
-                            <span>Par {recipe.chef?.username || "Chef inconnu"}</span>
+                            <span>Par {recipe.chef?.username || "Chef"}</span>
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)}{" "}
                               min
@@ -758,7 +747,7 @@ export default function ProfilePage() {
                             <Badge className={cn("bg-[#FFE4E1] text-[#E57373] hover:bg-[#FFCDD2]")}>
                               {recipe.difficultyLevel === "EASY"
                                 ? "Facile"
-                                : recipe.difficultyLevel === "MEDIUM"
+                                : recipe.difficultyLevel === "INTERMEDIATE"
                                   ? "Intermédiaire"
                                   : "Difficile"}
                             </Badge>

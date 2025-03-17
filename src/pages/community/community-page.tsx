@@ -1,3 +1,4 @@
+"use client"
 
 import {
   Bell,
@@ -14,17 +15,18 @@ import {
   Plus,
   Search,
   Send,
-  Settings,
   Share2,
   User,
   Users,
   X,
+  CheckCircle,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Avatar } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
+import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { Checkbox } from "../../components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
@@ -46,6 +48,7 @@ import { cn } from "../../lib/utils"
 import { useAuthStore } from "../../store/auth.store"
 import type { RecipeResponse } from "../../types/recipe.types"
 
+import { authService } from "../../api/auth.service"
 import AddRecipeDialog from "./AddRecipeForm"
 import { ImageUploadDialog } from "./add-image"
 
@@ -108,29 +111,30 @@ export default function CommunityPage() {
   const [addRecipeDialogOpen, setAddRecipeDialogOpen] = useState(false)
   const [commentDialogOpen, setCommentDialogOpen] = useState(false)
   const [activeRecipe, setActiveRecipe] = useState<RecipeResponse | null>(null)
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [filterCategory, setFilterCategory] = useState("")
   const [sortOption, setSortOption] = useState("")
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([])
   const [timeRange, setTimeRange] = useState([15, 60])
   const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
-  const [ isPopupOpen, setIsPopupOpen] = useState(false)
-  const [ recipeId, setRecipeId] = useState<number | null>(null)
+  const [isPopupOpen, setIsPopupOpen] = useState(false)
+  const [recipeId, setRecipeId] = useState<number | null>(null)
+  const navigate = useNavigate();
 
-  // Handle search with filters
   const handleSearch = useCallback(() => {
     const difficulty = difficultyFilter.length > 0 ? difficultyFilter[0] : undefined
     searchRecipes(
       searchTerm,
       difficulty,
-      timeRange[1], // maxPrepTime
-      undefined, // maxCookTime
+      timeRange[1], 
+      undefined, 
       filterCategory || undefined,
-      undefined, // isApproved
+      undefined, 
     )
   }, [searchTerm, difficultyFilter, timeRange, filterCategory, searchRecipes])
 
-  // Apply filters
   const applyFilters = () => {
     handleSearch()
     setShowFilters(false)
@@ -170,16 +174,14 @@ export default function CommunityPage() {
     setActiveRecipe(recipe)
     setCommentDialogOpen(true)
   }
- const handleAddImageClick = (recipeId: number) => {
-  setRecipeId(recipeId)
-  setIsPopupOpen(true)
- }
-  // Initial data fetch
+  const handleAddImageClick = (recipeId: number) => {
+    setRecipeId(recipeId)
+    setIsPopupOpen(true)
+  }
   useEffect(() => {
     fetchRecipes()
   }, [fetchRecipes])
 
-  // Handle search term changes
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchTerm) {
@@ -192,6 +194,24 @@ export default function CommunityPage() {
     return () => clearTimeout(delayDebounceFn)
   }, [searchTerm, handleSearch, fetchRecipes])
 
+   const handleLogout = async () => {
+      try {
+          await authService.logout();
+          setSuccessMessage("Déconnexion réussie !");
+          setShowSuccessModal(true);
+          setTimeout(() => {
+              setShowSuccessModal(false);
+              navigate('/login'); 
+          }, 2000);
+      } catch (error) {
+          console.error('Erreur lors de la déconnexion :', error);
+          setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.");
+          setShowSuccessModal(true);
+          setTimeout(() => {
+              setShowSuccessModal(false);
+          }, 2000);
+      }
+    };
   const comments: CommentType[] = [
     {
       id: 1,
@@ -295,10 +315,10 @@ export default function CommunityPage() {
           <nav
             className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
           >
-            {["Recettes", "Ingrédients", "Communauté", "Planificateur"].map((item) => (
+            {[ "Communauté", "Planificateur"].map((item) => (
               <Link
                 key={item}
-                to={item === "Communauté" ? "/community" : item === "Planificateur" ? "/meal-planner" : "#"}
+                to={item === "Communauté" ? "/home" : item === "Planificateur" ? "/meal-planner" : "#"}
                 className={`text-sm font-medium transition-colors duration-200 ${
                   item === "Communauté" ? "text-rose-500" : "text-gray-600 hover:text-rose-500"
                 }`}
@@ -382,38 +402,40 @@ export default function CommunityPage() {
 
             {/* User menu */}
             {isAuthenticated ? (
-              <DropdownMenu>
+                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
                     <Avatar className="h-8 w-8 border">
-                      <Image src="/placeholder.svg?height=40&width=40" alt="Profile" width={40} height={40} />
+                      <Image src="/assets/images/chef.png" alt="Profile" width={40} height={40} />
                     </Avatar>
                     <span className="text-sm font-medium hidden md:inline">Utilisateur</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+      
+                <DropdownMenuContent align="end" className="w-56 border-amber-50">
                   <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profil</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <BookmarkIcon className="mr-2 h-4 w-4" />
-                    <span>Mes recettes sauvegardées</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Paramètres</span>
-                  </DropdownMenuItem>
+      
+                  <Link to="/profile">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profil</span>
+                    </DropdownMenuItem>
+                  </Link>
+      
+                  <Link to="/mes-recettes">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <BookmarkIcon className="mr-2 h-4 w-4" />
+                      <span>Mes recettes sauvegardées</span>
+                    </DropdownMenuItem>
+                  </Link>
+      
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="cursor-pointer text-red-600"
-                    onClick={() => useAuthStore.getState().logout()}
-                  >
+      
+                  <DropdownMenuItem className="cursor-pointer text-red-600" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Déconnexion</span>
+                    <span>Se déconnecter</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -648,14 +670,23 @@ export default function CommunityPage() {
                     >
                       <div className={cn("relative", index === 0 ? "h-64 md:h-80" : "h-48")}>
                         {recipe.imageUrl ? (
-                        <Image
-                        src={ "http://localhost:8080/uploads/" + recipe.imageUrl}
-                        alt={recipe.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                        ):(
-                          <button onClick={() => handleAddImageClick(recipe.id)}> add image</button>
+                          <Image
+                            src={"http://localhost:8080/uploads/" + recipe.imageUrl || "/placeholder.svg"}
+                            alt={recipe.title}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div
+                            onClick={() => handleAddImageClick(recipe.id)}
+                            className="w-full h-full flex flex-col items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
+                          >
+                            <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
+                              <Plus className="h-6 w-6 text-rose-500" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-700">Ajouter une image</p>
+                            <p className="text-xs text-gray-500 mt-1">Cliquez pour télécharger</p>
+                          </div>
                         )}
                         {recipe.averageRating >= 4.5 && (
                           <div className="absolute top-4 left-4">
@@ -1017,8 +1048,8 @@ export default function CommunityPage() {
         open={addRecipeDialogOpen}
         onOpenChange={setAddRecipeDialogOpen}
         onSubmit={async (recipeData) => {
-          const recipeId = await createRecipe(recipeData);
-          return recipeId;
+          const recipeId = await createRecipe(recipeData)
+          return recipeId
         }}
       />
 
@@ -1044,14 +1075,37 @@ export default function CommunityPage() {
         </div>
       </footer>
 
-      { recipeId && isPopupOpen &&
-         <ImageUploadDialog 
-         open={isPopupOpen} 
-         onOpenChange={setIsPopupOpen} 
-         recipeId={recipeId} 
-       />
-      }
+      {recipeId && isPopupOpen && (
+        <ImageUploadDialog open={isPopupOpen} onOpenChange={setIsPopupOpen} recipeId={recipeId} />
+      )}
+
+         {/* Success Modal */}
+         <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed bottom-4 right-4 z-50"
+          >
+            <motion.div
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 100, opacity: 0 }}
+              className="bg-white rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
+            >
+              <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
+              <p className="font-medium">{successMessage}</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+    
   )
+
+
+  
+   
 }
 

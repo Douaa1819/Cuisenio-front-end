@@ -258,7 +258,7 @@ export default function MealPlannerPage() {
           <nav
             className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-8 items-center shadow-md md:shadow-none z-50`}
           >
-            {["Recettes", "Ingrédients", "Communauté", "Planificateur"].map((item) => (
+            {["Recettes",  "Communauté", "Planificateur"].map((item) => (
               <Link
                 key={item}
                 to={item === "Communauté" ? "/community" : item === "Planificateur" ? "/meal-planner" : "#"}
