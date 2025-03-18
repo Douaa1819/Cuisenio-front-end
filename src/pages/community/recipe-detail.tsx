@@ -246,13 +246,13 @@ export default function RecipeDetailPage() {
                 <Avatar className="h-10 w-10 mr-3 border">
                   <Image
                     src={recipe.user?.profilePicture || "/placeholder.svg?height=40&width=40"}
-                    alt={recipe.user?.firstName || "Chef"}
+                    alt={recipe.user?.username || "Chef"}
                     width={40}
                     height={40}
                   />
                 </Avatar>
                 <div>
-                  <p className="font-medium">{recipe.user?.firstName || "Chef inconnu"}</p>
+                  <p className="font-medium">{recipe.user?.username || "Chef inconnu"}</p>
                   <p className="text-sm text-gray-500">
                     Publié le{" "}
                     {new Date(recipe.creationDate).toLocaleDateString("fr-FR", {
@@ -313,15 +313,15 @@ export default function RecipeDetailPage() {
                 <p className="text-sm text-gray-500 mb-4">Pour {recipe.servings} personnes</p>
 
                 <ul className="space-y-3">
-                  {recipe.ingredients &&
-                    recipe.ingredients.map((ingredient) => (
-                      <li key={ingredient.id} className="flex items-center py-2 border-b border-gray-100 last:border-0">
+                  {recipe.recipeIngredients &&
+                    recipe.recipeIngredients.map((ingredientRecipe) => (
+                      <li key={ingredientRecipe.id} className="flex items-center py-2 border-b border-gray-100 last:border-0">
                         <div className="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                           <ChefHat className="h-4 w-4 text-rose-500" />
                         </div>
-                        <span className="font-medium">{ingredient.ingredientName}</span>
+                        <span className="font-medium">{ingredientRecipe.ingredient.name}</span>
                         <span className="ml-auto text-gray-600">
-                          {ingredient.quantity} {ingredient.unit}
+                          {ingredientRecipe.quantity} {ingredientRecipe.unit}
                         </span>
                       </li>
                     ))}
@@ -403,13 +403,13 @@ export default function RecipeDetailPage() {
                             <Avatar className="h-8 w-8 mr-2 border">
                               <Image
                                 src="/placeholder.svg?height=40&width=40"
-                                alt={comment.user.firstName}
+                                alt={comment.user.username}
                                 width={40}
                                 height={40}
                               />
                             </Avatar>
                             <div>
-                              <p className="font-medium text-sm">{comment.user.firstName}</p>
+                              <p className="font-medium text-sm">{comment.user.username}</p>
                               <p className="text-xs text-gray-500">
                                 {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
                                   year: "numeric",

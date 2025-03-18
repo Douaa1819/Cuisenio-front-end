@@ -56,7 +56,7 @@ const RecipeCard = ({
 
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
           <Avatar className="h-6 w-6">
-            <img src={recipe.user.avatar || "/placeholder.svg"} alt={recipe.user.name} />
+            <img src={recipe.user.profilePicture || "/placeholder.svg"} alt={recipe.user.name} />
             <div className="bg-gray-200 h-full w-full flex items-center justify-center text-xs font-medium">
               {recipe.user.name.charAt(0)}
             </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import type { Comment } from "../../types/recipe.types"
+import type { RecipeCommentResponse } from "../../types/recipe.types"
 import type { Recipe } from "../../types/recipe.types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Input } from "../ui/input"
@@ -11,7 +11,7 @@ import { Send } from "lucide-react"
 
 interface CommentDialogProps {
   recipe: Recipe
-  comments: Comment[]
+  comments: RecipeCommentResponse[]
   newComment: string
   onNewCommentChange: (value: string) => void
   onAddComment: () => void
@@ -78,13 +78,13 @@ const CommentDialog = ({
                 <div className="flex items-center space-x-2 mb-2">
                   <Avatar className="h-8 w-8">
                     <span className="font-medium">
-                      {comment.user.name.charAt(0)}
+                      {comment.user.firstName.charAt(0)}
                     </span>
                   </Avatar>
                   <div>
-                    <span className="font-medium">{comment.user.name}</span>
+                    <span className="font-medium">{comment.user.firstName}</span>
                     <p className="text-xs text-gray-500">
-                      {formatDate(comment.creationDate)}
+                      {formatDate(comment.createdAt)}
                     </p>
                   </div>
                 </div>

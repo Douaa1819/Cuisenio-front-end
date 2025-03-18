@@ -13,14 +13,40 @@ export interface RecipeIngredientRequest {
 
 export interface RecipeIngredientResponse {
   id: number
-  ingredientName: string
+ 
   quantity: string
   unit: string
+    ingredient:{
+      id: number
+      name: string
+       
+    }
 }
 
 export interface RecipeStepRequest {
   stepNumber: number
   description: string
+}
+
+export interface Recipe {
+  id: number
+  title: string
+  imageUrl?: string
+  description: string
+  preparationTime: number
+  cookingTime: number
+  difficultyLevel: "EASY" | "MEDIUM" | "HARD"
+  categories: string[]
+  isFavorite: boolean
+  comments: string
+  likes: number
+  isLiked: boolean
+  creationDate: string
+  user: {
+    name: string
+    profilePicture: string
+
+  }
 }
 
 export interface RecipeStepResponse {
@@ -36,7 +62,21 @@ export interface RecipeRequest {
   difficultyLevel: DifficultyLevel
   preparationTime: number
   cookingTime: number
+  creationDate: string
   servings: number
+  user: {
+    id: number
+    username: string 
+    lastName: string 
+    email: string
+    profilePicture: string
+  }
+  categories: {
+    id: number
+    name: string
+    type: string
+  }[]
+  
   imageUrl?: File
   categoryIds: number[]
   ingredients: RecipeIngredientRequest[]
@@ -58,7 +98,7 @@ export interface RecipeResponse {
   isApproved: boolean
   user: {
     id: number
-    firstName: string 
+    username: string 
     lastName: string 
     email: string
     profilePicture: string
@@ -68,7 +108,7 @@ export interface RecipeResponse {
     name: string
     type: string
   }[]
-  ingredients: RecipeIngredientResponse[]
+  recipeIngredients: RecipeIngredientResponse[]
   steps: RecipeStepResponse[]
   averageRating: number
   totalRatings: number
@@ -117,8 +157,7 @@ export interface RecipeCommentResponse {
   approved: boolean;
   user: {
     id: number;
-    firstName: string;
+    username: string;
     lastName: string;
   };
 }
-

@@ -9,7 +9,7 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  firstName: string
+  username: string
   lastName: string
   email: string
   role?: Role;
@@ -23,7 +23,7 @@ export interface UpdatePasswordRequest {
 
 export interface UserProfile {
   id?: number
-  firstName: string
+  username: string
   lastName: string
   email: string
   profilePicture?: string

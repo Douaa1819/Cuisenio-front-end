@@ -58,7 +58,7 @@ import type { UpdatePasswordRequest } from "../../types/auth.types"
 
 interface UserProfile {
   id?: number
-  firstName: string
+  username: string
   lastName: string
   email: string
   profilePicture?: string
@@ -126,7 +126,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [profile, setProfile] = useState<UserProfile>({
-    firstName: user?.firstName || "usermaster",
+    username: user?.username || "usermaster",
     lastName: "",
     email: user?.email || "master@example.com",
     profilePicture: user?.profilePicture,
@@ -143,12 +143,12 @@ export default function ProfilePage() {
         const userData = await authService.getProfile()
         setProfile({
           ...userData,
-          firstName: userData.firstName || "",
+          username: userData.username || "",
           lastName: userData.lastName || "",
         })
         setFormData({
           ...userData,
-          firstName: userData.firstName || "",
+          username: userData.username || "",
           lastName: userData.lastName || "",
         })
         updateUser(userData)
@@ -426,7 +426,7 @@ export default function ProfilePage() {
                       height={40}
                     />
                   </Avatar>
-                  <span className="text-sm font-medium hidden md:inline">{profile.firstName}</span>
+                  <span className="text-sm font-medium hidden md:inline">{profile.username}</span>
                   <ChevronDown className="h-4 w-4 text-gray-500" />
                 </button>
               </DropdownMenuTrigger>
@@ -536,7 +536,7 @@ export default function ProfilePage() {
                     {profile.profilePicture ? (
                       <Image
                         src={profileImage ? URL.createObjectURL(profileImage) : profile.profilePicture}
-                        alt={profile.firstName}
+                        alt={profile.username}
                         fill
                         className="object-cover"
                       />
@@ -559,13 +559,13 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="firstName" className="text-sm font-medium">
+                        <Label htmlFor="username" className="text-sm font-medium">
                           Nom d'utilisateur
                         </Label>
                         <Input
-                          id="firstName"
-                          name="firstName"
-                          value={formData.firstName}
+                          id="username"
+                          name="username"
+                          value={formData.username}
                           onChange={handleInputChange}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition"
                         />
@@ -585,7 +585,7 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <>
-                      <h2 className="text-2xl font-bold text-gray-800">{profile.firstName}</h2>
+                      <h2 className="text-2xl font-bold text-gray-800">{profile.username}</h2>
                       <p className="text-gray-600">{profile.lastName}</p>
                       <p className="text-gray-500 text-sm mt-1">{profile.email}</p>
                       {profile.role && (
@@ -782,7 +782,7 @@ export default function ProfilePage() {
                             </h3>
                           </Link>
                           <div className="flex justify-between text-sm text-gray-500 mb-2">
-                            <span>Par {recipe.user?.firstName || "Chef inconnu"}</span>
+                            <span>Par {recipe.user?.username || "Chef inconnu"}</span>
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)}{" "}
                               min

@@ -316,7 +316,7 @@ export default function MealPlannerPage() {
                         height={40}
                       />
                     </Avatar>
-                    <span className="text-sm font-medium hidden md:inline">{user?.firstName || "Utilisateur"}</span>
+                    <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </Button>
                 </DropdownMenuTrigger>

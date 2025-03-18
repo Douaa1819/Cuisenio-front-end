@@ -740,11 +740,11 @@ export default function CommunityPage() {
                         <div className="flex justify-between text-sm text-gray-500 mb-2">
                           <span>
                             Par{" "}
-                            {[recipe.user?.firstName, recipe.user?.lastName].filter(Boolean).join(" ") ||
+                            {[recipe.user?.username, recipe.user?.lastName].filter(Boolean).join(" ") ||
                               "Chef inconnu"}
                           </span>
                           <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)} min
+                            <Clock className="h-3 w-3 mr-1" /> 0{recipe.preparationTime} min
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
@@ -765,13 +765,13 @@ export default function CommunityPage() {
                               <Avatar className="h-8 w-8 mr-2 border">
                                 <Image
                                   src={recipe.user?.profilePicture || "/placeholder.svg?height=40&width=40"}
-                                  alt={recipe.user?.firstName || "Chef"}
+                                  alt={recipe.user?.username || "Chef"}
                                   width={40}
                                   height={40}
                                 />
                               </Avatar>
                               <div>
-                                <p className="text-sm font-medium">{recipe.user?.firstName || "Chef inconnu"}</p>
+                                <p className="text-sm font-medium">{recipe.user?.username || "Chef inconnu"}</p>
                                 <p className="text-xs text-gray-500">
                                   Partagé le{" "}
                                   <span className="text-sm text-gray-500">{formatDate(recipe.creationDate)}</span>
@@ -971,13 +971,13 @@ export default function CommunityPage() {
                           <Avatar className="h-8 w-8 mr-2 border">
                             <Image
                               src="/placeholder.svg?height=40&width=40"
-                              alt={comment.user?.firstName || "Utilisateur"}
+                              alt={comment.user?.username || "Utilisateur"}
                               width={40}
                               height={40}
                             />
                           </Avatar>
                           <div>
-                            <p className="font-medium text-sm">{comment.user?.firstName || "Utilisateur"}</p>
+                            <p className="font-medium text-sm">{comment.user?.username || "Utilisateur"}</p>
                             <p className="text-xs text-gray-500">
                               {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
                                 year: "numeric",
