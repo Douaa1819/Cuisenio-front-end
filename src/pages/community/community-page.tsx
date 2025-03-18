@@ -3,7 +3,6 @@
 import {
   Bell,
   BookmarkIcon,
-  Calendar,
   ChefHat,
   ChevronDown,
   Clock,
@@ -17,7 +16,6 @@ import {
   Send,
   Share2,
   User,
-  Users,
   X,
   CheckCircle,
   Edit,
@@ -29,7 +27,7 @@ import { Avatar } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import { AnimatePresence, motion } from "framer-motion"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader } from "../../components/ui/card"
 import { Checkbox } from "../../components/ui/checkbox"
 import {
   Dialog,
@@ -50,7 +48,7 @@ import {
 import { Label } from "../../components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import { Slider } from "../../components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
+import { Tabs, TabsContent} from "../../components/ui/tabs"
 import { Textarea } from "../../components/ui/textarea"
 import { useRecipe } from "../../hooks/useRecipe"
 import { useComments } from "../../hooks/useComments"
@@ -647,17 +645,7 @@ export default function CommunityPage() {
 
           {/* Community Tabs */}
           <Tabs defaultValue="recettes" className="mb-10">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="recettes" className="text-sm">
-                Recettes Partagées
-              </TabsTrigger>
-              <TabsTrigger value="discussions" className="text-sm">
-                Discussions
-              </TabsTrigger>
-              <TabsTrigger value="evenements" className="text-sm">
-                Événements
-              </TabsTrigger>
-            </TabsList>
+
 
             <TabsContent value="recettes" className="space-y-8">
               {/* All Recipes as Cards */}
@@ -847,91 +835,7 @@ export default function CommunityPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="discussions">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8">
-                <div className="text-center mb-8">
-                  <Users className="h-12 w-12 mx-auto text-rose-500 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">Discussions de la communauté</h3>
-                  <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                    Rejoignez les conversations sur vos sujets culinaires préférés, posez vos questions et partagez vos
-                    astuces avec d'autres passionnés de cuisine.
-                  </p>
-                  <Button className="bg-rose-500 hover:bg-rose-600 text-white">Démarrer une discussion</Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer">
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-base font-medium">
-                            Comment réussir une pâte à pizza croustillante ?
-                          </CardTitle>
-                          <Badge className="bg-gray-100 text-gray-700">Techniques</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-2">
-                        <CardDescription className="text-sm text-gray-600 mb-4 line-clamp-2">
-                          J'ai du mal à obtenir une pâte à pizza croustillante. Quelles sont vos astuces pour éviter
-                          qu'elle ne soit trop molle au centre ?
-                        </CardDescription>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <Avatar className="h-6 w-6 mr-2 border">
-                              <Image src="/placeholder.svg?height=30&width=30" alt="User" width={30} height={30} />
-                            </Avatar>
-                            <span className="text-xs text-gray-500">Jean Dupont • Il y a 2 jours</span>
-                          </div>
-                          <div className="flex items-center text-xs text-gray-500">
-                            <MessageCircle className="h-3 w-3 mr-1" /> 12 réponses
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="evenements">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8">
-                <div className="text-center mb-8">
-                  <Calendar className="h-12 w-12 mx-auto text-rose-500 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">Événements culinaires</h3>
-                  <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                    Découvrez les prochains événements et ateliers de cuisine, rencontrez d'autres passionnés et
-                    perfectionnez vos compétences culinaires.
-                  </p>
-                  <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir tous les événements</Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-                      <div className="relative h-40">
-                        <Image
-                          src="/placeholder.svg?height=200&width=300"
-                          alt="Événement"
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <Badge className="mb-2 bg-rose-100 text-rose-700">Atelier</Badge>
-                        <h4 className="font-medium mb-1">Masterclass Pâtisserie Française</h4>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Apprenez à réaliser des desserts français classiques avec notre chef pâtissier.
-                        </p>
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <span>15 juin 2023 • 14h00</span>
-                          <span>Paris</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
+           
           </Tabs>
         </div>
       </main>
