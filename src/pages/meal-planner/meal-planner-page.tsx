@@ -37,9 +37,11 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import { useAuthStore } from "../../store/auth.store"
-import { MealPlannerService, type MealPlannerRequest, type MealPlannerResponse } from "../../api/meal-planner.service"
+import type { MealPlannerRequest, MealPlannerResponse } from "../../types/mealPlanner.types"
 import { recipeService } from "../../api/recipe.service"
 import type { RecipeResponse } from "../../types/recipe.types"
+import { useMealPlanner } from "../../hooks/useMealPlanner"
+
 
 interface ImageProps {
   src: string
@@ -88,9 +90,15 @@ export default function MealPlannerPage() {
   const { isAuthenticated, user } = useAuthStore()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [mealPlans, setMealPlans] = useState<MealPlannerResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    mealPlans,
+    loading,
+    error: hookError,
+    createMealPlan,
+    updateMealPlan,
+    deleteMealPlan,
+  } = useMealPlanner()
+  const [localError, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [addMealDialogOpen, setAddMealDialogOpen] = useState(false)
@@ -110,20 +118,6 @@ export default function MealPlannerPage() {
     notes: "",
   })
 
-  const fetchMealPlans = async () => {
-    try {
-      setLoading(true)
-      const response = await MealPlannerService.getMealPlansByUser()
-      setMealPlans(response)
-      setError(null)
-    } catch (err) {
-      console.error("Error fetching meal plans:", err)
-      setError("Impossible de charger les plans de repas. Veuillez réessayer plus tard.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const fetchRecipes = async () => {
     try {
       setLoadingRecipes(true)
@@ -138,7 +132,6 @@ export default function MealPlannerPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchMealPlans()
       fetchRecipes()
     } else {
       navigate("/login")
@@ -159,11 +152,10 @@ export default function MealPlannerPage() {
     }
 
     try {
-      await MealPlannerService.createMealPlan(selectedRecipe.id, mealForm)
+      await createMealPlan(selectedRecipe.id, mealForm)
       setSuccessMessage("Repas ajouté avec succès!")
       setShowSuccessModal(true)
       setAddMealDialogOpen(false)
-      fetchMealPlans()
 
       // Reset form
       setMealForm({
@@ -188,11 +180,10 @@ export default function MealPlannerPage() {
     if (!currentMeal) return
 
     try {
-      await MealPlannerService.updateMealPlan(currentMeal.id, mealForm)
+      await updateMealPlan(currentMeal.id, mealForm)
       setSuccessMessage("Repas mis à jour avec succès!")
       setShowSuccessModal(true)
       setEditMealDialogOpen(false)
-      fetchMealPlans()
 
       setTimeout(() => {
         setShowSuccessModal(false)
@@ -207,10 +198,9 @@ export default function MealPlannerPage() {
     if (!mealToDelete) return
 
     try {
-      await MealPlannerService.deleteMealPlan(mealToDelete)
+      await deleteMealPlan(mealToDelete)
       setSuccessMessage("Repas supprimé avec succès!")
       setShowSuccessModal(true)
-      fetchMealPlans()
 
       setTimeout(() => {
         setShowSuccessModal(false)
@@ -260,6 +250,8 @@ export default function MealPlannerPage() {
   const getDayLabel = (day: string) => {
     return DAYS_OF_WEEK.find((d) => d.value === day)?.label || day
   }
+
+
 
   if (loading && mealPlans.length === 0) {
     return (
@@ -360,6 +352,8 @@ export default function MealPlannerPage() {
         </div>
       </header>
 
+    
+
       {/* Main Content */}
       <main className="pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-6xl">
@@ -378,7 +372,11 @@ export default function MealPlannerPage() {
               </Button>
             </div>
 
-            {error && <div className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-lg mb-6">{error}</div>}
+            {(hookError || localError) && (
+              <div className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-lg mb-6">
+                {hookError || localError}
+              </div>
+            )}
           </div>
 
           {/* Weekly Meal Planner */}
@@ -432,11 +430,11 @@ export default function MealPlannerPage() {
                                 <div className="relative w-1/3">
                                   <Image
                                     src={
-                                      meal.recipe.imageUrl
+                                      meal.recipe?.imageUrl
                                         ? `http://localhost:8080/uploads/${meal.recipe.imageUrl}`
                                         : "/placeholder.svg?height=150&width=150"
                                     }
-                                    alt={meal.recipe.title}
+                                    alt={meal.recipe?.title || "Recipe"}
                                     fill
                                     className="object-cover"
                                   />
@@ -447,26 +445,38 @@ export default function MealPlannerPage() {
                                       <Badge className="mb-2 bg-rose-100 text-rose-700">
                                         {getMealTypeLabel(meal.mealType)}
                                       </Badge>
-                                      <h4 className="font-medium text-sm line-clamp-1">{meal.recipe.title}</h4>
+                                      <h4 className="font-medium text-sm line-clamp-1">
+                                        {meal.recipe?.title || "Untitled Recipe"}
+                                      </h4>
                                     </div>
                                     <div className="flex space-x-1">
                                       <button
-                                        className="p-1 hover:bg-gray-100 rounded-full"
+                                        className="p-1.5 hover:bg-rose-50 rounded-full transition-colors duration-200 group relative"
                                         onClick={() => openEditDialog(meal)}
+                                        aria-label="Modifier"
                                       >
-                                        <Edit className="h-4 w-4 text-gray-500" />
+                                        <Edit className="h-4 w-4 text-gray-500 group-hover:text-rose-500" />
+                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                          Modifier
+                                        </span>
                                       </button>
                                       <button
-                                        className="p-1 hover:bg-gray-100 rounded-full"
+                                        className="p-1.5 hover:bg-red-50 rounded-full transition-colors duration-200 group relative"
                                         onClick={() => confirmDelete(meal.id)}
+                                        aria-label="Supprimer"
                                       >
-                                        <Trash2 className="h-4 w-4 text-gray-500" />
+                                        <Trash2 className="h-4 w-4 text-gray-500 group-hover:text-red-500" />
+                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                          Supprimer
+                                        </span>
                                       </button>
                                     </div>
                                   </div>
                                   <div className="flex items-center text-xs text-gray-500 mt-2">
                                     <Clock className="h-3 w-3 mr-1" />
-                                    <span>{meal.recipe.preparationTime + (meal.recipe.cookingTime || 0)} min</span>
+                                    <span>
+                                      {(meal.recipe?.preparationTime || 0) + (meal.recipe?.cookingTime || 0)} min
+                                    </span>
                                     <span className="mx-2">•</span>
                                     <span>
                                       {meal.servings} {meal.servings > 1 ? "portions" : "portion"}
@@ -656,7 +666,7 @@ export default function MealPlannerPage() {
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            {currentMeal && (
+            {currentMeal && currentMeal.recipe && (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
                   <Image
@@ -675,6 +685,24 @@ export default function MealPlannerPage() {
                   <p className="text-sm text-gray-500">
                     {currentMeal.recipe.preparationTime + (currentMeal.recipe.cookingTime || 0)} min
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* If recipe is null, show a placeholder */}
+            {currentMeal && !currentMeal.recipe && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
+                  <Image
+                    src="/placeholder.svg?height=64&width=64"
+                    alt="Recipe not found"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-medium">Recipe not found</h4>
+                  <p className="text-sm text-gray-500">The recipe for this meal plan is missing</p>
                 </div>
               </div>
             )}

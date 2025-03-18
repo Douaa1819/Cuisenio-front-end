@@ -78,11 +78,11 @@ const CommentDialog = ({
                 <div className="flex items-center space-x-2 mb-2">
                   <Avatar className="h-8 w-8">
                     <span className="font-medium">
-                      {comment.user.firstName.charAt(0)}
+                      {comment.user.username.charAt(0)}
                     </span>
                   </Avatar>
                   <div>
-                    <span className="font-medium">{comment.user.firstName}</span>
+                    <span className="font-medium">{comment.user.username}</span>
                     <p className="text-xs text-gray-500">
                       {formatDate(comment.createdAt)}
                     </p>

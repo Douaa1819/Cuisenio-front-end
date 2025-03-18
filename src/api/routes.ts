@@ -34,7 +34,7 @@ export const routes = {
 
       },
     mealPlanner: {
-      base: '/v1/meal-planners',
-      detail: (id: number) => `/v1/meal-planners/${id}`,
+      base: '/v1/meal-plans',
+      detail: (id: number) => `/v1/meal-plans/${id}`,
     },
   };
