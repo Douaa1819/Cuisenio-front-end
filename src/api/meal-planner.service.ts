@@ -29,22 +29,22 @@ export interface MealPlannerResponse {
 
 export const MealPlannerService = {
   createMealPlan: async (recipeId: number, data: MealPlannerRequest): Promise<MealPlannerResponse> => {
-    const response = await client.post(`/api/meal-plans/${recipeId}`, data)
+    const response = await client.post(`/v1/meal-plans/${recipeId}`, data)
     return response.data
   },
 
   getMealPlansByUser: async (): Promise<MealPlannerResponse[]> => {
-    const response = await client.get("/api/meal-plans")
+    const response = await client.get("/v1/meal-plans")
     return response.data
   },
 
   updateMealPlan: async (id: number, data: MealPlannerRequest): Promise<MealPlannerResponse> => {
-    const response = await client.put(`/api/meal-plans/${id}`, data)
+    const response = await client.put(`/v1/meal-plans/${id}`, data)
     return response.data
   },
 
   deleteMealPlan: async (id: number): Promise<void> => {
-    await client.delete(`/api/meal-plans/${id}`)
+    await client.delete(`/v1/meal-plans/${id}`)
   },
 }
 

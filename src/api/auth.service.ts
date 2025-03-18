@@ -1,17 +1,15 @@
 import client from "./client"
 import type { LoginRequest, RegisterRequest, UpdatePasswordRequest, UserProfile } from "../types/auth.types"
-
-const BASE_URL = "/v1/auth"
-const PROFILE_URL = "/v1/profile"
+import { routes } from "./routes"
 
 export const authService = {
   async register(data: RegisterRequest) {
-    const response = await client.post(`${BASE_URL}/register`, data)
+    const response = await client.post(`${routes.auth.register}`, data)
     return response.data
   },
 
   async login(data: LoginRequest) {
-    const response = await client.post(`${BASE_URL}/login`, data)
+    const response = await client.post(`${routes.auth.login}`, data)
     this.setToken(response.data.token)
 
     if (response.data.role === "ADMIN") {
@@ -24,21 +22,21 @@ export const authService = {
   },
 
   async getProfile() {
-    const response = await client.get<UserProfile>(`${PROFILE_URL}`)
+    const response = await client.get<UserProfile>(`${routes.profile}`)
     return response.data
   },
 
   async updateProfile(data: FormData) {
-    const response = await client.put<UserProfile>(`${PROFILE_URL}`, data)
+    const response = await client.put<UserProfile>(`${routes.profile}`, data)
     return response.data
   },
 
   async updatePassword(data: UpdatePasswordRequest) {
-    await client.put(`${PROFILE_URL}/password`, data)
+    await client.put(`${routes.profile}/password`, data)
   },
 
   async deleteAccount() {
-    await client.delete(`${PROFILE_URL}`)
+    await client.delete(`${routes.profile}`)
   },
 
   setToken(token: string) {
@@ -60,7 +58,7 @@ export const authService = {
 
   getCurrentUser: async () => {
     try {
-      const response = await client.get("/api/profile")
+      const response = await client.get(routes.profile)
       return response.data
     } catch (error) {
       console.error("Error fetching current user:", error)
@@ -70,7 +68,7 @@ export const authService = {
 
   verifyToken: async (token: string) => {
     try {
-      const response = await client.post(`${BASE_URL}/verify-token`, { token })
+      const response = await client.post(`${routes.auth.verify}`, { token })
       return response.data
     } catch (error) {
       console.error("Token verification error:", error)

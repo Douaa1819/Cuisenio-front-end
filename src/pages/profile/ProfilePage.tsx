@@ -29,6 +29,7 @@ import {
   Home,
   Calendar,
   CookingPot,
+  Trash2,
 } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
@@ -57,7 +58,7 @@ import type { UpdatePasswordRequest } from "../../types/auth.types"
 
 interface UserProfile {
   id?: number
-  username: string
+  firstName: string
   lastName: string
   email: string
   profilePicture?: string
@@ -115,6 +116,8 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -123,7 +126,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [profile, setProfile] = useState<UserProfile>({
-    username: user?.username || "chefmaster",
+    firstName: user?.firstName || "usermaster",
     lastName: "",
     email: user?.email || "master@example.com",
     profilePicture: user?.profilePicture,
@@ -140,12 +143,12 @@ export default function ProfilePage() {
         const userData = await authService.getProfile()
         setProfile({
           ...userData,
-          username: userData.username || "",
+          firstName: userData.firstName || "",
           lastName: userData.lastName || "",
         })
         setFormData({
           ...userData,
-          username: userData.username || "",
+          firstName: userData.firstName || "",
           lastName: userData.lastName || "",
         })
         updateUser(userData)
@@ -315,6 +318,36 @@ export default function ProfilePage() {
     }
   }
 
+  const handleDeleteRecipe = async () => {
+    if (!recipeToDelete) return
+
+    try {
+      await recipeService.deleteRecipe(recipeToDelete)
+      setSuccessMessage("Recette supprimée avec succès!")
+      setShowSuccessModal(true)
+
+      // Refresh the recipes list
+      const myRecipesResponse = await recipeService.getMyRecipes()
+      setUserRecipes(myRecipesResponse.content || [])
+
+      setTimeout(() => {
+        setShowSuccessModal(false)
+      }, 2000)
+    } catch (error) {
+      console.error("Error deleting recipe:", error)
+      setSuccessMessage("Erreur lors de la suppression de la recette")
+      setShowSuccessModal(true)
+    } finally {
+      setConfirmDeleteOpen(false)
+      setRecipeToDelete(null)
+    }
+  }
+
+  const confirmDelete = (id: number) => {
+    setRecipeToDelete(id)
+    setConfirmDeleteOpen(true)
+  }
+
   if (isLoading && !profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center">
@@ -365,8 +398,6 @@ export default function ProfilePage() {
               <span>Accueil</span>
             </Link>
 
-         
-
             <Link
               to="/meal-planner"
               className="text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-[#E57373] flex items-center gap-1.5"
@@ -395,7 +426,7 @@ export default function ProfilePage() {
                       height={40}
                     />
                   </Avatar>
-                  <span className="text-sm font-medium hidden md:inline">{profile.username}</span>
+                  <span className="text-sm font-medium hidden md:inline">{profile.firstName}</span>
                   <ChevronDown className="h-4 w-4 text-gray-500" />
                 </button>
               </DropdownMenuTrigger>
@@ -418,7 +449,7 @@ export default function ProfilePage() {
                   <Lock className="mr-2 h-4 w-4" />
                   <span>Changer le mot de passe</span>
                 </DropdownMenuItem>
-             
+
                 {profile.role === "ADMIN" && (
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer flex items-center">
@@ -505,7 +536,7 @@ export default function ProfilePage() {
                     {profile.profilePicture ? (
                       <Image
                         src={profileImage ? URL.createObjectURL(profileImage) : profile.profilePicture}
-                        alt={profile.username}
+                        alt={profile.firstName}
                         fill
                         className="object-cover"
                       />
@@ -528,13 +559,13 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="username" className="text-sm font-medium">
+                        <Label htmlFor="firstName" className="text-sm font-medium">
                           Nom d'utilisateur
                         </Label>
                         <Input
-                          id="username"
-                          name="username"
-                          value={formData.username}
+                          id="firstName"
+                          name="firstName"
+                          value={formData.firstName}
                           onChange={handleInputChange}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition"
                         />
@@ -554,7 +585,7 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <>
-                      <h2 className="text-2xl font-bold text-gray-800">{profile.username}</h2>
+                      <h2 className="text-2xl font-bold text-gray-800">{profile.firstName}</h2>
                       <p className="text-gray-600">{profile.lastName}</p>
                       <p className="text-gray-500 text-sm mt-1">{profile.email}</p>
                       {profile.role && (
@@ -623,22 +654,42 @@ export default function ProfilePage() {
                         className="overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
                       >
                         <div className="relative h-48">
-                          <Image
-                            src={recipe.imageUrl || "/placeholder.svg?height=400&width=600"}
-                            alt={recipe.title}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
+                          <Link to={`/recipe/${recipe.id}`}>
+                            <Image
+                              src={
+                                recipe.imageUrl
+                                  ? `http://localhost:8080/uploads/${recipe.imageUrl}`
+                                  : "/placeholder.svg?height=400&width=600"
+                              }
+                              alt={recipe.title}
+                              fill
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </Link>
                           <div className="absolute top-2 right-2 p-2 flex space-x-1">
-                            <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
+                            <Link
+                              to={`/edit-recipe/${recipe.id}`}
+                              className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                            >
                               <Edit className="h-4 w-4 text-gray-600 hover:text-[#E57373]" />
+                            </Link>
+                            <button
+                              className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                confirmDelete(recipe.id)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-500" />
                             </button>
                           </div>
                         </div>
                         <CardContent className="p-4">
-                          <h3 className="text-lg font-medium mb-1 group-hover:text-[#E57373] transition-colors">
-                            {recipe.title}
-                          </h3>
+                          <Link to={`/recipe/${recipe.id}`}>
+                            <h3 className="text-lg font-medium mb-1 group-hover:text-[#E57373] transition-colors">
+                              {recipe.title}
+                            </h3>
+                          </Link>
                           <div className="flex justify-between text-sm text-gray-500 mb-2">
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)}{" "}
@@ -665,7 +716,11 @@ export default function ProfilePage() {
                               </span>
                             </div>
                             <span className="text-xs text-gray-500">
-                              {new Date(recipe.creationDate).toLocaleDateString()}
+                              {new Date(recipe.creationDate).toLocaleDateString("fr-FR", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
                             </span>
                           </div>
                         </CardFooter>
@@ -702,12 +757,18 @@ export default function ProfilePage() {
                         className="overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
                       >
                         <div className="relative h-48">
-                          <Image
-                            src={recipe.imageUrl || "/placeholder.svg?height=400&width=600"}
-                            alt={recipe.title}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
+                          <Link to={`/recipe/${recipe.id}`}>
+                            <Image
+                              src={
+                                recipe.imageUrl
+                                  ? `http://localhost:8080/uploads/${recipe.imageUrl}`
+                                  : "/placeholder.svg?height=400&width=600"
+                              }
+                              alt={recipe.title}
+                              fill
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </Link>
                           <div className="absolute top-2 right-2 p-2 flex space-x-1">
                             <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
                               <BookmarkIcon className="h-4 w-4 text-[#E57373]" />
@@ -715,11 +776,13 @@ export default function ProfilePage() {
                           </div>
                         </div>
                         <CardContent className="p-4">
-                          <h3 className="text-lg font-medium mb-1 group-hover:text-[#E57373] transition-colors">
-                            {recipe.title}
-                          </h3>
+                          <Link to={`/recipe/${recipe.id}`}>
+                            <h3 className="text-lg font-medium mb-1 group-hover:text-[#E57373] transition-colors">
+                              {recipe.title}
+                            </h3>
+                          </Link>
                           <div className="flex justify-between text-sm text-gray-500 mb-2">
-                            <span>Par {recipe.chef?.username || "Chef"}</span>
+                            <span>Par {recipe.user?.firstName || "Chef inconnu"}</span>
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)}{" "}
                               min
@@ -873,6 +936,32 @@ export default function ProfilePage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Recipe Confirmation Dialog */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-700">
+              Êtes-vous sûr de vouloir supprimer cette recette ? Cette action est irréversible.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteRecipe}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

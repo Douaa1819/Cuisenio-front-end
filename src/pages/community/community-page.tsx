@@ -20,6 +20,8 @@ import {
   Users,
   X,
   CheckCircle,
+  Edit,
+  Trash2,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
@@ -29,7 +31,14 @@ import { Button } from "../../components/ui/button"
 import { AnimatePresence, motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { Checkbox } from "../../components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "../../components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +59,7 @@ import { useAuthStore } from "../../store/auth.store"
 import type { RecipeResponse } from "../../types/recipe.types"
 
 import { authService } from "../../api/auth.service"
+import { recipeService } from "../../api/recipe.service"
 import AddRecipeDialog from "./AddRecipeForm"
 import { ImageUploadDialog } from "./add-image"
 
@@ -80,7 +90,7 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
 }
 
 export default function CommunityPage() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
   const { recipes, loading, error, page, totalPages, fetchRecipes, searchRecipes, createRecipe, nextPage, prevPage } =
     useRecipe({ pageSize: 9 })
 
@@ -95,6 +105,8 @@ export default function CommunityPage() {
   const [activeRecipe, setActiveRecipe] = useState<RecipeResponse | null>(null)
   const [successMessage, setSuccessMessage] = useState("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
 
   const [filterCategory, setFilterCategory] = useState("")
   const [sortOption, setSortOption] = useState("")
@@ -167,6 +179,32 @@ export default function CommunityPage() {
   const handleAddImageClick = (recipeId: number) => {
     setRecipeId(recipeId)
     setIsPopupOpen(true)
+  }
+
+  const handleDeleteRecipe = async () => {
+    if (!recipeToDelete) return
+
+    try {
+      await recipeService.deleteRecipe(recipeToDelete)
+      setSuccessMessage("Recette supprimée avec succès!")
+      setShowSuccessModal(true)
+      fetchRecipes() // Refresh the recipes list
+      setTimeout(() => {
+        setShowSuccessModal(false)
+      }, 2000)
+    } catch (error) {
+      console.error("Error deleting recipe:", error)
+      setSuccessMessage("Erreur lors de la suppression de la recette")
+      setShowSuccessModal(true)
+    } finally {
+      setConfirmDeleteOpen(false)
+      setRecipeToDelete(null)
+    }
+  }
+
+  const confirmDelete = (id: number) => {
+    setRecipeToDelete(id)
+    setConfirmDeleteOpen(true)
   }
 
   useEffect(() => {
@@ -253,6 +291,15 @@ export default function CommunityPage() {
         </div>
       </div>
     )
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("fr-FR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
   }
 
   // Rest of the component remains the same until the comment dialog
@@ -626,12 +673,14 @@ export default function CommunityPage() {
                     >
                       <div className={cn("relative", index === 0 ? "h-64 md:h-80" : "h-48")}>
                         {recipe.imageUrl ? (
-                          <Image
-                            src={"http://localhost:8080/uploads/" + recipe.imageUrl || "/placeholder.svg"}
-                            alt={recipe.title}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
+                          <Link to={`/recipe/${recipe.id}`}>
+                            <Image
+                              src={"http://localhost:8080/uploads/" + recipe.imageUrl || "/placeholder.svg"}
+                              alt={recipe.title}
+                              fill
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </Link>
                         ) : (
                           <div
                             onClick={() => handleAddImageClick(recipe.id)}
@@ -659,14 +708,41 @@ export default function CommunityPage() {
                           <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
                             <Share2 className="h-4 w-4 text-gray-600 hover:text-rose-500" />
                           </button>
+
+                          {/* Show edit/delete buttons if user is the recipe owner */}
+                          {user && recipe.user && user.id === recipe.user.id && (
+                            <>
+                              <Link
+                                to={`/edit-recipe/${recipe.id}`}
+                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                              >
+                                <Edit className="h-4 w-4 text-gray-600 hover:text-rose-500" />
+                              </Link>
+                              <button
+                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  confirmDelete(recipe.id)
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-500" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                       <CardContent className="p-4">
-                        <h3 className="text-lg font-medium mb-1 group-hover:text-rose-500 transition-colors">
-                          {recipe.title}
-                        </h3>
+                        <Link to={`/recipe/${recipe.id}`}>
+                          <h3 className="text-lg font-medium mb-1 group-hover:text-rose-500 transition-colors">
+                            {recipe.title}
+                          </h3>
+                        </Link>
                         <div className="flex justify-between text-sm text-gray-500 mb-2">
-                          <span>Par {recipe.chef?.username || "Chef inconnu"}</span>
+                          <span>
+                            Par{" "}
+                            {[recipe.user?.firstName, recipe.user?.lastName].filter(Boolean).join(" ") ||
+                              "Chef inconnu"}
+                          </span>
                           <span className="flex items-center">
                             <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime + (recipe.cookingTime || 0)} min
                           </span>
@@ -688,16 +764,17 @@ export default function CommunityPage() {
                             <div className="flex items-center">
                               <Avatar className="h-8 w-8 mr-2 border">
                                 <Image
-                                  src={recipe.chef?.profilePicture || "/placeholder.svg?height=40&width=40"}
-                                  alt={recipe.chef?.username || "Chef"}
+                                  src={recipe.user?.profilePicture || "/placeholder.svg?height=40&width=40"}
+                                  alt={recipe.user?.firstName || "Chef"}
                                   width={40}
                                   height={40}
                                 />
                               </Avatar>
                               <div>
-                                <p className="text-sm font-medium">{recipe.chef?.username}</p>
+                                <p className="text-sm font-medium">{recipe.user?.firstName || "Chef inconnu"}</p>
                                 <p className="text-xs text-gray-500">
-                                  Partagé le {new Date(recipe.creationDate).toLocaleDateString()}
+                                  Partagé le{" "}
+                                  <span className="text-sm text-gray-500">{formatDate(recipe.creationDate)}</span>
                                 </p>
                               </div>
                             </div>
@@ -714,7 +791,9 @@ export default function CommunityPage() {
                             >
                               <MessageCircle className="h-4 w-4 mr-1" /> Commenter
                             </Button>
-                            <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
+                            <Link to={`/recipe/${recipe.id}`}>
+                              <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
+                            </Link>
                           </div>
                         )}
                       </CardContent>
@@ -892,13 +971,13 @@ export default function CommunityPage() {
                           <Avatar className="h-8 w-8 mr-2 border">
                             <Image
                               src="/placeholder.svg?height=40&width=40"
-                              alt={comment.user.username}
+                              alt={comment.user?.firstName || "Utilisateur"}
                               width={40}
                               height={40}
                             />
                           </Avatar>
                           <div>
-                            <p className="font-medium text-sm">{comment.user.username}</p>
+                            <p className="font-medium text-sm">{comment.user?.firstName || "Utilisateur"}</p>
                             <p className="text-xs text-gray-500">
                               {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
                                 year: "numeric",
@@ -931,7 +1010,7 @@ export default function CommunityPage() {
                       </Button>
 
                       {activeCommentId === comment.id && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md">
+                        <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md z-10">
                           <div className="flex gap-2">
                             <Avatar className="h-6 w-6 flex-shrink-0 border">
                               <Image
@@ -1018,6 +1097,32 @@ export default function CommunityPage() {
           return recipeId
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-700">
+              Êtes-vous sûr de vouloir supprimer cette recette ? Cette action est irréversible.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteRecipe}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="py-8 px-4 bg-white border-t border-gray-100">

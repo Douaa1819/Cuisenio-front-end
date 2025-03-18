@@ -92,25 +92,27 @@ export const recipeService = {
   ) => {
     try {
       const params = new URLSearchParams()
-
+  
       if (query) params.append("query", query)
       if (difficultyLevel) params.append("difficultyLevel", difficultyLevel)
       if (maxPrepTime) params.append("maxPrepTime", maxPrepTime.toString())
       if (maxCookTime) params.append("maxCookTime", maxCookTime.toString())
       if (categoryType) params.append("categoryType", categoryType)
       if (isApproved !== undefined) params.append("isApproved", isApproved.toString())
-
+  
       params.append("page", page.toString())
       params.append("size", size.toString())
       params.append("sort", sort)
-
-      const response = await client.get(`routes.recipes/search?${params.toString()}`)
+  
+      const response = await client.get(`${routes.recipes.search}?${params.toString()}`)
       return response.data
     } catch (error) {
       console.error("Error searching recipes:", error)
       throw error
     }
-  },
+  }
+  
+  ,
 
   getMyRecipes: async (page = 0, size = 10, sort = "creationDate") => {
     try {

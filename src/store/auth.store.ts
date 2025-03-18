@@ -3,7 +3,8 @@ import { persist } from "zustand/middleware"
 
 export interface User {
   id?: number
-  username?: string
+  firstName?: string
+  lastName?: string
   email?: string
   profilePicture?: string
   role?: string
@@ -33,3 +34,4 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 )
+

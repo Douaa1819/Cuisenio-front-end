@@ -1,8 +1,9 @@
 export const routes = {
     auth: {
-      login: '/v1/auth/login',
-      register: '/v1/auth/register',
-      refreshToken: '/v1/auth/refresh-token',
+      base: "/v1/auth",
+      login: "/v1/auth/login",
+      register: "/v1/auth/register",
+      verify: "/v1/auth/verify-token",
     },
     categories: {
       base: '/v1/categories',
@@ -13,12 +14,15 @@ export const routes = {
       detail: (id: number) => `/v1/ingredients/${id}`,
       count: '/v1/ingredients/count',
     },
+    profile: "/v1/profile",
+
     recipes: {
       base: '/api/recipes',
-      detail: (id: number) => `/v1/recipes/${id}`,
-      comments: (id: number) => `/v1/recipes/${id}/comments`,
+      detail: (id: number) => `/api/recipes/${id}`,
+      comments: (id: number) => `/api/recipes/${id}/comments`,
       unsave: (id: number) => `/api/recipes/${id}/unsave`,
       saved: "/api/recipes/saved",
+      search: "/api/recipes/search",
       addImage: (id: number) => `/api/recipes/add-image/${id}`,
 
 

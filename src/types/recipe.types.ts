@@ -56,9 +56,10 @@ export interface RecipeResponse {
   creationDate: string
   updateDate: string
   isApproved: boolean
-  chef: {
+  user: {
     id: number
-    username: string
+    firstName: string 
+    lastName: string 
     email: string
     profilePicture: string
   }
@@ -116,7 +117,7 @@ export interface RecipeCommentResponse {
   approved: boolean;
   user: {
     id: number;
-    username: string;
+    firstName: string;
     lastName: string;
   };
 }

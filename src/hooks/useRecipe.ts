@@ -8,7 +8,6 @@ interface UseRecipeOptions {
   pageSize?: number
 }
 
-// Change the export to be a named export instead of default
 export const useRecipe = (options: UseRecipeOptions = {}) => {
   const { pageSize = 10 } = options
 
@@ -18,7 +17,6 @@ export const useRecipe = (options: UseRecipeOptions = {}) => {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
 
-  // Fetch recipes
   const fetchRecipes = useCallback(async () => {
     setLoading(true)
     try {
@@ -33,7 +31,6 @@ export const useRecipe = (options: UseRecipeOptions = {}) => {
     }
   }, [page, pageSize])
 
-  // Search recipes
   const searchRecipes = useCallback(
     async (
       query?: string,
@@ -67,7 +64,6 @@ export const useRecipe = (options: UseRecipeOptions = {}) => {
     [page, pageSize],
   )
 
-  // Create recipe
   const createRecipe = async (recipeFormData: RecipeFormData) => {
     setLoading(true)
     try {
@@ -97,7 +93,6 @@ export const useRecipe = (options: UseRecipeOptions = {}) => {
     }
   }
 
-  // Pagination
   const nextPage = useCallback(() => {
     if (page < totalPages - 1) {
       setPage(page + 1)
