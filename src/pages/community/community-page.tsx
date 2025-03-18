@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  Bell,
   BookmarkIcon,
   ChefHat,
   ChevronDown,
@@ -46,7 +45,6 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import { Label } from "../../components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import { Slider } from "../../components/ui/slider"
 import { Tabs, TabsContent} from "../../components/ui/tabs"
 import { Textarea } from "../../components/ui/textarea"
@@ -339,67 +337,7 @@ export default function CommunityPage() {
             )}
 
             {/* Notifications */}
-            {isAuthenticated && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 relative">
-                    <Bell className="h-5 w-5 text-gray-600" />
-                    <span className="absolute top-0 right-0 h-2 w-2 bg-rose-500 rounded-full"></span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0">
-                  <div className="p-3 border-b border-gray-100">
-                    <h3 className="font-medium">Notifications</h3>
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto">
-                    <div className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8 flex-shrink-0 border">
-                          <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
-                        </Avatar>
-                        <div>
-                          <p className="text-sm">
-                            <span className="font-medium">Marie Dubois</span> a aimé votre recette
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">Il y a 2 heures</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8 flex-shrink-0 border">
-                          <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
-                        </Avatar>
-                        <div>
-                          <p className="text-sm">
-                            <span className="font-medium">Thomas Martin</span> a commenté votre recette
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">Il y a 5 heures</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-3 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8 flex-shrink-0 border">
-                          <Image src="/placeholder.svg?height=40&width=40" alt="User" width={40} height={40} />
-                        </Avatar>
-                        <div>
-                          <p className="text-sm">
-                            <span className="font-medium">Sophie Laurent</span> vous a mentionné dans un commentaire
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">Il y a 1 jour</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-2 border-t border-gray-100 text-center">
-                    <Button variant="ghost" className="text-rose-500 text-sm p-0 h-auto">
-                      Voir toutes les notifications
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
+
 
             {/* User menu */}
             {isAuthenticated ? (
