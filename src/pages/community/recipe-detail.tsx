@@ -10,7 +10,6 @@ import {
   Heart,
   MessageCircle,
   BookmarkIcon,
-  Share2,
   ArrowLeft,
   Edit,
   Trash2,
@@ -219,9 +218,7 @@ export default function RecipeDetailPage() {
                 <button className="p-2 bg-white/90 hover:bg-white rounded-full transition-colors shadow-sm">
                   <BookmarkIcon className="h-5 w-5 text-gray-600 hover:text-rose-500" />
                 </button>
-                <button className="p-2 bg-white/90 hover:bg-white rounded-full transition-colors shadow-sm">
-                  <Share2 className="h-5 w-5 text-gray-600 hover:text-rose-500" />
-                </button>
+          
               </div>
             </div>
 

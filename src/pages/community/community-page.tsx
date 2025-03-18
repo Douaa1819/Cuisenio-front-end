@@ -13,7 +13,6 @@ import {
   Plus,
   Search,
   Send,
-  Share2,
   User,
   X,
   CheckCircle,
@@ -631,9 +630,7 @@ export default function CommunityPage() {
                           <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
                             <BookmarkIcon className="h-4 w-4 text-gray-600 hover:text-rose-500" />
                           </button>
-                          <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
-                            <Share2 className="h-4 w-4 text-gray-600 hover:text-rose-500" />
-                          </button>
+                     
 
                           {/* Show edit/delete buttons if user is the recipe owner */}
                           {user && recipe.user && user.id === recipe.user.id && (
@@ -670,7 +667,7 @@ export default function CommunityPage() {
                               "Chef inconnu"}
                           </span>
                           <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" /> 0{recipe.preparationTime} min
+                            <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime} min
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
