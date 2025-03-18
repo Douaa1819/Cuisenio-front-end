@@ -341,7 +341,7 @@ export default function AdminDashboard() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleBlockUser(user.id)}
+                    data-cy="block-user" onClick={() => handleBlockUser(user.id)}
                       className="flex items-center text-red-500 hover:text-red-700 px-3 py-1 rounded-md transition"
                     >
                       <Lock className="h-4 w-4 mr-1" /> Block

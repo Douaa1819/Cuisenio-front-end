@@ -19,7 +19,7 @@ import {
   BookmarkIcon,
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Avatar } from "../../components/ui/avatar"
+import { Avatar  , AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button"
 import { Card } from "../../components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"
@@ -300,14 +300,18 @@ export default function MealPlannerPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
-                    <Avatar className="h-8 w-8 border">
-                      <Image
-                        src={user?.profilePicture || "/placeholder.svg?height=40&width=40"}
-                        alt="Profile"
-                        width={40}
-                        height={40}
-                      />
-                    </Avatar>
+                      <Avatar className="h-8 w-8 border">
+                                  {user?.profilePicture ? (
+                                    <AvatarImage
+                                      src={user.profilePicture}
+                                      alt={user.username || "Utilisateur"}
+                                    />
+                                  ) : (
+                                    <AvatarFallback>
+                                      <User className="text-[#E57373] text-2xl" />
+                                    </AvatarFallback>
+                                  )}
+                                </Avatar>
                     <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </Button>

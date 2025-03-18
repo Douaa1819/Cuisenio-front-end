@@ -40,7 +40,7 @@ import { Card, CardContent, CardFooter } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Button } from "../../components/ui/button"
-import { Avatar } from "../../components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"
@@ -326,7 +326,6 @@ export default function ProfilePage() {
       setSuccessMessage("Recette supprimée avec succès!")
       setShowSuccessModal(true)
 
-      // Refresh the recipes list
       const myRecipesResponse = await recipeService.getMyRecipes()
       setUserRecipes(myRecipesResponse.content || [])
 
@@ -416,20 +415,25 @@ export default function ProfilePage() {
 
             {/* User menu */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 hover:bg-gray-100 p-1.5 rounded-lg">
-                  <Avatar className="h-8 w-8 border">
-                    <Image
-                      src={profile.profilePicture || "/placeholder.svg?height=40&width=40"}
-                      alt="Profile"
-                      width={40}
-                      height={40}
-                    />
-                  </Avatar>
-                  <span className="text-sm font-medium hidden md:inline">{profile.username}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </button>
-              </DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
+      <button className="flex items-center gap-2 hover:bg-gray-100 p-1.5 rounded-lg">
+        <Avatar className="h-8 w-8 border">
+          {profile.profilePicture || profileImage ? (
+            <AvatarImage
+              src={profileImage ? URL.createObjectURL(profileImage) : profile.profilePicture ?? "/placeholder.svg"}
+              alt={profile.username}
+            />
+          ) : (
+            <AvatarFallback>
+              <User className="text-[#E57373] text-2xl" />
+            </AvatarFallback>
+          )}
+        </Avatar>
+        
+        <span className="text-sm font-medium hidden md:inline">{profile.username}</span>
+        <ChevronDown className="h-4 w-4 text-gray-500" />
+      </button>
+    </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
                 <DropdownMenuSeparator />

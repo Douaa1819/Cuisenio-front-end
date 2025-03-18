@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Avatar } from "../../components/ui/avatar"
+import { Avatar , AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import { AnimatePresence, motion } from "framer-motion"
@@ -340,16 +340,25 @@ export default function CommunityPage() {
 
             {/* User menu */}
             {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
-                    <Avatar className="h-8 w-8 border">
-                      <Image src="/assets/images/chef.png" alt="Profile" width={40} height={40} />
-                    </Avatar>
-                    <span className="text-sm font-medium hidden md:inline">Utilisateur</span>
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  </Button>
-                </DropdownMenuTrigger>
+           <DropdownMenu>
+           <DropdownMenuTrigger asChild>
+             <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
+               <Avatar className="h-8 w-8 border">
+                 {user?.profilePicture ? (
+                   <AvatarImage
+                     src={user.profilePicture}
+                     alt={user.username || "Utilisateur"}
+                   />
+                 ) : (
+                   <AvatarFallback>
+                     <User className="text-[#E57373] text-2xl" />
+                   </AvatarFallback>
+                 )}
+               </Avatar>
+               <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
+               <ChevronDown className="h-4 w-4 text-gray-500" />
+             </Button>
+           </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-56 border-amber-50">
                   <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
@@ -685,14 +694,18 @@ export default function CommunityPage() {
                         {index === 0 && (
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center">
-                              <Avatar className="h-8 w-8 mr-2 border">
-                                <Image
-                                  src={recipe.user?.profilePicture || "/placeholder.svg?height=40&width=40"}
-                                  alt={recipe.user?.username || "Chef"}
-                                  width={40}
-                                  height={40}
-                                />
-                              </Avatar>
+                            <Avatar className="h-8 w-8 border">
+                 {user?.profilePicture ? (
+                   <AvatarImage
+                     src={user.profilePicture}
+                     alt={user.username || "Utilisateur"}
+                   />
+                 ) : (
+                   <AvatarFallback>
+                     <User className="text-[#E57373] text-2xl" />
+                   </AvatarFallback>
+                 )}
+               </Avatar>
                               <div>
                                 <p className="text-sm font-medium">{recipe.user?.username || "Chef inconnu"}</p>
                                 <p className="text-xs text-gray-500">
@@ -807,14 +820,18 @@ export default function CommunityPage() {
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <Avatar className="h-8 w-8 mr-2 border">
-                            <Image
-                              src="/placeholder.svg?height=40&width=40"
-                              alt={comment.user?.username || "Utilisateur"}
-                              width={40}
-                              height={40}
-                            />
-                          </Avatar>
+                        <Avatar className="h-8 w-8 border">
+                 {user?.profilePicture ? (
+                    <AvatarImage
+                      src={user.profilePicture}
+                      alt={user.username || "Utilisateur"}
+                    />
+                  ) : (
+                    <AvatarFallback>
+                      <User className="text-[#E57373] text-2xl" />
+                    </AvatarFallback>
+                  )}
+                </Avatar>
                           <div>
                             <p className="font-medium text-sm">{comment.user?.username || "Utilisateur"}</p>
                             <p className="text-xs text-gray-500">
@@ -901,9 +918,18 @@ export default function CommunityPage() {
           {/* Add Comment */}
           <div className="border-t border-gray-200 pt-4">
             <div className="flex gap-3">
-              <Avatar className="h-8 w-8 flex-shrink-0 border">
-                <Image src="/placeholder.svg?height=40&width=40" alt="Votre avatar" width={40} height={40} />
-              </Avatar>
+            <Avatar className="h-8 w-8 border">
+                 {user?.profilePicture ? (
+                   <AvatarImage
+                     src={user.profilePicture}
+                     alt={user.username || "Utilisateur"}
+                   />
+                 ) : (
+                   <AvatarFallback>
+                     <User className="text-[#E57373] text-2xl" />
+                   </AvatarFallback>
+                 )}
+               </Avatar>
               <div className="flex-1 relative">
                 <Textarea
                   placeholder="Partagez votre avis sur cette recette..."

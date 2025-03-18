@@ -12,12 +12,13 @@ import {
   BookmarkIcon,
   ArrowLeft,
   Edit,
+  User,
   Trash2,
   CheckCircle,
   AlertCircle,
 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Avatar } from "../../components/ui/avatar"
+import { Avatar  , AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import { Card } from "../../components/ui/card"
@@ -240,14 +241,18 @@ export default function RecipeDetailPage() {
               </div>
 
               <div className="flex items-center mb-6">
-                <Avatar className="h-10 w-10 mr-3 border">
-                  <Image
-                    src={recipe.user?.profilePicture || "/placeholder.svg?height=40&width=40"}
-                    alt={recipe.user?.username || "Chef"}
-                    width={40}
-                    height={40}
-                  />
-                </Avatar>
+              <Avatar className="h-8 w-8 border">
+                 {user?.profilePicture ? (
+                   <AvatarImage
+                     src={user.profilePicture}
+                     alt={user.username || "Utilisateur"}
+                   />
+                 ) : (
+                   <AvatarFallback>
+                     <User className="text-[#E57373] text-2xl" />
+                   </AvatarFallback>
+                 )}
+               </Avatar>
                 <div>
                   <p className="font-medium">{recipe.user?.username || "Chef inconnu"}</p>
                   <p className="text-sm text-gray-500">
@@ -352,9 +357,18 @@ export default function RecipeDetailPage() {
 
                 <div className="mb-6">
                   <div className="flex gap-3 mb-6">
-                    <Avatar className="h-10 w-10 flex-shrink-0 border">
-                      <Image src="/placeholder.svg?height=40&width=40" alt="Votre avatar" width={40} height={40} />
-                    </Avatar>
+                  <Avatar className="h-8 w-8 border">
+                 {user?.profilePicture ? (
+                   <AvatarImage
+                     src={user.profilePicture}
+                     alt={user.username || "Utilisateur"}
+                   />
+                 ) : (
+                   <AvatarFallback>
+                     <User className="text-[#E57373] text-2xl" />
+                   </AvatarFallback>
+                 )}
+               </Avatar>
                     <div className="flex-1 relative">
                       <Textarea
                         placeholder="Partagez votre avis sur cette recette..."
