@@ -21,14 +21,12 @@ client.interceptors.request.use(
   },
 )
 
-// Add a response interceptor to handle auth errors
 client.interceptors.response.use(
   (response) => {
     return response
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear auth state on 401 Unauthorized
       useAuthStore.getState().logout()
       window.location.href = "/login"
     }

@@ -54,7 +54,7 @@ import {
 } from "../../components/ui/dropdown-menu"
 import { cn } from "../../lib/utils"
 import type { RecipeResponse } from "../../types/recipe.types"
-import type { UpdatePasswordRequest } from "../../types/auth.types"
+import type { Role, UpdatePasswordRequest } from "../../types/auth.types"
 
 interface UserProfile {
   id?: number
@@ -151,7 +151,10 @@ export default function ProfilePage() {
           username: userData.username || "",
           lastName: userData.lastName || "",
         })
-        updateUser(userData)
+        updateUser({
+          ...userData,
+          role: userData.role as Role | undefined,
+        })
         setIsLoading(false)
       } catch (err: unknown) {
         const error = err as ApiError
@@ -241,7 +244,10 @@ export default function ProfilePage() {
 
       const updatedProfile = await authService.getProfile()
       setProfile(updatedProfile)
-      updateUser(updatedProfile)
+      updateUser({
+        ...updatedProfile,
+        role: updatedProfile.role as Role | undefined,
+      })
 
       setIsEditing(false)
       setSuccessMessage("Profile updated successfully!")

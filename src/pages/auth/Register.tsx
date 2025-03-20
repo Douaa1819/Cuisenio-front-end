@@ -1,5 +1,3 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";

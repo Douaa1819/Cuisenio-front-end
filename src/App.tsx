@@ -12,7 +12,7 @@ import MealPlannerPage from "./pages/meal-planner/meal-planner-page"
 import NotFoundPage from "./pages/not-found-page"
 import RecipeDetailPage from "./pages/community/recipe-detail"
 // import EditRecipePage from "./pages/recipes/edit-recipe-page"
-
+import { Role } from "./types/auth.types" 
 function App() {
   return (
     <Router>
@@ -20,8 +20,14 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<AdminDashboard />} />
-          <Route path="/add-recipe" element={<CreateRecipePage />} />
+          <Route
+  path="/dashboard"
+  element={
+    <PrivateRoute role={Role.ADMIN}>
+      <AdminDashboard />
+    </PrivateRoute>
+  }
+/>          <Route path="/add-recipe" element={<CreateRecipePage />} />
           {/* <Route path="/edit-recipe/:id" element={<EditRecipePage />} /> */}
           <Route path="/recipe/:id" element={<RecipeDetailPage />} />
           <Route path="/home" element={<CommunityPage />} />

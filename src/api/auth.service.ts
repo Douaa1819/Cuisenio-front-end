@@ -11,13 +11,6 @@ export const authService = {
   async login(data: LoginRequest) {
     const response = await client.post(`${routes.auth.login}`, data)
     this.setToken(response.data.token)
-
-    if (response.data.role === "ADMIN") {
-      window.location.href = "/dashboard"
-    } else {
-      window.location.href = "/home"
-    }
-
     return response.data
   },
 

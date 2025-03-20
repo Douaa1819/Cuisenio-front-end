@@ -13,13 +13,11 @@ export interface RecipeIngredientRequest {
 
 export interface RecipeIngredientResponse {
   id: number
- 
   quantity: string
   unit: string
     ingredient:{
       id: number
       name: string
-       
     }
 }
 

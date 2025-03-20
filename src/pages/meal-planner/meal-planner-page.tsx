@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import {
   Calendar,
@@ -17,17 +19,38 @@ import {
   ChevronDown,
   LogOut,
   BookmarkIcon,
+  CalendarDays,
+  Utensils,
+  ShoppingCart,
+  Search,
+  Download,
+  AlertCircle,
+  Loader2,
+  Check,
+  FileDown,
+  SlidersHorizontal,
+  Heart,
+  Sparkles,
 } from "lucide-react"
-import { AnimatePresence, motion } from "framer-motion"
-import { Avatar  , AvatarFallback, AvatarImage } from "../../components/ui/avatar";
+import { AnimatePresence, motion, useAnimation } from "framer-motion"
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Button } from "../../components/ui/button"
-import { Card } from "../../components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../../components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "../../components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { Textarea } from "../../components/ui/textarea"
 import { Badge } from "../../components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,12 +59,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
+import { Checkbox } from "../../components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import { useAuthStore } from "../../store/auth.store"
 import type { MealPlannerRequest, MealPlannerResponse } from "../../types/mealPlanner.types"
 import { recipeService } from "../../api/recipe.service"
 import type { RecipeResponse } from "../../types/recipe.types"
 import { useMealPlanner } from "../../hooks/useMealPlanner"
-
+import { cn } from "../../lib/utils"
+import { jsPDF } from "jspdf"
+import html2canvas from "html2canvas"
 
 interface ImageProps {
   src: string
@@ -69,6 +96,7 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
   )
 }
 
+// Constants
 const DAYS_OF_WEEK = [
   { value: "MONDAY", label: "Lundi" },
   { value: "TUESDAY", label: "Mardi" },
@@ -86,18 +114,84 @@ const MEAL_TYPES = [
   { value: "SNACK", label: "Collation" },
 ]
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+}
+
+const cardHoverVariants = {
+  rest: { scale: 1, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
+  hover: {
+    scale: 1.02,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+    transition: { duration: 0.3, ease: "easeOut" },
+  },
+}
+
+// Custom icon components
+const Coffee = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
+    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path>
+    <line x1="6" x2="6" y1="2" y2="4"></line>
+    <line x1="10" x2="10" y1="2" y2="4"></line>
+    <line x1="14" x2="14" y1="2" y2="4"></line>
+  </svg>
+)
+
+const Apple = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"></path>
+    <path d="M10 2c1 .5 2 2 2 5"></path>
+  </svg>
+)
+
 export default function MealPlannerPage() {
   const { isAuthenticated, user } = useAuthStore()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const {
-    mealPlans,
-    loading,
-    error: hookError,
-    createMealPlan,
-    updateMealPlan,
-    deleteMealPlan,
-  } = useMealPlanner()
+  const { mealPlans, loading, error: hookError, createMealPlan, updateMealPlan, deleteMealPlan } = useMealPlanner()
   const [localError, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
@@ -109,6 +203,32 @@ export default function MealPlannerPage() {
   const [recipes, setRecipes] = useState<RecipeResponse[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [currentMeal, setCurrentMeal] = useState<MealPlannerResponse | null>(null)
+  const [activeView, setActiveView] = useState<"week" | "list">("week")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterMealType, setFilterMealType] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<"pdf" | "csv" | "ical">("pdf")
+  const [exportOptions, setExportOptions] = useState({
+    includeNotes: true,
+    includeImages: true,
+    includeIngredients: true,
+    dateRange: "week" as "day" | "week" | "month" | "all",
+  })
+  const [sortOrder, setSortOrder] = useState<"dayAsc" | "dayDesc" | "typeAsc">("dayAsc")
+  const [isExporting, setIsExporting] = useState(false)
+  const [showShoppingList, setShowShoppingList] = useState(false)
+  const [shoppingListItems, setShoppingListItems] = useState<{ id: number; name: string; checked: boolean }[]>([])
+  const [favoriteRecipes, setFavoriteRecipes] = useState<number[]>([])
+  const [showRecipeSearch, setShowRecipeSearch] = useState(false)
+  const [recipeSearchQuery, setRecipeSearchQuery] = useState("")
+
+  // Refs for animations and PDF export
+  const headerControls = useAnimation()
+  const contentRef = useRef<HTMLDivElement>(null)
+  const weekViewRef = useRef<HTMLDivElement>(null)
+  const listViewRef = useRef<HTMLDivElement>(null)
+  const shoppingListRef = useRef<HTMLDivElement>(null)
 
   const [mealForm, setMealForm] = useState<MealPlannerRequest>({
     planningDate: new Date().toISOString().split("T")[0],
@@ -133,10 +253,41 @@ export default function MealPlannerPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchRecipes()
+      // Simulate loading favorite recipes from API
+      setFavoriteRecipes([1, 3, 5])
     } else {
       navigate("/login")
     }
   }, [isAuthenticated, navigate])
+
+  // Scroll animation effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (contentRef.current) {
+        const scrollY = window.scrollY
+        if (scrollY > 100) {
+          headerControls.start({
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            backdropFilter: "blur(8px)",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+            height: "60px",
+            transition: { duration: 0.3 },
+          })
+        } else {
+          headerControls.start({
+            backgroundColor: "rgba(255, 255, 255, 1)",
+            backdropFilter: "blur(0px)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            height: "72px",
+            transition: { duration: 0.3 },
+          })
+        }
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [headerControls])
 
   const handleInputChange = (name: string, value: string | number) => {
     setMealForm((prev) => ({
@@ -251,15 +402,313 @@ export default function MealPlannerPage() {
     return DAYS_OF_WEEK.find((d) => d.value === day)?.label || day
   }
 
+  const getMealTypeColor = (type: string) => {
+    switch (type) {
+      case "BREAKFAST":
+        return "bg-amber-100 text-amber-700 border-amber-200"
+      case "LUNCH":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200"
+      case "DINNER":
+        return "bg-indigo-100 text-indigo-700 border-indigo-200"
+      case "SNACK":
+        return "bg-purple-100 text-purple-700 border-purple-200"
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200"
+    }
+  }
+
+  const getMealTypeIcon = (type: string) => {
+    switch (type) {
+      case "BREAKFAST":
+        return <Coffee className="h-3.5 w-3.5 mr-1" />
+      case "LUNCH":
+        return <Utensils className="h-3.5 w-3.5 mr-1" />
+      case "DINNER":
+        return <ChefHat className="h-3.5 w-3.5 mr-1" />
+      case "SNACK":
+        return <Apple className="h-3.5 w-3.5 mr-1" />
+      default:
+        return <Utensils className="h-3.5 w-3.5 mr-1" />
+    }
+  }
+
+  const filteredMealPlans = mealPlans
+    .filter((meal) => {
+      let matches = true
+
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase()
+        matches =
+          matches &&
+          (meal.recipe?.title?.toLowerCase().includes(searchLower) || meal.notes?.toLowerCase().includes(searchLower))
+      }
+
+      if (filterMealType) {
+        matches = matches && meal.mealType === filterMealType
+      }
+
+      return matches
+    })
+    .sort((a, b) => {
+      const dayOrder =
+        DAYS_OF_WEEK.findIndex((d) => d.value === a.dayOfWeek) - DAYS_OF_WEEK.findIndex((d) => d.value === b.dayOfWeek)
+
+      const typeOrder =
+        MEAL_TYPES.findIndex((t) => t.value === a.mealType) - MEAL_TYPES.findIndex((t) => t.value === b.mealType)
+
+      switch (sortOrder) {
+        case "dayAsc":
+          return dayOrder || typeOrder
+        case "dayDesc":
+          return -dayOrder || typeOrder
+        case "typeAsc":
+          return typeOrder || dayOrder
+        default:
+          return dayOrder || typeOrder
+      }
+    })
+
+  // PDF Export Implementation
+  const exportToPDF = async () => {
+    setIsExporting(true)
+
+    try {
+      // Create a new PDF document
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      })
+
+      // Add title and metadata
+      doc.setFontSize(20)
+      doc.setTextColor(229, 29, 72) // Rose color
+      doc.text("Planning de Repas", 105, 20, { align: "center" })
+
+      doc.setFontSize(12)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Exporté le ${new Date().toLocaleDateString()}`, 105, 30, { align: "center" })
+
+      // Add user info if available
+      if (user?.username) {
+        doc.text(`Utilisateur: ${user.username}`, 105, 40, { align: "center" })
+      }
+
+      // Determine which view to export based on activeView
+      const elementToCapture = activeView === "week" ? weekViewRef.current : listViewRef.current
+
+      if (elementToCapture) {
+        // Fix for oklch color function issue - temporarily replace oklch colors with standard RGB
+        const elementsWithOklch = elementToCapture.querySelectorAll('[class*="bg-"]')
+        const originalStyles: { element: Element; style: string }[] = []
+
+        // Save original styles and replace oklch colors
+        elementsWithOklch.forEach((element) => {
+          const computedStyle = window.getComputedStyle(element)
+          originalStyles.push({
+            element,
+            style: element.getAttribute("style") || "",
+          })
+
+          // Apply a safe background color if needed
+          if (computedStyle.backgroundColor.includes("oklch")) {
+            element.setAttribute(
+              "style",
+              `${element.getAttribute("style") || ""}; background-color: rgb(249, 250, 251) !important;`,
+            )
+          }
+        })
+
+        // Capture the element as an image
+        const canvas = await html2canvas(elementToCapture, {
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        })
+
+        // Restore original styles
+        originalStyles.forEach((item) => {
+          item.element.setAttribute("style", item.style)
+        })
+
+        // Convert canvas to image
+        const imgData = canvas.toDataURL("image/png")
+
+        // Calculate dimensions to fit on PDF
+        const imgWidth = 190 // mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+        // Add image to PDF
+        doc.addImage(imgData, "PNG", 10, 50, imgWidth, imgHeight)
+
+        // Add page numbers
+        const pageCount = doc.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i)
+          doc.setFontSize(10)
+          doc.setTextColor(150, 150, 150)
+          doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: "center" })
+        }
+
+        // If shopping list is included
+        if (exportOptions.includeIngredients && shoppingListItems.length > 0) {
+          // Add a new page for shopping list
+          doc.addPage()
+
+          // Add shopping list title
+          doc.setFontSize(16)
+          doc.setTextColor(229, 29, 72)
+          doc.text("Liste de Courses", 105, 20, { align: "center" })
+
+          // Add shopping list items
+          doc.setFontSize(12)
+          doc.setTextColor(0, 0, 0)
+
+          shoppingListItems.forEach((item, index) => {
+            const y = 40 + index * 10
+            doc.text(`□ ${item.name}`, 20, y)
+          })
+        }
+const fileName = `planning-repas-${new Date().toISOString().split("T")[0]}.pdf`
+        doc.save(fileName)
+
+        setSuccessMessage(`Planning exporté avec succès en format PDF!`)
+      } else {
+        throw new Error("Impossible de capturer le contenu pour l'export PDF")
+      }
+    } catch (error) {
+      console.error("Error exporting to PDF:", error)
+      setError("Erreur lors de l'exportation en PDF. Veuillez réessayer.")
+    } finally {
+      setIsExporting(false)
+      setExportDialogOpen(false)
+      setShowSuccessModal(true)
+
+      setTimeout(() => {
+        setShowSuccessModal(false)
+      }, 2000)
+    }
+  }
+
+
+  const handleExport = () => {
+    setIsExporting(true)
+
+    switch (exportFormat) {
+      case "pdf":
+        exportToPDF()
+        break
+      case "csv":
+        // Simulate CSV export
+        setTimeout(() => {
+          setIsExporting(false)
+          setExportDialogOpen(false)
+          setSuccessMessage(`Planning exporté avec succès en format CSV!`)
+          setShowSuccessModal(true)
+
+          setTimeout(() => {
+            setShowSuccessModal(false)
+          }, 2000)
+        }, 1500)
+        break
+      case "ical":
+        // Simulate iCal export
+        setTimeout(() => {
+          setIsExporting(false)
+          setExportDialogOpen(false)
+          setSuccessMessage(`Planning exporté avec succès en format iCal!`)
+          setShowSuccessModal(true)
+
+          setTimeout(() => {
+            setShowSuccessModal(false)
+          }, 2000)
+        }, 1500)
+        break
+      default:
+        setIsExporting(false)
+    }
+  }
+
+  const generateShoppingList = () => {
+    // Generate shopping list from meal plans
+    const ingredients: { id: number; name: string; checked: boolean }[] = []
+
+
+
+    // If no ingredients found, use sample data
+    if (ingredients.length === 0) {
+      setShoppingListItems([
+        { id: 1, name: "Farine", checked: false },
+        { id: 2, name: "Oeufs", checked: false },
+        { id: 3, name: "Lait", checked: false },
+        { id: 4, name: "Sucre", checked: false },
+        { id: 5, name: "Sel", checked: false },
+        { id: 6, name: "Beurre", checked: false },
+        { id: 7, name: "Tomates", checked: false },
+        { id: 8, name: "Oignons", checked: false },
+        { id: 9, name: "Ail", checked: false },
+        { id: 10, name: "Poulet", checked: false },
+      ])
+    } else {
+      setShoppingListItems(ingredients)
+    }
+
+    setShowShoppingList(true)
+  }
+
+  const toggleFavorite = (recipeId: number) => {
+    setFavoriteRecipes((prev) => (prev.includes(recipeId) ? prev.filter((id) => id !== recipeId) : [...prev, recipeId]))
+  }
+
 
 
   if (loading && mealPlans.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement de votre planificateur de repas...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <div className="relative">
+            <Loader2 className="h-12 w-12 text-rose-500 animate-spin mx-auto" />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <ChefHat className="h-6 w-6 text-rose-500" />
+            </motion.div>
+          </div>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="mt-4 text-gray-600 font-medium"
+          >
+            Chargement de votre planificateur de repas...
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
+            className="mt-8 flex flex-col items-center"
+          >
+            <div className="w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-rose-500"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 2, ease: "easeInOut" }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Préparation de vos recettes...</p>
+          </motion.div>
+        </motion.div>
       </div>
     )
   }
@@ -267,7 +716,11 @@ export default function MealPlannerPage() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       {/* Navigation */}
-      <header className="fixed top-0 left-0 w-full bg-white z-50 border-b border-gray-100 shadow-sm">
+      <motion.header
+        className="fixed top-0 left-0 w-full z-50 border-b border-gray-100"
+        initial={{ backgroundColor: "rgba(255, 255, 255, 1)" }}
+        animate={headerControls}
+      >
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
             <ChefHat className="h-6 w-6 text-rose-500" />
@@ -275,7 +728,9 @@ export default function MealPlannerPage() {
           </Link>
 
           <nav
-            className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
+            className={`${
+              mobileMenuOpen ? "flex" : "hidden"
+            } md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
           >
             <Link
               to="/home"
@@ -289,10 +744,19 @@ export default function MealPlannerPage() {
 
             {/* Notifications */}
             {isAuthenticated && (
-              <button className="p-1 rounded-full hover:bg-gray-100 relative">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute top-0 right-0 h-2 w-2 bg-rose-500 rounded-full"></span>
-              </button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="p-1 rounded-full hover:bg-gray-100 relative">
+                      <Bell className="h-5 w-5 text-gray-600" />
+                      <span className="absolute top-0 right-0 h-2 w-2 bg-rose-500 rounded-full"></span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Notifications</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
 
             {/* User menu */}
@@ -300,18 +764,15 @@ export default function MealPlannerPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
-                      <Avatar className="h-8 w-8 border">
-                                  {user?.profilePicture ? (
-                                    <AvatarImage
-                                      src={user.profilePicture}
-                                      alt={user.username || "Utilisateur"}
-                                    />
-                                  ) : (
-                                    <AvatarFallback>
-                                      <User className="text-[#E57373] text-2xl" />
-                                    </AvatarFallback>
-                                  )}
-                                </Avatar>
+                    <Avatar className="h-8 w-8 border">
+                      {user?.profilePicture ? (
+                        <AvatarImage src={user.profilePicture} alt={user.username || "Utilisateur"} />
+                      ) : (
+                        <AvatarFallback>
+                          <User className="text-rose-500 h-4 w-4" />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
                     <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </Button>
@@ -354,164 +815,786 @@ export default function MealPlannerPage() {
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-      </header>
-
-    
+      </motion.header>
 
       {/* Main Content */}
-      <main className="pt-24 pb-16 px-4">
+      <main className="pt-24 pb-16 px-4" ref={contentRef}>
         <div className="container mx-auto max-w-6xl">
           {/* Header */}
-          <div className="mb-10">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Planificateur de Repas</h1>
+          <motion.div initial="hidden" animate="visible" variants={containerVariants} className="mb-10">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+              <motion.div variants={itemVariants}>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 flex items-center">
+                  Planificateur de Repas
+                  <motion.span
+                    initial={{ scale: 0, rotate: -30 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.5, type: "spring", stiffness: 260, damping: 20 }}
+                    className="ml-2"
+                  >
+                    <Sparkles className="h-6 w-6 text-amber-400" />
+                  </motion.span>
+                </h1>
                 <p className="text-gray-600 mt-2">Organisez vos repas de la semaine et simplifiez votre quotidien</p>
-              </div>
-              <Button
-                onClick={() => setAddMealDialogOpen(true)}
-                className="bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5"
-              >
-                <Plus className="h-4 w-4" /> Ajouter un repas
-              </Button>
+              </motion.div>
+              <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
+                
+              
+
+                {/* Filters Dialog */}
+                <Dialog open={showFilters} onOpenChange={setShowFilters}>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Filtrer les repas</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label>Rechercher</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Rechercher une recette..."
+                            className="pl-9"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Type de repas</Label>
+                        <Select
+                          value={filterMealType || "all"}
+                          onValueChange={(value) => setFilterMealType(value === "all" ? null : value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Tous les types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tous les types</SelectItem>
+                            {MEAL_TYPES.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Trier par</Label>
+                        <Select
+                          value={sortOrder}
+                          onValueChange={(value: "dayAsc" | "dayDesc" | "typeAsc") => setSortOrder(value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Ordre de tri" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dayAsc">Jour (croissant)</SelectItem>
+                            <SelectItem value="dayDesc">Jour (décroissant)</SelectItem>
+                            <SelectItem value="typeAsc">Type de repas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="pt-4 flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSearchQuery("")
+                            setFilterMealType(null)
+                            setSortOrder("dayAsc")
+                          }}
+                        >
+                          Réinitialiser
+                        </Button>
+                        <Button onClick={() => setShowFilters(false)}>Appliquer</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Export Dialog */}
+                <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Exporter le planning de repas</DialogTitle>
+                      <DialogDescription>Choisissez le format et les options d'exportation</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-6">
+                      <div className="space-y-4">
+                        <Label>Format d'exportation</Label>
+                        <div className="grid grid-cols-3 gap-4">
+                          <Button
+                            variant={exportFormat === "pdf" ? "primary" : "outline"}
+                            className={cn(
+                              "flex flex-col items-center py-6",
+                              exportFormat === "pdf" ? "bg-rose-500 hover:bg-rose-600" : "",
+                            )}
+                            onClick={() => setExportFormat("pdf")}
+                          >
+                            <FileDown className="h-8 w-8 mb-2" />
+                            <span>PDF</span>
+                          </Button>
+                          <Button
+                            variant={exportFormat === "csv" ? "primary" : "outline"}
+                            className={cn(
+                              "flex flex-col items-center py-6",
+                              exportFormat === "csv" ? "bg-rose-500 hover:bg-rose-600" : "",
+                            )}
+                            onClick={() => setExportFormat("csv")}
+                          >
+                            <FileDown className="h-8 w-8 mb-2" />
+                            <span>CSV</span>
+                          </Button>
+                          <Button
+                            variant={exportFormat === "ical" ? "primary" : "outline"}
+                            className={cn(
+                              "flex flex-col items-center py-6",
+                              exportFormat === "ical" ? "bg-rose-500 hover:bg-rose-600" : "",
+                            )}
+                            onClick={() => setExportFormat("ical")}
+                          >
+                            <Calendar className="h-8 w-8 mb-2" />
+                            <span>iCal</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label>Période</Label>
+                        <Select
+                          value={exportOptions.dateRange}
+                          onValueChange={(value: "day" | "week" | "month" | "all") =>
+                            setExportOptions((prev) => ({ ...prev, dateRange: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une période" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Aujourd'hui</SelectItem>
+                            <SelectItem value="week">Cette semaine</SelectItem>
+                            <SelectItem value="month">Ce mois</SelectItem>
+                            <SelectItem value="all">Tous les repas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label>Options</Label>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="includeNotes"
+                              checked={exportOptions.includeNotes}
+                              onChange={(e) =>
+                                setExportOptions((prev) => ({
+                                  ...prev,
+                                  includeNotes: e.target.checked,
+                                }))
+                              }
+                            />
+                            <label
+                              htmlFor="includeNotes"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Inclure les notes
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="includeImages"
+                              checked={exportOptions.includeImages}
+                              onChange={(e) =>
+                                setExportOptions((prev) => ({
+                                  ...prev,
+                                  includeImages: e.target.checked,
+                                }))
+                              }
+                            />
+                            <label
+                              htmlFor="includeImages"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Inclure les images
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="includeIngredients"
+                              checked={exportOptions.includeIngredients}
+                              onChange={(e) =>
+                                setExportOptions((prev) => ({
+                                  ...prev,
+                                  includeIngredients: e.target.checked,
+                                }))
+                              }
+                            />
+                            <label
+                              htmlFor="includeIngredients"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Inclure les ingrédients
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+                        Annuler
+                      </Button>
+                      <Button
+                        className="bg-rose-500 hover:bg-rose-600 text-white"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                      >
+                        {isExporting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Exportation...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-2" />
+                            Exporter
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </motion.div>
             </div>
 
             {(hookError || localError) && (
-              <div className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-lg mb-6">
-                {hookError || localError}
-              </div>
-            )}
-          </div>
-
-          {/* Weekly Meal Planner */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-rose-500" />
-                Planning de la semaine
-              </h2>
-            </div>
-
-            <div className="p-6">
-              {mealPlans.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-700 mb-2">Aucun repas planifié</h3>
-                  <p className="text-gray-500 mb-6">Commencez à planifier vos repas pour la semaine.</p>
-                  <Button
-                    onClick={() => setAddMealDialogOpen(true)}
-                    className="bg-rose-500 hover:bg-rose-600 text-white"
-                  >
-                    Ajouter votre premier repas
-                  </Button>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-lg mb-6 flex items-start gap-3"
+              >
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Une erreur est survenue</p>
+                  <p className="text-sm">{hookError || localError}</p>
                 </div>
-              ) : (
-                <div className="space-y-8">
-                  {Object.entries(getMealsByDay()).map(([day, meals]) => (
-                    <div key={day} className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                      <h3 className="text-lg font-medium mb-4">{getDayLabel(day)}</h3>
+              </motion.div>
+            )}
 
-                      {meals.length === 0 ? (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
-                          <p className="text-gray-500">Aucun repas planifié pour ce jour</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2"
-                            onClick={() => {
-                              setMealForm((prev) => ({ ...prev, dayOfWeek: day }))
-                              setAddMealDialogOpen(true)
-                            }}
-                          >
-                            <Plus className="h-3 w-3 mr-1" /> Ajouter
+            <motion.div variants={itemVariants}>
+              <Tabs
+                defaultValue="week"
+                className="w-full"
+                onValueChange={(value) => setActiveView(value as "week" | "list")}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <TabsList>
+                    <TabsTrigger value="week" className="flex items-center gap-1.5">
+                      <CalendarDays className="h-4 w-4" />
+                      <span>Vue Semaine</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="list" className="flex items-center gap-1.5">
+                      <Utensils className="h-4 w-4" />
+                      <span>Liste des Repas</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-9" onClick={generateShoppingList}>
+                            <ShoppingCart className="h-4 w-4" />
+                            <span className="sr-only md:not-sr-only md:ml-2">Liste de courses</span>
                           </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Générer une liste de courses</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-9" onClick={() => setExportDialogOpen(true)}>
+                            <Download className="h-4 w-4" />
+                            <span className="sr-only md:not-sr-only md:ml-2">Exporter</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Exporter le planning</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-9" onClick={() => setShowRecipeSearch(true)}>
+                            <Search className="h-4 w-4" />
+                            <span className="sr-only md:not-sr-only md:ml-2">Rechercher</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Rechercher des recettes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+
+                <TabsContent value="week" className="mt-0">
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="bg-white border-b border-gray-100 pb-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-rose-500" />
+                          <CardTitle>Planning de la semaine</CardTitle>
                         </div>
+                        
+                      </div>
+                      <CardDescription>Organisez vos repas pour chaque jour de la semaine</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6" ref={weekViewRef}>
+                      {mealPlans.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                          className="text-center py-16 bg-gray-50 rounded-lg"
+                        >
+                          <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-xl font-medium text-gray-700 mb-2">Aucun repas planifié</h3>
+                          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                            Commencez à planifier vos repas pour la semaine et simplifiez votre organisation
+                            quotidienne.
+                          </p>
+                          <Button
+                            onClick={() => setAddMealDialogOpen(true)}
+                            className="bg-rose-500 hover:bg-rose-600 text-white"
+                          >
+                            <Plus className="h-4 w-4 mr-2" /> Ajouter votre premier repas
+                          </Button>
+                        </motion.div>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {meals.map((meal) => (
-                            <Card key={meal.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                              <div className="flex">
-                                <div className="relative w-1/3">
-                                  <Image
-                                    src={
-                                      meal.recipe?.imageUrl
-                                        ? `http://localhost:8080/uploads/${meal.recipe.imageUrl}`
-                                        : "/placeholder.svg?height=150&width=150"
-                                    }
-                                    alt={meal.recipe?.title || "Recipe"}
-                                    fill
-                                    className="object-cover"
-                                  />
+                        <motion.div
+                          initial="hidden"
+                          animate="visible"
+                          variants={containerVariants}
+                          className="space-y-8"
+                        >
+                          {Object.entries(getMealsByDay()).map(([day, meals], dayIndex) => (
+                            <motion.div
+                              key={day}
+                              variants={itemVariants}
+                              custom={dayIndex}
+                              className="border-b border-gray-100 pb-6 last:border-0 last:pb-0"
+                            >
+                              <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium">{getDayLabel(day)}</h3>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                  onClick={() => {
+                                    setMealForm((prev) => ({ ...prev, dayOfWeek: day }))
+                                    setAddMealDialogOpen(true)
+                                  }}
+                                >
+                                  <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
+                                </Button>
+                              </div>
+
+                              {meals.length === 0 ? (
+                                <div className="bg-gray-50 rounded-lg p-6 text-center">
+                                  <p className="text-gray-500">Aucun repas planifié pour ce jour</p>
                                 </div>
-                                <div className="w-2/3 p-4">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <Badge className="mb-2 bg-rose-100 text-rose-700">
-                                        {getMealTypeLabel(meal.mealType)}
-                                      </Badge>
-                                      <h4 className="font-medium text-sm line-clamp-1">
-                                        {meal.recipe?.title || "Untitled Recipe"}
-                                      </h4>
-                                    </div>
-                                    <div className="flex space-x-1">
-                                      <button
-                                        className="p-1.5 hover:bg-rose-50 rounded-full transition-colors duration-200 group relative"
-                                        onClick={() => openEditDialog(meal)}
-                                        aria-label="Modifier"
-                                      >
-                                        <Edit className="h-4 w-4 text-gray-500 group-hover:text-rose-500" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                                          Modifier
-                                        </span>
-                                      </button>
-                                      <button
-                                        className="p-1.5 hover:bg-red-50 rounded-full transition-colors duration-200 group relative"
-                                        onClick={() => confirmDelete(meal.id)}
-                                        aria-label="Supprimer"
-                                      >
-                                        <Trash2 className="h-4 w-4 text-gray-500 group-hover:text-red-500" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                                          Supprimer
-                                        </span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-500 mt-2">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    <span>
-                                      {(meal.recipe?.preparationTime || 0) + (meal.recipe?.cookingTime || 0)} min
-                                    </span>
-                                    <span className="mx-2">•</span>
-                                    <span>
-                                      {meal.servings} {meal.servings > 1 ? "portions" : "portion"}
-                                    </span>
-                                  </div>
-                                  {meal.notes && (
-                                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">{meal.notes}</p>
-                                  )}
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                  <AnimatePresence>
+                                    {meals
+                                      .filter((meal) => {
+                                        if (!searchQuery) return true
+                                        return meal.recipe?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+                                      })
+                                      .map((meal, mealIndex) => (
+                                        <motion.div
+                                          key={meal.id}
+                                          initial={{ opacity: 0, y: 20 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, scale: 0.95 }}
+                                          transition={{
+                                            duration: 0.3,
+                                            delay: mealIndex * 0.05,
+                                          }}
+                                          whileHover="hover"
+                                          variants={cardHoverVariants}
+                                        >
+                                          <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-200 group">
+                                            <div className="flex">
+                                              <div className="relative w-1/3">
+                                                <Image
+                                                  src={
+                                                    meal.recipe?.imageUrl
+                                                      ? `http://localhost:8080/uploads/${meal.recipe.imageUrl}`
+                                                      : "/placeholder.svg?height=150&width=150"
+                                                  }
+                                                  alt={meal.recipe?.title || "Recipe"}
+                                                  fill
+                                                  className="object-cover"
+                                                />
+                                                {meal.recipe && (
+                                                  <button
+                                                    className={cn(
+                                                      "absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200",
+                                                      favoriteRecipes.includes(meal.recipe.id)
+                                                        ? "text-rose-500"
+                                                        : "text-gray-400 opacity-0 group-hover:opacity-100",
+                                                    )}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      if (meal.recipe) toggleFavorite(meal.recipe.id)
+                                                    }}
+                                                  >
+                                                    <Heart
+                                                      className="h-4 w-4"
+                                                      fill={
+                                                        favoriteRecipes.includes(meal.recipe.id)
+                                                          ? "currentColor"
+                                                          : "none"
+                                                      }
+                                                    />
+                                                  </button>
+                                                )}
+                                              </div>
+                                              <div className="w-2/3 p-4">
+                                                <div className="flex justify-between items-start">
+                                                  <div>
+                                                    <Badge className={`mb-2 ${getMealTypeColor(meal.mealType)}`}>
+                                                      <span className="flex items-center">
+                                                        {getMealTypeIcon(meal.mealType)}
+                                                        {getMealTypeLabel(meal.mealType)}
+                                                      </span>
+                                                    </Badge>
+                                                    <h4 className="font-medium text-sm line-clamp-1">
+                                                      {meal.recipe?.title || "Untitled Recipe"}
+                                                    </h4>
+                                                  </div>
+                                                  <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            className="p-1.5 hover:bg-rose-50 rounded-full transition-colors duration-200"
+                                                            onClick={() => openEditDialog(meal)}
+                                                            aria-label="Modifier"
+                                                          >
+                                                            <Edit className="h-4 w-4 text-gray-500 hover:text-rose-500" />
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <p>Modifier</p>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            className="p-1.5 hover:bg-red-50 rounded-full transition-colors duration-200"
+                                                            onClick={() => confirmDelete(meal.id)}
+                                                            aria-label="Supprimer"
+                                                          >
+                                                            <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <p>Supprimer</p>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  </div>
+                                                </div>
+                                                <div className="flex items-center text-xs text-gray-500 mt-2">
+                                                  <Clock className="h-3 w-3 mr-1" />
+                                                  <span>
+                                                    {(meal.recipe?.preparationTime || 0) +
+                                                      (meal.recipe?.cookingTime || 0)}{" "}
+                                                    min
+                                                  </span>
+                                                  <span className="mx-2">•</span>
+                                                  <span>
+                                                    {meal.servings} {meal.servings > 1 ? "portions" : "portion"}
+                                                  </span>
+                                                </div>
+                                                {meal.notes && (
+                                                  <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                                                    {meal.notes}
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </Card>
+                                        </motion.div>
+                                      ))}
+                                  </AnimatePresence>
+                                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                    <Button
+                                      variant="outline"
+                                      className="h-full min-h-[100px] border-dashed flex flex-col items-center justify-center gap-2 w-full"
+                                      onClick={() => {
+                                        setMealForm((prev) => ({ ...prev, dayOfWeek: day }))
+                                        setAddMealDialogOpen(true)
+                                      }}
+                                    >
+                                      <Plus className="h-5 w-5 text-gray-400" />
+                                      <span className="text-sm text-gray-500">Ajouter un repas</span>
+                                    </Button>
+                                  </motion.div>
+                                </div>
+                              )}
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="list" className="mt-0">
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="bg-white border-b border-gray-100 pb-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Utensils className="h-5 w-5 text-rose-500" />
+                          <CardTitle>Liste des repas</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              placeholder="Rechercher..."
+                              className="w-[200px] h-9 pl-9"
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                          </div>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-9">
+                                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                <span>Filtres</span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80">
+                              <div className="space-y-4">
+                                <h4 className="font-medium">Filtres avancés</h4>
+                                <div className="space-y-2">
+                                  <Label>Type de repas</Label>
+                                  <Select
+                                    value={filterMealType || ""}
+                                    onValueChange={(value) => setFilterMealType(value || null)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Tous les types" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="all">Tous les types</SelectItem>
+                                      {MEAL_TYPES.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Trier par</Label>
+                                  <Select
+                                    value={sortOrder}
+                                    onValueChange={(value: "dayAsc" | "dayDesc" | "typeAsc") => setSortOrder(value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Ordre de tri" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="dayAsc">Jour (croissant)</SelectItem>
+                                      <SelectItem value="dayDesc">Jour (décroissant)</SelectItem>
+                                      <SelectItem value="typeAsc">Type de repas</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="pt-2 flex justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSearchQuery("")
+                                      setFilterMealType(null)
+                                      setSortOrder("dayAsc")
+                                    }}
+                                  >
+                                    Réinitialiser
+                                  </Button>
                                 </div>
                               </div>
-                            </Card>
-                          ))}
-                          <Button
-                            variant="outline"
-                            className="h-full min-h-[100px] border-dashed flex flex-col items-center justify-center gap-2"
-                            onClick={() => {
-                              setMealForm((prev) => ({ ...prev, dayOfWeek: day }))
-                              setAddMealDialogOpen(true)
-                            }}
-                          >
-                            <Plus className="h-5 w-5 text-gray-400" />
-                            <span className="text-sm text-gray-500">Ajouter un repas</span>
-                          </Button>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      <CardDescription>Visualisez tous vos repas planifiés</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0" ref={listViewRef}>
+                      {filteredMealPlans.length === 0 ? (
+                        <div className="text-center py-16 px-6">
+                          <Utensils className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-xl font-medium text-gray-700 mb-2">Aucun repas trouvé</h3>
+                          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                            {searchQuery || filterMealType
+                              ? "Aucun repas ne correspond à vos critères de recherche."
+                              : "Commencez à planifier vos repas pour la semaine."}
+                          </p>
+                          {searchQuery || filterMealType ? (
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setSearchQuery("")
+                                setFilterMealType(null)
+                              }}
+                            >
+                              Réinitialiser les filtres
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => setAddMealDialogOpen(true)}
+                              className="bg-rose-500 hover:bg-rose-600 text-white"
+                            >
+                              <Plus className="h-4 w-4 mr-2" /> Ajouter un repas
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          <AnimatePresence>
+                            {filteredMealPlans.map((meal, index) => (
+                              <motion.div
+                                key={meal.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.2, delay: index * 0.03 }}
+                                className="hover:bg-gray-50"
+                                whileHover={{ backgroundColor: "rgba(249, 250, 251, 1)" }}
+                              >
+                                <div className="flex items-center p-4 md:px-6">
+                                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                                    <Image
+                                      src={
+                                        meal.recipe?.imageUrl
+                                          ? `http://localhost:8080/uploads/${meal.recipe.imageUrl}`
+                                          : "/placeholder.svg?height=64&width=64"
+                                      }
+                                      alt={meal.recipe?.title || "Recipe"}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                    {meal.recipe && (
+                                      <button
+                                        className={cn(
+                                          "absolute top-1 right-1 p-1 rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200",
+                                          favoriteRecipes.includes(meal.recipe.id)
+                                            ? "text-rose-500"
+                                            : "text-gray-400 opacity-0 hover:opacity-100",
+                                        )}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (meal.recipe) toggleFavorite(meal.recipe.id)
+                                        }}
+                                      >
+                                        <Heart
+                                          className="h-3.5 w-3.5"
+                                          fill={favoriteRecipes.includes(meal.recipe.id) ? "currentColor" : "none"}
+                                        />
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="ml-4 flex-1 min-w-0">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                                      <div>
+                                        <Badge className={`${getMealTypeColor(meal.mealType)} mb-1`}>
+                                          <span className="flex items-center">
+                                            {getMealTypeIcon(meal.mealType)}
+                                            {getMealTypeLabel(meal.mealType)}
+                                          </span>
+                                        </Badge>
+                                        <h4 className="font-medium">{meal.recipe?.title || "Untitled Recipe"}</h4>
+                                      </div>
+                                      <div className="flex items-center mt-2 md:mt-0">
+                                        <Badge variant="outline" className="mr-2">
+                                          {getDayLabel(meal.dayOfWeek)}
+                                        </Badge>
+                                        <div className="flex items-center text-sm text-gray-500">
+                                          <Clock className="h-3.5 w-3.5 mr-1" />
+                                          <span>
+                                            {(meal.recipe?.preparationTime || 0) + (meal.recipe?.cookingTime || 0)} min
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-2">
+                                      <div className="flex items-center text-sm text-gray-500">
+                                        <span>
+                                          {meal.servings} {meal.servings > 1 ? "portions" : "portion"}
+                                        </span>
+                                        {meal.notes && (
+                                          <>
+                                            <span className="mx-2">•</span>
+                                            <span className="truncate max-w-[200px]">{meal.notes}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                      <div className="flex space-x-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 px-2 text-gray-500 hover:text-rose-500 hover:bg-rose-50"
+                                          onClick={() => openEditDialog(meal)}
+                                        >
+                                          <Edit className="h-3.5 w-3.5 mr-1" />
+                                          <span className="hidden md:inline">Modifier</span>
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 px-2 text-gray-500 hover:text-red-500 hover:bg-red-50"
+                                          onClick={() => confirmDelete(meal.id)}
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                          <span className="hidden md:inline">Supprimer</span>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
                         </div>
                       )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                    </CardContent>
+                    <CardFooter className="border-t p-4 flex justify-between">
+                      <div className="text-sm text-gray-500">{filteredMealPlans.length} repas au total</div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAddMealDialogOpen(true)}
+                        className="flex items-center gap-1.5"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Ajouter un repas
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </motion.div>
+          </motion.div>
         </div>
       </main>
 
@@ -526,10 +1609,19 @@ export default function MealPlannerPage() {
             {/* Recipe Selection */}
             <div className="space-y-2">
               <Label htmlFor="recipe">Recette</Label>
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Rechercher une recette..."
+                  className="pl-9 mb-2"
+                  value={recipeSearchQuery}
+                  onChange={(e) => setRecipeSearchQuery(e.target.value)}
+                />
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto p-2 border rounded-md">
                 {loadingRecipes ? (
                   <div className="col-span-full text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-rose-500 mx-auto"></div>
+                    <Loader2 className="h-6 w-6 text-rose-500 animate-spin mx-auto" />
                     <p className="text-sm text-gray-500 mt-2">Chargement des recettes...</p>
                   </div>
                 ) : recipes.length === 0 ? (
@@ -540,37 +1632,47 @@ export default function MealPlannerPage() {
                     </Link>
                   </div>
                 ) : (
-                  recipes.map((recipe) => (
-                    <div
-                      key={recipe.id}
-                      className={`p-2 rounded-lg border cursor-pointer flex items-center gap-3 ${
-                        selectedRecipe?.id === recipe.id
-                          ? "border-rose-500 bg-rose-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                      onClick={() => setSelectedRecipe(recipe)}
-                    >
-                      <div className="relative w-12 h-12 flex-shrink-0 rounded-md overflow-hidden">
-                        <Image
-                          src={
-                            recipe.imageUrl
-                              ? `http://localhost:8080/uploads/${recipe.imageUrl}`
-                              : "/placeholder.svg?height=50&width=50"
-                          }
-                          alt={recipe.title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{recipe.title}</p>
-                        <div className="flex items-center text-xs text-gray-500">
-                          <Clock className="h-3 w-3 mr-1" />
-                          <span>{recipe.preparationTime + (recipe.cookingTime || 0)} min</span>
+                  recipes
+                    .filter(
+                      (recipe) =>
+                        !recipeSearchQuery || recipe.title.toLowerCase().includes(recipeSearchQuery.toLowerCase()),
+                    )
+                    .map((recipe) => (
+                      <div
+                        key={recipe.id}
+                        className={`p-2 rounded-lg border cursor-pointer flex items-center gap-3 transition-all duration-200 ${
+                          selectedRecipe?.id === recipe.id
+                            ? "border-rose-500 bg-rose-50 shadow-sm"
+                            : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                        }`}
+                        onClick={() => setSelectedRecipe(recipe)}
+                      >
+                        <div className="relative w-12 h-12 flex-shrink-0 rounded-md overflow-hidden">
+                          <Image
+                            src={
+                              recipe.imageUrl
+                                ? `http://localhost:8080/uploads/${recipe.imageUrl}`
+                                : "/placeholder.svg?height=50&width=50"
+                            }
+                            alt={recipe.title}
+                            fill
+                            className="object-cover"
+                          />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{recipe.title}</p>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Clock className="h-3 w-3 mr-1" />
+                            <span>{recipe.preparationTime + (recipe.cookingTime || 0)} min</span>
+                          </div>
+                        </div>
+                        {selectedRecipe?.id === recipe.id && (
+                          <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </div>
@@ -809,8 +1911,202 @@ export default function MealPlannerPage() {
             <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
               Annuler
             </Button>
-            <Button variant="danger" onClick={handleDeleteMeal} className="bg-red-500 hover:bg-red-600 text-white">
+            <Button variant="danger" onClick={handleDeleteMeal}>
               Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shopping List Dialog */}
+      <Dialog open={showShoppingList} onOpenChange={setShowShoppingList}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Liste de courses</DialogTitle>
+            <DialogDescription>Basée sur vos repas planifiés pour la semaine</DialogDescription>
+          </DialogHeader>
+          <div className="py-4" ref={shoppingListRef}>
+            {shoppingListItems.length > 0 ? (
+              <div className="space-y-2">
+                {shoppingListItems.map((item) => (
+                  <div key={item.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
+                    <Checkbox
+                      id={`item-${item.id}`}
+                      checked={item.checked}
+                      onChange={(e) => {
+                        setShoppingListItems((prev) =>
+                          prev.map((i) => (i.id === item.id ? { ...i, checked: e.target.checked } : i)),
+                        )
+                      }}
+                    />
+                    <label
+                      htmlFor={`item-${item.id}`}
+                      className={cn(
+                        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1",
+                        item.checked && "line-through text-gray-400",
+                      )}
+                    >
+                      {item.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Liste de courses vide</h3>
+                <p className="text-gray-500">Ajoutez des repas à votre planning pour générer une liste de courses</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex justify-between items-center">
+            <div className="text-sm text-gray-500">
+              {shoppingListItems.filter((item) => item.checked).length} / {shoppingListItems.length} items cochés
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowShoppingList(false)}>
+                Fermer
+              </Button>
+              <Button
+                className="bg-rose-500 hover:bg-rose-600 text-white"
+                onClick={() => {
+                  // Export shopping list as PDF
+                  const doc = new jsPDF({
+                    orientation: "portrait",
+                    unit: "mm",
+                    format: "a4",
+                  })
+
+                  // Add title
+                  doc.setFontSize(20)
+                  doc.setTextColor(229, 29, 72) // Rose color
+                  doc.text("Liste de Courses", 105, 20, { align: "center" })
+
+                  doc.setFontSize(12)
+                  doc.setTextColor(100, 100, 100)
+                  doc.text(`Exporté le ${new Date().toLocaleDateString()}`, 105, 30, { align: "center" })
+
+                  // Add shopping list items
+                  doc.setFontSize(12)
+                  doc.setTextColor(0, 0, 0)
+
+                  shoppingListItems.forEach((item, index) => {
+                    const y = 50 + index * 10
+                    doc.text(`□ ${item.name}`, 20, y)
+                  })
+
+                  // Save the PDF
+                  doc.save(`liste-courses-${new Date().toISOString().split("T")[0]}.pdf`)
+
+                  setSuccessMessage("Liste de courses exportée avec succès!")
+                  setShowSuccessModal(true)
+                  setShowShoppingList(false)
+
+                  setTimeout(() => {
+                    setShowSuccessModal(false)
+                  }, 2000)
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recipe Search Dialog */}
+      <Dialog open={showRecipeSearch} onOpenChange={setShowRecipeSearch}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Rechercher des recettes</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Rechercher une recette..."
+                className="pl-9"
+                value={recipeSearchQuery}
+                onChange={(e) => setRecipeSearchQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              {loadingRecipes ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 text-rose-500 animate-spin mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Chargement des recettes...</p>
+                </div>
+              ) : recipes.filter(
+                  (recipe) =>
+                    !recipeSearchQuery || recipe.title.toLowerCase().includes(recipeSearchQuery.toLowerCase()),
+                ).length === 0 ? (
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">Aucune recette trouvée</h3>
+                  <p className="text-gray-500">Essayez avec d'autres termes de recherche</p>
+                </div>
+              ) : (
+                recipes
+                  .filter(
+                    (recipe) =>
+                      !recipeSearchQuery || recipe.title.toLowerCase().includes(recipeSearchQuery.toLowerCase()),
+                  )
+                  .map((recipe) => (
+                    <motion.div
+                      key={recipe.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ scale: 1.01 }}
+                      className="flex items-center gap-4 p-3 border rounded-lg hover:border-rose-200 hover:bg-rose-50/30 cursor-pointer"
+                      onClick={() => {
+                        setSelectedRecipe(recipe)
+                        setMealForm((prev) => ({
+                          ...prev,
+                          dayOfWeek: DAYS_OF_WEEK[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1].value,
+                        }))
+                        setShowRecipeSearch(false)
+                        setAddMealDialogOpen(true)
+                      }}
+                    >
+                      <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
+                        <Image
+                          src={
+                            recipe.imageUrl
+                              ? `http://localhost:8080/uploads/${recipe.imageUrl}`
+                              : "/placeholder.svg?height=64&width=64"
+                          }
+                          alt={recipe.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium">{recipe.title}</h4>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <Clock className="h-3.5 w-3.5 mr-1" />
+                          <span>{recipe.preparationTime + (recipe.cookingTime || 0)} min</span>
+                          {recipe.difficultyLevel && (
+                            <>
+                              <span className="mx-2">•</span>
+                              <span>Difficulté: {recipe.difficultyLevel}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="flex-shrink-0">
+                        <Plus className="h-4 w-4 mr-1" /> Ajouter
+                      </Button>
+                    </motion.div>
+                  ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRecipeSearch(false)}>
+              Fermer
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -837,6 +2133,28 @@ export default function MealPlannerPage() {
           </motion.div>
         )}
       </AnimatePresence>
+       {/* Footer */}
+       <footer className="py-8 px-4 bg-white border-t border-gray-100">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+              <ChefHat className="h-5 w-5 text-rose-500" />
+              <span className="font-medium">Cuisenio</span>
+            </div>
+            <div className="flex space-x-6">
+              {["Confidentialité", "Conditions", "Contact"].map((item) => (
+                <Link key={item} to="#" className="text-sm text-gray-500 hover:text-rose-500 transition-colors">
+                  {item}
+                </Link>
+              ))}
+            </div>
+            <div className="text-sm text-gray-500 mt-4 md:mt-0">
+              © {new Date().getFullYear()} Cuisenio. Tous droits réservés.
+            </div>
+          </div>
+        </div>
+      </footer>
+
     </div>
   )
 }

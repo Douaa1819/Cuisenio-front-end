@@ -136,34 +136,7 @@ export default function NotFoundPage() {
         </motion.div>
       </main>
 
-      {/* Suggestions de recettes populaires */}
-      <section className="bg-white py-12 border-t border-gray-100">
-        <div className="container mx-auto px-4">
-          <h3 className="text-xl font-semibold text-center mb-8">Vous pourriez aimer ces recettes populaires</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((item) => (
-              <motion.div
-                key={item}
-                className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow"
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              >
-                <div className="relative h-40">
-                  <img
-                    src={`/placeholder.svg?height=160&width=300&text=Recette ${item}`}
-                    alt={`Recette populaire ${item}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <h4 className="font-medium text-gray-800 mb-1">Recette populaire {item}</h4>
-                  <p className="text-sm text-gray-500">Une délicieuse recette que nos utilisateurs adorent</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* Footer */}
       <footer className="py-8 px-4 bg-white border-t border-gray-100">

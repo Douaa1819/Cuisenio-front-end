@@ -1,11 +1,10 @@
-"use client"
 
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ChefHat, Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 
 import { authService } from "../../api/auth.service"
@@ -37,6 +36,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const login = useAuthStore((state) => state.login)
+  const navigate = useNavigate()
 
   const {
     register,
@@ -70,8 +70,12 @@ export default function LoginForm() {
         role: response.role,
         
       })
-      // La redirection est gérée dans le service d'authentification
-      // en fonction du rôle de l'utilisateur
+      console.log(response.role);
+      if (response.role === "ADMIN") {
+    navigate("/dashboard")
+      } else {
+        navigate("/home")
+      }
     } catch (err: unknown) {
       const apiError = err as ApiError
       setError(apiError?.response?.data?.message || "La connexion a échoué. Veuillez vérifier vos identifiants.")

@@ -1,4 +1,4 @@
-"use client";
+
 
 import { ingredientService } from "../../api/ingredient.service";
 import { IngredientResponse, IngredientRequest } from "../../types/ingredient.types";

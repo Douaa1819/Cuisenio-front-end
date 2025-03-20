@@ -1,10 +1,22 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../store/auth.store';
+import { useAuthStore } from "../store/auth.store"
+import { Navigate } from "react-router-dom"
+import { Role } from "../types/auth.types" 
+interface PrivateRouteProps {
+  children: React.ReactElement
+  role?: Role
+}
+const PrivateRoute = ({ children, role }: PrivateRouteProps) => {
+  const { isAuthenticated, user } = useAuthStore()
 
-const PrivateRoute = () => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
-};
+  if (role && user?.role !== role) {
+    return <Navigate to="/" replace />
+  }
 
-export default PrivateRoute;
+  return children
+}
+
+export default PrivateRoute
