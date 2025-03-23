@@ -1,7 +1,3 @@
-"use client"
-
-import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import {
@@ -147,7 +143,6 @@ const cardHoverVariants = {
   },
 }
 
-// Custom icon components
 const Coffee = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -223,7 +218,6 @@ export default function MealPlannerPage() {
   const [showRecipeSearch, setShowRecipeSearch] = useState(false)
   const [recipeSearchQuery, setRecipeSearchQuery] = useState("")
 
-  // Refs for animations and PDF export
   const headerControls = useAnimation()
   const contentRef = useRef<HTMLDivElement>(null)
   const weekViewRef = useRef<HTMLDivElement>(null)
@@ -253,14 +247,12 @@ export default function MealPlannerPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchRecipes()
-      // Simulate loading favorite recipes from API
       setFavoriteRecipes([1, 3, 5])
     } else {
       navigate("/login")
     }
   }, [isAuthenticated, navigate])
 
-  // Scroll animation effect
   useEffect(() => {
     const handleScroll = () => {
       if (contentRef.current) {
@@ -308,7 +300,6 @@ export default function MealPlannerPage() {
       setShowSuccessModal(true)
       setAddMealDialogOpen(false)
 
-      // Reset form
       setMealForm({
         planningDate: new Date().toISOString().split("T")[0],
         dayOfWeek: DAYS_OF_WEEK[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1].value,
@@ -393,7 +384,6 @@ export default function MealPlannerPage() {
 
     return mealsByDay
   }
-
   const getMealTypeLabel = (type: string) => {
     return MEAL_TYPES.find((meal) => meal.value === type)?.label || type
   }
@@ -468,170 +458,154 @@ export default function MealPlannerPage() {
       }
     })
 
-  // PDF Export Implementation
-  const exportToPDF = async () => {
-    setIsExporting(true)
-
-    try {
-      // Create a new PDF document
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      })
-
-      // Add title and metadata
-      doc.setFontSize(20)
-      doc.setTextColor(229, 29, 72) // Rose color
-      doc.text("Planning de Repas", 105, 20, { align: "center" })
-
-      doc.setFontSize(12)
-      doc.setTextColor(100, 100, 100)
-      doc.text(`Exporté le ${new Date().toLocaleDateString()}`, 105, 30, { align: "center" })
-
-      // Add user info if available
-      if (user?.username) {
-        doc.text(`Utilisateur: ${user.username}`, 105, 40, { align: "center" })
-      }
-
-      // Determine which view to export based on activeView
-      const elementToCapture = activeView === "week" ? weekViewRef.current : listViewRef.current
-
-      if (elementToCapture) {
-        // Fix for oklch color function issue - temporarily replace oklch colors with standard RGB
-        const elementsWithOklch = elementToCapture.querySelectorAll('[class*="bg-"]')
-        const originalStyles: { element: Element; style: string }[] = []
-
-        // Save original styles and replace oklch colors
-        elementsWithOklch.forEach((element) => {
-          const computedStyle = window.getComputedStyle(element)
-          originalStyles.push({
-            element,
-            style: element.getAttribute("style") || "",
-          })
-
-          // Apply a safe background color if needed
-          if (computedStyle.backgroundColor.includes("oklch")) {
-            element.setAttribute(
-              "style",
-              `${element.getAttribute("style") || ""}; background-color: rgb(249, 250, 251) !important;`,
-            )
+    const exportToPDF = async () => {
+      setIsExporting(true);
+  
+      try {
+          const doc = new jsPDF({
+              orientation: "portrait",
+              unit: "mm",
+              format: "a4",
+          });
+  
+          doc.setFontSize(20);
+          doc.setTextColor(229, 29, 72); // Rose color
+          doc.text("Planning de Repas", 105, 20, { align: "center" });
+  
+          doc.setFontSize(12);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Exporté le ${new Date().toLocaleDateString()}`, 105, 30, { align: "center" });
+  
+          if (user?.username) {
+              doc.text(`Utilisateur: ${user.username}`, 105, 40, { align: "center" });
           }
-        })
-
-        // Capture the element as an image
-        const canvas = await html2canvas(elementToCapture, {
-          scale: 1,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-        })
-
-        // Restore original styles
-        originalStyles.forEach((item) => {
-          item.element.setAttribute("style", item.style)
-        })
-
-        // Convert canvas to image
-        const imgData = canvas.toDataURL("image/png")
-
-        // Calculate dimensions to fit on PDF
-        const imgWidth = 190 // mm
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-        // Add image to PDF
-        doc.addImage(imgData, "PNG", 10, 50, imgWidth, imgHeight)
-
-        // Add page numbers
-        const pageCount = doc.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-          doc.setPage(i)
-          doc.setFontSize(10)
-          doc.setTextColor(150, 150, 150)
-          doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: "center" })
-        }
-
-        // If shopping list is included
-        if (exportOptions.includeIngredients && shoppingListItems.length > 0) {
-          // Add a new page for shopping list
-          doc.addPage()
-
-          // Add shopping list title
-          doc.setFontSize(16)
-          doc.setTextColor(229, 29, 72)
-          doc.text("Liste de Courses", 105, 20, { align: "center" })
-
-          // Add shopping list items
-          doc.setFontSize(12)
-          doc.setTextColor(0, 0, 0)
-
-          shoppingListItems.forEach((item, index) => {
-            const y = 40 + index * 10
-            doc.text(`□ ${item.name}`, 20, y)
-          })
-        }
-const fileName = `planning-repas-${new Date().toISOString().split("T")[0]}.pdf`
-        doc.save(fileName)
-
-        setSuccessMessage(`Planning exporté avec succès en format PDF!`)
-      } else {
-        throw new Error("Impossible de capturer le contenu pour l'export PDF")
+  
+          const elementToCapture = activeView === "week" ? weekViewRef.current : listViewRef.current;
+  
+          if (elementToCapture) {
+              // Trouver et remplacer les couleurs okLCH
+              const elementsWithOklch = elementToCapture.querySelectorAll('*');
+              const originalStyles: { element: Element; style: string }[] = [];
+  
+              elementsWithOklch.forEach((element) => {
+                  const computedStyle = window.getComputedStyle(element);
+                  originalStyles.push({
+                      element,
+                      style: element.getAttribute("style") || "",
+                  });
+  
+                  // Si la couleur contient okLCH, la remplacer par une couleur valide (ex: rgb(249, 250, 251))
+                  if (computedStyle.backgroundColor.includes("oklch")) {
+                      element.setAttribute(
+                          "style",
+                          `${element.getAttribute("style") || ""}; background-color: rgb(249, 250, 251) !important;`
+                      );
+                  }
+              });
+  
+              const canvas = await html2canvas(elementToCapture, {
+                  scale: 1,
+                  useCORS: true,
+                  allowTaint: true,
+                  logging: false,
+                  backgroundColor: "#ffffff",
+              });
+  
+              // Restaurer les styles originaux
+              originalStyles.forEach((item) => {
+                  item.element.setAttribute("style", item.style);
+              });
+  
+              const imgData = canvas.toDataURL("image/png");
+              const imgWidth = 190; // mm
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  
+              doc.addImage(imgData, "PNG", 10, 50, imgWidth, imgHeight);
+  
+              const pageCount = doc.getNumberOfPages();
+              for (let i = 1; i <= pageCount; i++) {
+                  doc.setPage(i);
+                  doc.setFontSize(10);
+                  doc.setTextColor(150, 150, 150);
+                  doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: "center" });
+              }
+  
+              if (exportOptions.includeIngredients && shoppingListItems.length > 0) {
+                  doc.addPage();
+  
+                  doc.setFontSize(16);
+                  doc.setTextColor(229, 29, 72);
+                  doc.text("Liste de Courses", 105, 20, { align: "center" });
+  
+                  doc.setFontSize(12);
+                  doc.setTextColor(0, 0, 0);
+  
+                  shoppingListItems.forEach((item, index) => {
+                      const y = 40 + index * 10;
+                      doc.text(`□ ${item.name}`, 20, y);
+                  });
+              }
+  
+              const fileName = `planning-repas-${new Date().toISOString().split("T")[0]}.pdf`;
+              doc.save(fileName);
+  
+              setSuccessMessage(`Planning exporté avec succès en format PDF!`);
+          } else {
+              throw new Error("Impossible de capturer le contenu pour l'export PDF");
+          }
+      } catch (error) {
+          console.error("Error exporting to PDF:", error);
+          setError("Erreur lors de l'exportation en PDF. Veuillez réessayer.");
+      } finally {
+          setIsExporting(false);
+          setExportDialogOpen(false);
+          setShowSuccessModal(true);
+  
+          setTimeout(() => {
+              setShowSuccessModal(false);
+          }, 2000);
       }
-    } catch (error) {
-      console.error("Error exporting to PDF:", error)
-      setError("Erreur lors de l'exportation en PDF. Veuillez réessayer.")
-    } finally {
-      setIsExporting(false)
-      setExportDialogOpen(false)
-      setShowSuccessModal(true)
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    }
-  }
-
-
+  };
+  
+  
   const handleExport = () => {
-    setIsExporting(true)
-
-    switch (exportFormat) {
-      case "pdf":
-        exportToPDF()
-        break
-      case "csv":
-        // Simulate CSV export
-        setTimeout(() => {
-          setIsExporting(false)
-          setExportDialogOpen(false)
-          setSuccessMessage(`Planning exporté avec succès en format CSV!`)
-          setShowSuccessModal(true)
-
-          setTimeout(() => {
-            setShowSuccessModal(false)
-          }, 2000)
-        }, 1500)
-        break
-      case "ical":
-        // Simulate iCal export
-        setTimeout(() => {
-          setIsExporting(false)
-          setExportDialogOpen(false)
-          setSuccessMessage(`Planning exporté avec succès en format iCal!`)
-          setShowSuccessModal(true)
-
-          setTimeout(() => {
-            setShowSuccessModal(false)
-          }, 2000)
-        }, 1500)
-        break
-      default:
-        setIsExporting(false)
-    }
-  }
-
-  const generateShoppingList = () => {
+      setIsExporting(true);
+  
+      switch (exportFormat) {
+          case "pdf":
+              exportToPDF();
+              break;
+          case "csv":
+              // Simulate CSV export
+              setTimeout(() => {
+                  setIsExporting(false);
+                  setExportDialogOpen(false);
+                  setSuccessMessage(`Planning exporté avec succès en format CSV!`);
+                  setShowSuccessModal(true);
+  
+                  setTimeout(() => {
+                      setShowSuccessModal(false);
+                  }, 2000);
+              }, 1500);
+              break;
+          case "ical":
+              // Simulate iCal export
+              setTimeout(() => {
+                  setIsExporting(false);
+                  setExportDialogOpen(false);
+                  setSuccessMessage(`Planning exporté avec succès en format iCal!`);
+                  setShowSuccessModal(true);
+  
+                  setTimeout(() => {
+                      setShowSuccessModal(false);
+                  }, 2000);
+              }, 1500);
+              break;
+          default:
+              setIsExporting(false);
+      }
+  };
+    const generateShoppingList = () => {
     // Generate shopping list from meal plans
     const ingredients: { id: number; name: string; checked: boolean }[] = []
 
