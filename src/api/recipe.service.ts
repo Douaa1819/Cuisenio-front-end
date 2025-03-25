@@ -1,7 +1,7 @@
+import axios from "axios";
 import { RecipeFormData } from './../pages/community/validation/recipe-validation';
-import { RecipeResponse, PageResponse } from './../types/recipe.types';
-import axios from "axios"
-import  client  from './client';
+import { PageResponse, RecipeResponse } from './../types/recipe.types';
+import client from './client';
 
 import { routes } from './routes';
 

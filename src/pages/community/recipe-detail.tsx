@@ -1,33 +1,32 @@
-import type React from "react"
-import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { AnimatePresence, motion } from "framer-motion"
 import {
+  AlertCircle,
+  ArrowLeft,
+  BookmarkIcon,
+  CheckCircle,
   ChefHat,
   Clock,
-  Users,
-  Utensils,
+  Edit,
   Heart,
   MessageCircle,
-  BookmarkIcon,
-  ArrowLeft,
-  Edit,
-  User,
+  Send,
   Trash2,
-  CheckCircle,
-  AlertCircle,
+  User,
+  Users,
+  Utensils,
 } from "lucide-react"
-import { AnimatePresence, motion } from "framer-motion"
-import { Avatar  , AvatarFallback, AvatarImage } from "../../components/ui/avatar";
+import { useEffect, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
+import { recipeService } from "../../api/recipe.service"
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import { Card } from "../../components/ui/card"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"
-import { recipeService } from "../../api/recipe.service"
-import { useAuthStore } from "../../store/auth.store"
-import { useComments } from "../../hooks/useComments"
 import { Textarea } from "../../components/ui/textarea"
-import { Send } from "lucide-react"
+import { useComments } from "../../hooks/useComments"
+import { useAuthStore } from "../../store/auth.store"
 import type { RecipeResponse } from "../../types/recipe.types"
 
 interface ImageProps {
