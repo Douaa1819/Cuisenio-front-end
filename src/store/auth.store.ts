@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { Role } from "../types/auth.types" // Importez l'enum Role
+import { Role } from "../types/auth.types" 
 import { authService } from "../api/auth.service"
 
 export interface User {

@@ -175,16 +175,14 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
       console.log("Sending data:", data)
 
       await onSubmit(data)
-
-
      
         resetForm()
+        onOpenChange(false)
     } catch (error) {
       console.error("Error creating recipe:", error)
       alert("Échec de la création de la recette. Veuillez réessayer.")
     }
   }
-
 
 
   const resetForm = () => {

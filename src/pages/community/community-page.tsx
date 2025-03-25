@@ -6,7 +6,6 @@ import {
   Clock,
   Filter,
   Heart,
-  LogOut,
   Menu,
   MessageCircle,
   Plus,
@@ -36,10 +35,7 @@ import {
 } from "../../components/ui/dialog"
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
+
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import { Label } from "../../components/ui/label"
@@ -111,7 +107,6 @@ export default function CommunityPage() {
   const [recipeId, setRecipeId] = useState<number | null>(null)
   const navigate = useNavigate()
 
-  // Use the comments hook
   const { comments, loading: commentsLoading, error: commentsError, fetchComments, addComment } = useComments()
 
   const handleSearch = useCallback(() => {
@@ -182,7 +177,7 @@ export default function CommunityPage() {
       await recipeService.deleteRecipe(recipeToDelete)
       setSuccessMessage("Recette supprimée avec succès!")
       setShowSuccessModal(true)
-      fetchRecipes() // Refresh the recipes list
+      fetchRecipes() 
       setTimeout(() => {
         setShowSuccessModal(false)
       }, 2000)
@@ -295,10 +290,6 @@ export default function CommunityPage() {
       day: "numeric",
     })
   }
-
-  // Rest of the component remains the same until the comment dialog
-
-  // Replace the comment dialog content with this:
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       {/* Navigation */}
@@ -312,17 +303,38 @@ export default function CommunityPage() {
           <nav
             className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
           >
-            {["Communauté", "Planificateur"].map((item) => (
-              <Link
-                key={item}
-                to={item === "Communauté" ? "/home" : item === "Planificateur" ? "/meal-planner" : "#"}
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  item === "Communauté" ? "text-rose-500" : "text-gray-600 hover:text-rose-500"
-                }`}
-              >
-                {item}
-              </Link>
-            ))}
+            {["Communauté", "Planificateur", ].map((item) => (
+          <Link
+          key={item}
+          to={
+            item === "Communauté"
+              ? "/home"
+              : item === "Planificateur"
+              ? "/meal-planner"
+              : "/"
+          }
+          className={`text-sm font-medium transition-colors duration-200 ${
+            item === "Communauté" ? "text-rose-500" : "text-gray-600 hover:text-rose-500"
+          }`}
+        >
+          {item}
+        </Link>
+      ))}
+    
+      {/* Ajout de Profile et Logout */}
+      <Link
+        to="/profile"
+        className="text-sm font-medium text-gray-600 hover:text-rose-500"
+      >
+        Profile
+      </Link>
+    
+      <button
+        onClick={handleLogout}
+        className="text-sm font-medium text-red-600 hover:text-red-700"
+      >
+        Se déconnecter
+      </button>
 
             {/* Add Recipe Button */}
             {isAuthenticated && (
@@ -334,57 +346,29 @@ export default function CommunityPage() {
               </Button>
             )}
 
-            {/* Notifications */}
 
 
             {/* User menu */}
             {isAuthenticated ? (
-           <DropdownMenu>
-           <DropdownMenuTrigger asChild>
-             <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
-               <Avatar className="h-8 w-8 border">
-                 {user?.profilePicture ? (
-                   <AvatarImage
-                     src={user.profilePicture}
-                     alt={user.username || "Utilisateur"}
-                   />
-                 ) : (
-                   <AvatarFallback>
-                     <User className="text-[#E57373] text-2xl" />
-                   </AvatarFallback>
-                 )}
-               </Avatar>
-               <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
-               <ChevronDown className="h-4 w-4 text-gray-500" />
-             </Button>
-           </DropdownMenuTrigger>
+          <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 p-2">
+              <Avatar className="h-8 w-8 border">
+                {user?.profilePicture ? (
+                  <AvatarImage src={user.profilePicture} alt={user.username || "Utilisateur"} />
+                ) : (
+                  <AvatarFallback>
+                    <User className="text-[#E57373]" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
+              <ChevronDown className="h-4 w-4 text-gray-500" />
+            </Button>
+          </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-56 border-amber-50">
-                  <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  <Link to="/profile">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profil</span>
-                    </DropdownMenuItem>
-                  </Link>
-
-                  <Link to="/mes-recettes">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <BookmarkIcon className="mr-2 h-4 w-4" />
-                      <span>Mes recettes sauvegardées</span>
-                    </DropdownMenuItem>
-                  </Link>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem className="cursor-pointer text-red-600" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Se déconnecter</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        
+        </DropdownMenu>
             ) : (
               <Link to="/login">
                 <Button className="bg-rose-500 hover:bg-rose-600 text-white">Se connecter</Button>

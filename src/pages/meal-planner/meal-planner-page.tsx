@@ -32,6 +32,8 @@ import { AnimatePresence, motion, useAnimation } from "framer-motion"
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../../components/ui/card"
+import { authService } from "../../api/auth.service"
+
 import {
   Dialog,
   DialogContent,
@@ -92,7 +94,7 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
   )
 }
 
-// Constants
+
 const DAYS_OF_WEEK = [
   { value: "MONDAY", label: "Lundi" },
   { value: "TUESDAY", label: "Mardi" },
@@ -110,7 +112,6 @@ const MEAL_TYPES = [
   { value: "SNACK", label: "Collation" },
 ]
 
-// Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -469,7 +470,7 @@ export default function MealPlannerPage() {
           });
   
           doc.setFontSize(20);
-          doc.setTextColor(229, 29, 72); // Rose color
+          doc.setTextColor(229, 29, 72); 
           doc.text("Planning de Repas", 105, 20, { align: "center" });
   
           doc.setFontSize(12);
@@ -483,7 +484,6 @@ export default function MealPlannerPage() {
           const elementToCapture = activeView === "week" ? weekViewRef.current : listViewRef.current;
   
           if (elementToCapture) {
-              // Trouver et remplacer les couleurs okLCH
               const elementsWithOklch = elementToCapture.querySelectorAll('*');
               const originalStyles: { element: Element; style: string }[] = [];
   
@@ -494,7 +494,6 @@ export default function MealPlannerPage() {
                       style: element.getAttribute("style") || "",
                   });
   
-                  // Si la couleur contient okLCH, la remplacer par une couleur valide (ex: rgb(249, 250, 251))
                   if (computedStyle.backgroundColor.includes("oklch")) {
                       element.setAttribute(
                           "style",
@@ -511,13 +510,12 @@ export default function MealPlannerPage() {
                   backgroundColor: "#ffffff",
               });
   
-              // Restaurer les styles originaux
               originalStyles.forEach((item) => {
                   item.element.setAttribute("style", item.style);
               });
   
               const imgData = canvas.toDataURL("image/png");
-              const imgWidth = 190; // mm
+              const imgWidth = 190; 
               const imgHeight = (canvas.height * imgWidth) / canvas.width;
   
               doc.addImage(imgData, "PNG", 10, 50, imgWidth, imgHeight);
@@ -576,7 +574,6 @@ export default function MealPlannerPage() {
               exportToPDF();
               break;
           case "csv":
-              // Simulate CSV export
               setTimeout(() => {
                   setIsExporting(false);
                   setExportDialogOpen(false);
@@ -589,7 +586,6 @@ export default function MealPlannerPage() {
               }, 1500);
               break;
           case "ical":
-              // Simulate iCal export
               setTimeout(() => {
                   setIsExporting(false);
                   setExportDialogOpen(false);
@@ -605,13 +601,29 @@ export default function MealPlannerPage() {
               setIsExporting(false);
       }
   };
+    const handleLogout = async () => {
+      try {
+        await authService.logout()
+        setSuccessMessage("Déconnexion réussie !")
+        setShowSuccessModal(true)
+        setTimeout(() => {
+          setShowSuccessModal(false)
+          navigate("/login")
+        }, 2000)
+      } catch (error) {
+        console.error("Erreur lors de la déconnexion :", error)
+        setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.")
+        setShowSuccessModal(true)
+        setTimeout(() => {
+          setShowSuccessModal(false)
+        }, 2000)
+      }
+    }
     const generateShoppingList = () => {
-    // Generate shopping list from meal plans
     const ingredients: { id: number; name: string; checked: boolean }[] = []
 
 
 
-    // If no ingredients found, use sample data
     if (ingredients.length === 0) {
       setShoppingListItems([
         { id: 1, name: "Farine", checked: false },
@@ -702,19 +714,41 @@ export default function MealPlannerPage() {
           </Link>
 
           <nav
-            className={`${
-              mobileMenuOpen ? "flex" : "hidden"
-            } md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
+            className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
           >
-            <Link
-              to="/home"
-              className="text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-rose-500"
-            >
-              Communauté
-            </Link>
-            <Link to="/meal-planner" className="text-sm font-medium transition-colors duration-200 text-rose-500">
-              Planificateur
-            </Link>
+            {["Communauté", "Planificateur", ].map((item) => (
+          <Link
+          key={item}
+          to={
+            item === "Communauté"
+              ? "/home"
+              : item === "Planificateur"
+              ? "/meal-planner"
+              : "/"
+          }
+          className={`text-sm font-medium transition-colors duration-200 ${
+            item === "Communauté" ? "text-gray-600" : "text-rose-500 hover:text-rose-500"
+          }`}
+        >
+          {item}
+        </Link>
+      ))}
+    
+      {/* Ajout de Profile et Logout */}
+      <Link
+        to="/profile"
+        className="text-sm font-medium text-gray-600 hover:text-rose-500"
+      >
+        Profile
+      </Link>
+    
+      <button
+        onClick={handleLogout}
+        className="text-sm font-medium text-red-600 hover:text-red-700"
+      >
+        Se déconnecter
+      </button>
+
 
             {/* Notifications */}
             {isAuthenticated && (
