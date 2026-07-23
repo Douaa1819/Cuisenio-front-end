@@ -1,5 +1,6 @@
 import { CategoryCountResponse, CategoryRequest, CategoryResponse } from '../types/category.types';
 import client from './client';
+import { routes } from './routes';
 
 
 const BASE_URL = '/v1/categories';
@@ -34,6 +35,16 @@ export const categoryService = {
 
     async delete(id: number) {
         await client.delete(`${BASE_URL}/${id}`);
+    },
+
+    async adminListTags() {
+        const response = await client.get<Page<CategoryResponse>>(routes.categories.adminTags);
+        return response.data;
+    },
+
+    async adminUpdateTag(id: number, data: CategoryRequest) {
+        const response = await client.patch<CategoryResponse>(routes.categories.adminTagDetail(id), data);
+        return response.data;
     },
 };
 

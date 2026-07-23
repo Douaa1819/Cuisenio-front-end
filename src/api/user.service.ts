@@ -1,30 +1,44 @@
-import { UserCountResponse } from './../types/user.types';
-import { PageResponse } from "../types/error-response";
-import { UserDTO } from "../types/user.types";
-import client from "./client"
-import { routes } from './routes';
+import { apiClient } from "./unified-client"
+import { routes } from "./routes"
+import type {
+  AdminOverviewMetrics,
+  UserArchivePayload,
+  UserCountResponse,
+  UserDTO,
+  UserStatus,
+} from "../types/user.types"
+import type { PageResponse } from "../types/error-response"
 
 export const userService = {
+  listUser: async (): Promise<PageResponse<UserDTO>> => {
+    return apiClient.get<PageResponse<UserDTO>>(routes.users.base)
+  },
 
-    listUser: async(): Promise<PageResponse<UserDTO>> => {
-const response = await client.get(routes.users.base);
-return response.data
-    },
+  getCount: async (): Promise<UserCountResponse> => {
+    return apiClient.get<UserCountResponse>(routes.users.count)
+  },
 
-getCount : async(): Promise<UserCountResponse> => {
-const response = await client.get(routes.users.count);
-return response.data;
-},
+  getOverviewMetrics: async (): Promise<AdminOverviewMetrics> => {
+    return apiClient.get<AdminOverviewMetrics>(routes.users.overview)
+  },
 
-blockUser: async(userId: number): Promise<void> => {
-    await client.put(`${routes.users.base}/${userId}/block`);
-},
+  updateStatus: async (userId: number, status: UserStatus): Promise<UserDTO> => {
+    return apiClient.patch<UserDTO, { status: UserStatus }>(routes.users.status(userId), { status })
+  },
 
-unblockUser: async(userId: number): Promise<void> => {
-    await client.put(`${routes.users.base}/${userId}/unblock`);
-},
+  getUserArchive: async (userId: number): Promise<UserArchivePayload> => {
+    return apiClient.get<UserArchivePayload>(routes.users.archive(userId))
+  },
 
-delete:async(userId: number): Promise<void> => {
-    await client.delete(`${routes.users.base}/${userId}`);
+  blockUser: async (userId: number): Promise<void> => {
+    await apiClient.put<void>(routes.users.block(userId))
+  },
+
+  unblockUser: async (userId: number): Promise<void> => {
+    await apiClient.put<void>(routes.users.unblock(userId))
+  },
+
+  delete: async (userId: number): Promise<void> => {
+    await apiClient.delete<void>(routes.users.detail(userId))
+  },
 }
-  }

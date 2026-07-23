@@ -14,7 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { useToast } from "../../hooks/use-toast";
+import { useToast } from "../../hooks/use-toast"
+import { RecipeUrlImport } from "../../components/recipe/RecipeUrlImport"
+import type { RecipeImportPreview } from "../../api/recipe-import.service"
 
 
 interface IngredientInput {
@@ -141,6 +143,30 @@ export default function CreateRecipePage() {
       </Button>
 
       <h1 className="text-3xl font-bold my-8">Créer une recette</h1>
+
+      <div className="mb-8">
+        <RecipeUrlImport
+          onApply={(preview: RecipeImportPreview) => {
+            setTitle(preview.title)
+            if (preview.description) setDescription(preview.description)
+            if (preview.prepTimeMinutes != null) setPreparationTime(preview.prepTimeMinutes)
+            if (preview.cookTimeMinutes != null) setCookingTime(preview.cookTimeMinutes)
+            if (preview.ingredients.length) {
+              setIngredients(
+                preview.ingredients.map((line, i) => ({
+                  ingredientId: i + 1,
+                  name: line,
+                  quantity: 1,
+                  unit: "g",
+                })),
+              )
+            }
+            if (preview.steps.length) {
+              setSteps(preview.steps.map((description, i) => ({ stepNumber: i + 1, description })))
+            }
+          }}
+        />
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section Informations de base */}

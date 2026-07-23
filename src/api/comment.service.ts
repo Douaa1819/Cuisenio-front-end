@@ -1,13 +1,18 @@
-import client from './client';
-import type { RecipeCommentResponse, RecipeCommentRequest } from '../types/recipe.types';
+import client from "./client"
+import type { RecipeCommentRequest, RecipeCommentResponse } from "../types/recipe.types"
 
 export const CommentService = {
-  createComment: (recipeId: number, data: RecipeCommentRequest) => 
-    client.post<RecipeCommentResponse>(`api/recipes/${recipeId}/comments`, data),
-  
+  createComment: (recipeId: number, data: RecipeCommentRequest) =>
+    client.post<RecipeCommentResponse>(`/api/recipes/${recipeId}/comments`, data),
+
   getCommentsByRecipeId: (recipeId: number) =>
-    client.get<RecipeCommentResponse[]>(`api/recipes/${recipeId}/comments`),
-  
-  approveComment: (recipeId: number, commentId: number, isApproved: boolean) =>
-    client.patch<RecipeCommentResponse>(`api/recipes/${recipeId}/comments/${commentId}/approve?isApproved=${isApproved}`)
-};
+    client.get<RecipeCommentResponse[]>(`/api/recipes/${recipeId}/comments`),
+
+  /** isApproved is serialized via URLSearchParams to guarantee safe encoding. */
+  approveComment: (recipeId: number, commentId: number, isApproved: boolean) => {
+    const params = new URLSearchParams({ isApproved: String(isApproved) })
+    return client.patch<RecipeCommentResponse>(
+      `/api/recipes/${recipeId}/comments/${commentId}/approve?${params.toString()}`,
+    )
+  },
+}

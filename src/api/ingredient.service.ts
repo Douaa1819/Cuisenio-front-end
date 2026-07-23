@@ -1,6 +1,14 @@
 import  client  from './client';
 import { routes } from './routes';
-import { IngredientResponse, IngredientRequest, IngredientCountResponse } from '../types/ingredient.types';
+import {
+  AliasIngredientRequest,
+  IngredientResponse,
+  IngredientRequest,
+  IngredientCountResponse,
+  MasterIngredient,
+  NormalizeQuantityRequest,
+  NormalizeQuantityResponse,
+} from '../types/ingredient.types';
 import { PageResponse } from '../types/error-response';
 
 export const ingredientService = {
@@ -31,5 +39,25 @@ export const ingredientService = {
 
   delete: async (id: number): Promise<void> => {
     await client.delete(routes.ingredients.detail(id));
+  },
+
+  listMasterIngredients: async (): Promise<PageResponse<MasterIngredient>> => {
+    const response = await client.get(routes.ingredients.masterBase);
+    return response.data;
+  },
+
+  createMasterIngredient: async (data: { canonicalName: string }): Promise<MasterIngredient> => {
+    const response = await client.post(routes.ingredients.masterBase, data);
+    return response.data;
+  },
+
+  aliasIngredient: async (data: AliasIngredientRequest): Promise<IngredientResponse> => {
+    const response = await client.post(routes.ingredients.alias, data);
+    return response.data;
+  },
+
+  normalizeQuantity: async (data: NormalizeQuantityRequest): Promise<NormalizeQuantityResponse> => {
+    const response = await client.post(routes.ingredients.normalize, data);
+    return response.data;
   },
 };

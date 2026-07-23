@@ -7,7 +7,8 @@ import { useAuthStore } from "../../store/auth.store"
 import { env } from "../../lib/env"
 import { ShoppingListButton } from "../kitchen/ShoppingListButton"
 import { ThemeToggle } from "../theme/ThemeToggle"
-import { Role, normalizeRole } from "../../types/auth.types"
+import { PremiumBadge } from "../premium/PremiumUpgradeModal"
+import { Role, isPremiumUser, normalizeRole } from "../../types/auth.types"
 
 export function Nav() {
   const { user, isAuthenticated, logout } = useAuthStore()
@@ -15,6 +16,7 @@ export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isAdmin = normalizeRole(user?.role) === Role.ADMIN
+  const isPremium = isPremiumUser(user?.role, user?.subscriptionTier)
   const avatarUrl = user?.profilePicture
     ? `${env.uploadsUrl}/${user.profilePicture}`
     : null
@@ -88,8 +90,11 @@ export function Nav() {
                       </div>
                     )}
                     <div className="hidden sm:block text-left">
-                      <p className="text-sm font-medium leading-tight text-foreground">{user?.username}</p>
-                      <p className="text-xs text-muted-foreground">{isAdmin ? "Administrateur" : "Chef"}</p>
+                      <p className="flex items-center gap-1.5 text-sm font-medium leading-tight text-foreground">
+                        {user?.username}
+                        {isPremium && !isAdmin && <PremiumBadge />}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{isAdmin ? "Administrateur" : isPremium ? "Chef Premium" : "Chef"}</p>
                     </div>
                   </button>
 
