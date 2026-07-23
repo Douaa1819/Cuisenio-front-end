@@ -7,6 +7,8 @@ import type { Recipe } from "../../types/recipe.types"
 import { Card } from "../ui/card"
 import { Badge } from "../ui/badge"
 import { Avatar } from "../ui/avatar"
+import { Button } from "../ui/button"
+import { resolveRecipeImage } from "../../lib/recipe-covers"
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -24,69 +26,93 @@ const RecipeCard = ({
   onFavoriteRecipe,
   onViewComments,
 }: RecipeCardProps) => {
+  const cover = resolveRecipeImage(recipe.imageUrl, recipe.categories?.[0])
+
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
+      className="group cursor-pointer overflow-hidden border-border bg-card text-card-foreground shadow-card-theme transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg rounded-recipe"
       onClick={() => onViewRecipe(recipe)}
     >
-      <div className="relative h-48 w-full overflow-hidden">
+      <div className="relative h-48 w-full overflow-hidden bg-muted/40">
         <img
-          src={recipe.imageUrl || "/placeholder.svg?height=400&width=600"}
+          src={cover.src}
+          srcSet={cover.srcSet}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           alt={recipe.title}
-          className="object-cover w-full h-full"
+          width={600}
+          height={400}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
+        <div className="recipe-title-overlay absolute inset-x-0 bottom-0 flex items-end p-3 pt-12">
+          <h3 className="line-clamp-2 text-base font-semibold tracking-tight text-white drop-shadow sm:text-lg">
+            {recipe.title}
+          </h3>
+        </div>
       </div>
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-medium">{recipe.title}</h3>
-          <div className="flex items-center space-x-1 text-sm text-gray-500">
+      <div className="space-y-4 p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="line-clamp-2 flex-1 text-sm text-muted-foreground">{recipe.description}</p>
+          <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground sm:text-sm">
             <Clock className="h-4 w-4" />
             <span>{recipe.preparationTime + recipe.cookingTime} min</span>
           </div>
         </div>
-        <p className="text-gray-600 text-sm line-clamp-2 mb-3">{recipe.description}</p>
 
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-2">
           {recipe.categories.map((category) => (
-            <Badge key={category} variant="default" className="text-xs">
+            <Badge key={category} variant="category" size="sm" className="text-xs">
               {category}
             </Badge>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-          <Avatar className="h-6 w-6">
-            <img src={recipe.user.profilePicture || "/placeholder.svg"} alt={recipe.user.name} />
-            <div className="bg-gray-200 h-full w-full flex items-center justify-center text-xs font-medium">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Avatar className="h-6 w-6 border border-border">
+            <img src={recipe.user.profilePicture || cover.src} alt={recipe.user.name} />
+            <div className="flex h-full w-full items-center justify-center bg-muted text-xs font-medium">
               {recipe.user.name.charAt(0)}
             </div>
           </Avatar>
           <span>{recipe.user.name}</span>
         </div>
 
-        <div className="flex justify-between pt-3 border-t">
-          <div className="flex items-center gap-4">
-            <button
-              className={`flex items-center gap-1 text-sm ${recipe.isLiked ? "text-rose-500" : "text-gray-500"}`}
+        <div className="flex items-center justify-between border-t border-border pt-3">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={`h-8 px-2 text-sm transition-colors ${recipe.isLiked ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
               onClick={(e) => onLikeRecipe(recipe.id, e)}
+              aria-label="Like recipe"
             >
               <Heart className="h-4 w-4" fill={recipe.isLiked ? "currentColor" : "none"} />
               {recipe.likes}
-            </button>
-            <button
-              className="flex items-center gap-1 text-sm text-gray-500"
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
               onClick={(e) => onViewComments(recipe.id, e)}
+              aria-label="View comments"
             >
               <MessageSquare className="h-4 w-4" />
               {recipe.comments}
-            </button>
+            </Button>
           </div>
-          <button
-            className={`${recipe.isFavorite ? "text-amber-500" : "text-gray-500"}`}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-2 transition-colors ${recipe.isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-foreground"}`}
             onClick={(e) => onFavoriteRecipe(recipe.id, e)}
+            aria-label="Save recipe"
           >
             <Bookmark className="h-4 w-4" fill={recipe.isFavorite ? "currentColor" : "none"} />
-          </button>
+          </Button>
         </div>
       </div>
     </Card>
@@ -94,4 +120,3 @@ const RecipeCard = ({
 }
 
 export default RecipeCard
-
