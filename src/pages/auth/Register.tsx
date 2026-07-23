@@ -1,43 +1,64 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
-import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
-import { z } from "zod";
-import { authService } from "../../api/auth.service";
-import { Role } from "../../types/auth.types";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { motion } from "framer-motion"
+import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { Link, useNavigate } from "react-router-dom"
+import { z } from "zod"
 
-import { Alert, AlertDescription } from "../../components/ui/alert";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
-import { Checkbox } from "../../components/ui/checkbox";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { authService } from "../../api/auth.service"
+import { useAuthStore } from "../../store/auth.store"
+import { emailSchema, nameSchema, passwordSchema, usernameSchema } from "../../utils/validation"
+
+import { Alert, AlertDescription } from "../../components/ui/alert"
+import { Button } from "../../components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card"
+import { Checkbox } from "../../components/ui/checkbox"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
 
 const registerSchema = z.object({
-  username: z.string().min(3, { message: "Le nom d'utilisateur doit contenir au moins 3 caractères" }),
-  lastName: z.string().min(2, { message: "Le nom est requis" }),
-  email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
-  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
-  termsAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
-});
+  username: usernameSchema,
+  lastName: nameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+  termsAccepted: z
+    .boolean()
+    .refine((val) => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
+})
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>
 
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
+function resolveAuthError(err: unknown, fallback: string): string {
+  const axiosLike = err as {
+    code?: string
+    message?: string
+    response?: { status?: number; data?: { message?: string } }
+  }
+  if (!axiosLike.response) {
+    console.error("[auth/register] network error — is the API running?", axiosLike.code ?? axiosLike.message, err)
+    if (axiosLike.code === "ERR_NETWORK" || axiosLike.message?.includes("Network Error")) {
+      return "Impossible de joindre le serveur. Vérifiez que l'API tourne sur le port configuré."
+    }
+    return "Erreur réseau. Réessayez dans un instant."
+  }
+  console.error("[auth/register] API error", axiosLike.response.status, axiosLike.response.data)
+  return axiosLike.response.data?.message ?? fallback
 }
 
 export default function RegisterForm() {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate()
+  const login = useAuthStore((state) => state.login)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -45,41 +66,39 @@ export default function RegisterForm() {
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      lastName: "",
-      email: "",
-      password: "",
-      termsAccepted: false,
-    },
-  });
+    defaultValues: { username: "", lastName: "", email: "", password: "", termsAccepted: false },
+  })
 
   const onSubmit = async (data: RegisterFormValues) => {
-    setIsLoading(true);
-    setError(null);
-
+    if (isLoading) return
+    setIsLoading(true)
+    setError(null)
     try {
-      console.log("Submitting registration data:", data);      await authService.register({
+      // Role is intentionally omitted — the backend assigns USER by default.
+      const response = await authService.register({
         username: data.username,
         lastName: data.lastName,
         email: data.email,
         password: data.password,
-        role: Role.USER, 
-      });
+      })
 
-      navigate("/login");
+      authService.setToken(response.token)
+      login(response.token, {
+        id: response.id,
+        username: response.username,
+        lastName: response.lastName,
+        email: response.email,
+        profilePicture: response.profilePicture,
+        role: response.role,
+      })
+
+      navigate(response.role === "ADMIN" ? "/dashboard" : "/chef", { replace: true })
     } catch (err: unknown) {
-      const apiError = err as ApiError;
-      console.error("Registration error:", apiError);
-      setError(apiError?.response?.data?.message || "L'inscription a échoué. Veuillez réessayer.");
+      setError(resolveAuthError(err, "L'inscription a échoué. Veuillez réessayer."))
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center p-4 font-poppins">
@@ -91,7 +110,7 @@ export default function RegisterForm() {
       >
         <Card className="w-full shadow-lg border border-[#FFE4E1] rounded-xl overflow-hidden">
           <CardHeader className="space-y-2 text-center pb-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
@@ -102,8 +121,11 @@ export default function RegisterForm() {
               </div>
             </motion.div>
             <CardTitle className="text-2xl font-bold text-gray-800">Créer un compte</CardTitle>
-            <CardDescription className="text-gray-600 px-4">Rejoignez notre communauté culinaire et commencez votre aventure</CardDescription>
+            <CardDescription className="text-gray-600 px-4">
+              Rejoignez notre communauté culinaire et commencez votre aventure
+            </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-5 px-6">
             {error && (
               <motion.div
@@ -117,28 +139,22 @@ export default function RegisterForm() {
               </motion.div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-             
-
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="username" className="block text-sm font-medium text-left text-gray-700">
-                  Prénom
-
+                    Prénom
                   </Label>
                   <Input
                     id="username"
                     type="text"
                     placeholder="Jean"
+                    autoComplete="given-name"
                     className="bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
                     {...register("username")}
                   />
                   {errors.username && (
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-red-500 text-xs mt-1"
-                    >
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
                       {errors.username.message}
                     </motion.p>
                   )}
@@ -152,15 +168,12 @@ export default function RegisterForm() {
                     id="lastName"
                     type="text"
                     placeholder="Dupont"
+                    autoComplete="family-name"
                     className="bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
                     {...register("lastName")}
                   />
                   {errors.lastName && (
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-red-500 text-xs mt-1"
-                    >
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
                       {errors.lastName.message}
                     </motion.p>
                   )}
@@ -179,16 +192,13 @@ export default function RegisterForm() {
                     id="email"
                     type="email"
                     placeholder="vous@exemple.com"
+                    autoComplete="email"
                     className="pl-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
                     {...register("email")}
                   />
                 </div>
                 {errors.email && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-xs mt-1"
-                  >
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
                     {errors.email.message}
                   </motion.p>
                 )}
@@ -206,55 +216,51 @@ export default function RegisterForm() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
+                    autoComplete="new-password"
                     className="pl-10 pr-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
                     {...register("password")}
                   />
                   <button
                     type="button"
-                    onClick={togglePasswordVisibility}
+                    onClick={() => setShowPassword((v) => !v)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {errors.password && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-xs mt-1"
-                  >
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
                     {errors.password.message}
                   </motion.p>
                 )}
+                <p className="text-xs text-gray-400">
+                  8 caractères min · 1 majuscule · 1 chiffre · 1 caractère spécial
+                </p>
               </div>
 
               <div className="flex items-start space-x-2 mb-1">
-                <Checkbox 
-                  id="termsAccepted" 
-                  className="mt-1"
-                  {...register("termsAccepted")} 
-                />
+                <Checkbox id="termsAccepted" className="mt-1" {...register("termsAccepted")} />
                 <Label htmlFor="termsAccepted" className="text-sm text-gray-600">
-                  J'accepte les <Link to="/terms" className="text-[#E57373] hover:underline">conditions d'utilisation</Link> et la <Link to="/privacy" className="text-[#E57373] hover:underline">politique de confidentialité</Link>
+                  J'accepte les{" "}
+                  <Link to="/terms" className="text-[#E57373] hover:underline">
+                    conditions d'utilisation
+                  </Link>{" "}
+                  et la{" "}
+                  <Link to="/privacy" className="text-[#E57373] hover:underline">
+                    politique de confidentialité
+                  </Link>
                 </Label>
               </div>
               {errors.termsAccepted && (
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-red-500 text-xs -mt-2"
-                >
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs -mt-2">
                   {errors.termsAccepted.message}
                 </motion.p>
               )}
 
-              <Button 
-                type="submit" 
-                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow" 
+              <Button
+                type="submit"
+                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -268,10 +274,14 @@ export default function RegisterForm() {
               </Button>
             </form>
           </CardContent>
+
           <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
             <p className="text-center text-sm text-gray-600 mt-4">
               Vous avez déjà un compte ?{" "}
-              <Link to="/login" className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors">
+              <Link
+                to="/login"
+                className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors"
+              >
                 Se connecter
               </Link>
             </p>
@@ -279,5 +289,5 @@ export default function RegisterForm() {
         </Card>
       </motion.div>
     </div>
-  );
+  )
 }

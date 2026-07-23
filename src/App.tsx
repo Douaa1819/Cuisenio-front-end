@@ -1,37 +1,110 @@
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom"
+import { lazy, Suspense } from "react"
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom"
 import "./App.css"
 import PrivateRoute from "./components/PrivateRoute"
-import Login from "./pages/auth/Login"
-import Register from "./pages/auth/Register"
-import AdminDashboard from "./pages/dashboard/AdminDashboard"
-import LandingPage from "./pages/LandingPage"
-import ProfilePage from "./pages/profile/ProfilePage"
-import CreateRecipePage from "./pages/recipes/create-recipe-page"
-import CommunityPage from "./pages/community/community-page"
-import MealPlannerPage from "./pages/meal-planner/meal-planner-page"
-import NotFoundPage from "./pages/not-found-page"
-import RecipeDetailPage from "./pages/community/recipe-detail"
-// import EditRecipePage from "./pages/recipes/edit-recipe-page"
-import { Role } from "./types/auth.types" 
+import PublicRoute from "./components/PublicRoute"
+import { NotificationProvider } from "./context/NotificationContext"
+import { ThemeProvider } from "./hooks/use-theme"
+import { I18nProvider } from "./context/I18nContext"
+import { Role } from "./types/auth.types"
+import { InstallPrompt } from "./components/pwa/InstallPrompt"
+
+// ── Lazy-loaded pages for better performance (code splitting) ─────────────────
+const LandingPage      = lazy(() => import("./pages/LandingPage"))
+const Login            = lazy(() => import("./pages/auth/Login"))
+const Register         = lazy(() => import("./pages/auth/Register"))
+const ChefDashboard    = lazy(() => import("./pages/dashboard/ChefDashboard"))
+const AdminDashboard   = lazy(() => import("./pages/dashboard/AdminDashboard"))
+const ProfilePage      = lazy(() => import("./pages/profile/ProfilePage"))
+const CreateRecipePage = lazy(() => import("./pages/recipes/create-recipe-page"))
+const HomePage         = lazy(() => import("./pages/home/HomePage"))
+const CommunityPage    = lazy(() => import("./pages/community/community-page"))
+const MealPlannerPage  = lazy(() => import("./pages/meal-planner/meal-planner-page"))
+const NotFoundPage     = lazy(() => import("./pages/not-found-page"))
+const RecipeDetailPage = lazy(() => import("./pages/community/recipe-detail"))
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPassword"))
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPassword"))
+
+/** Skeleton while lazy route chunks load — visible on dark auth screens too. */
+const PageLoader = () => (
+  <div
+    className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"
+    role="status"
+    aria-label="Chargement de la page"
+  >
+    <div className="w-full max-w-md space-y-4 px-6">
+      <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-[#E8615C]/30" />
+      <div className="mx-auto h-4 w-1/2 animate-pulse rounded bg-white/10" />
+      <div className="h-32 w-full animate-pulse rounded-xl bg-white/8" />
+    </div>
+  </div>
+)
+
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+    <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+      <I18nProvider>
+        <NotificationProvider>
+          <Router>
+            <InstallPrompt />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+          {/* ── Landing (public) ─────────────────────────────────────── */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* ── Auth pages: redirect away if already logged in ───────── */}
           <Route
-  path="/dashboard"
-  element={
-    <PrivateRoute role={Role.ADMIN}>
-      <AdminDashboard />
-    </PrivateRoute>
-  }
-/>          <Route path="/add-recipe" element={<CreateRecipePage />} />
-          {/* <Route path="/edit-recipe/:id" element={<EditRecipePage />} /> */}
-          <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-          <Route path="/home" element={<CommunityPage />} />
-          <Route path="/meal-planner" element={<MealPlannerPage />} />
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
+
+          {/* ── Protected pages: any authenticated user ──────────────── */}
+          <Route
+            path="/chef"
+            element={
+              <PrivateRoute>
+                <ChefDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <HomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/discover"
+            element={
+              <PrivateRoute>
+                <CommunityPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/meal-planner"
+            element={
+              <PrivateRoute>
+                <MealPlannerPage />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/profile"
             element={
@@ -40,13 +113,44 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="*" element={<NotFoundPage />} />
-          <Route path="/" element={<LandingPage />} />
-        </Routes>
-      </div>
-    </Router>
+          <Route
+            path="/add-recipe"
+            element={
+              <PrivateRoute>
+                <CreateRecipePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/recipe/:id"
+            element={
+              <PrivateRoute>
+                <RecipeDetailPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* ── Admin-only ───────────────────────────────────────────── */}
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute role={Role.ADMIN}>
+                <AdminDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          {/* ── Legacy alias + fallback ──────────────────────────────── */}
+          <Route path="/community" element={<Navigate to="/home" replace />} />
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </NotificationProvider>
+      </I18nProvider>
+    </ThemeProvider>
   )
 }
 
 export default App
-

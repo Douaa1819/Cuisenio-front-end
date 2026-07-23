@@ -1,34 +1,56 @@
-
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ChefHat, Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
+import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
+import { useRef, useState } from "react"
+import { useForm } from "react-hook-form"
+import { Link, useNavigate } from "react-router-dom"
+import { z } from "zod"
 
 import { authService } from "../../api/auth.service"
+import { useAuthStore } from "../../store/auth.store"
+import { emailSchema } from "../../utils/validation"
+import { homePathForRole, normalizeRole } from "../../types/auth.types"
+
 import { Alert, AlertDescription } from "../../components/ui/alert"
 import { Button } from "../../components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
-import { useAuthStore } from "../../store/auth.store"
+
+/** Max failed attempts before a temporary lockout (client-side). */
+const MAX_ATTEMPTS = 5
+const LOCKOUT_MS = 60_000 // 1 minute
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
-  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
-  rememberMe: z.boolean().optional(),
+  email: emailSchema,
+  /** Password is only checked for presence here — complexity is enforced at registration. */
+  password: z.string().min(1, "Le mot de passe est requis").max(72, "Mot de passe trop long"),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string
-    }
+function resolveAuthError(err: unknown, fallback: string): string {
+  const axiosLike = err as {
+    code?: string
+    message?: string
+    response?: { status?: number; data?: { message?: string } }
   }
+  if (!axiosLike.response) {
+    console.error("[auth/login] network error — is the API running?", axiosLike.code ?? axiosLike.message, err)
+    if (axiosLike.code === "ERR_NETWORK" || axiosLike.message?.includes("Network Error")) {
+      return "Impossible de joindre le serveur. Vérifiez que l'API tourne sur le port configuré."
+    }
+    return "Erreur réseau. Réessayez dans un instant."
+  }
+  console.error("[auth/login] API error", axiosLike.response.status, axiosLike.response.data)
+  return axiosLike.response.data?.message ?? fallback
 }
 
 export default function LoginForm() {
@@ -38,20 +60,28 @@ export default function LoginForm() {
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
 
+  // Client-side rate limiting
+  const failedAttempts = useRef(0)
+  const lockedUntil = useRef<number | null>(null)
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
+    defaultValues: { email: "", password: "" },
   })
 
   const onSubmit = async (formData: LoginFormValues) => {
+    if (isLoading) return
+
+    if (lockedUntil.current && Date.now() < lockedUntil.current) {
+      const remaining = Math.ceil((lockedUntil.current - Date.now()) / 1000)
+      setError(`Trop de tentatives. Réessayez dans ${remaining} secondes.`)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -60,31 +90,36 @@ export default function LoginForm() {
         email: formData.email,
         password: formData.password,
       })
-      console.log(response);
 
+      failedAttempts.current = 0
+      lockedUntil.current = null
+
+      const role = normalizeRole(response.role)
       login(response.token, {
         id: response.id,
         username: response.username,
+        lastName: response.lastName,
         email: response.email,
         profilePicture: response.profilePicture,
-        role: response.role,
-        
+        role,
       })
-      console.log(response.role);
-      if (response.role === "ADMIN") {
-    navigate("/dashboard")
-      } else {
-        navigate("/home")
-      }
+
+      navigate(homePathForRole(role), { replace: true })
     } catch (err: unknown) {
-      const apiError = err as ApiError
-      setError(apiError?.response?.data?.message || "La connexion a échoué. Veuillez vérifier vos identifiants.")
+      failedAttempts.current += 1
+
+      if (failedAttempts.current >= MAX_ATTEMPTS) {
+        lockedUntil.current = Date.now() + LOCKOUT_MS
+        failedAttempts.current = 0
+        setError(`Trop de tentatives. Compte temporairement bloqué pendant 1 minute.`)
+      } else {
+        setError(
+          resolveAuthError(err, "La connexion a échoué. Veuillez vérifier vos identifiants."),
+        )
+      }
+    } finally {
       setIsLoading(false)
     }
-  }
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword)
   }
 
   return (
@@ -110,6 +145,7 @@ export default function LoginForm() {
             <CardTitle className="text-2xl font-bold text-gray-800">Bienvenue</CardTitle>
             <CardDescription className="text-gray-600">Connectez-vous à votre compte</CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-5 px-6">
             {error && (
               <motion.div
@@ -123,7 +159,7 @@ export default function LoginForm() {
               </motion.div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="space-y-2">
                 <Label htmlFor="email" className="block text-sm font-medium text-left text-gray-700">
                   Email
@@ -136,6 +172,7 @@ export default function LoginForm() {
                     id="email"
                     type="email"
                     placeholder="vous@exemple.com"
+                    autoComplete="email"
                     className="pl-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
                     {...register("email")}
                   />
@@ -167,13 +204,15 @@ export default function LoginForm() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
+                    autoComplete="current-password"
                     className="pl-10 pr-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
                     {...register("password")}
                   />
                   <button
                     type="button"
-                    onClick={togglePasswordVisibility}
+                    onClick={() => setShowPassword((v) => !v)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -201,6 +240,7 @@ export default function LoginForm() {
               </Button>
             </form>
           </CardContent>
+
           <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
             <p className="text-center text-sm text-gray-600 mt-4">
               Vous n'avez pas de compte ?{" "}
@@ -217,4 +257,3 @@ export default function LoginForm() {
     </div>
   )
 }
-
