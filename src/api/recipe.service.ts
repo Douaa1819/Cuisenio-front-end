@@ -146,4 +146,9 @@ export const recipeService = {
       payload,
     )
   },
+
+  /** Admin: restore a soft-deleted (archived) recipe */
+  restoreRecipe: async (id: number): Promise<RecipeResponse> => {
+    return apiClient.put<RecipeResponse>(routes.recipes.restore(id))
+  },
 }

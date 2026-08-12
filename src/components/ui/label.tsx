@@ -11,7 +11,7 @@ const labelVariants = cva(
         secondary: "text-gray-500 dark:text-gray-400",
         destructive: "text-red-500 dark:text-red-400",
         success: "text-green-600 dark:text-green-400",
-        warning: "text-amber-600 dark:text-amber-400",
+        warning: "text-slate-600 dark:text-slate-400",
       },
       size: {
         sm: "text-xs",

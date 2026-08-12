@@ -9,16 +9,16 @@ interface PublicRouteProps {
 /** Visible boot skeleton — never rely solely on undefined CSS tokens. */
 const AuthBootLoader = () => (
   <div
-    className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"
+    className="flex min-h-screen items-center justify-center bg-background"
     role="status"
     aria-label="Chargement de la session"
   >
     <div className="w-full max-w-md space-y-4 px-6">
-      <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-[#E8615C]/30" />
-      <div className="h-4 w-2/3 mx-auto animate-pulse rounded bg-white/10" />
-      <div className="h-10 w-full animate-pulse rounded-lg bg-white/8" />
-      <div className="h-10 w-full animate-pulse rounded-lg bg-white/8" />
-      <div className="h-10 w-full animate-pulse rounded-lg bg-[#E8615C]/25" />
+      <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-primary/30" />
+      <div className="mx-auto h-4 w-2/3 animate-pulse rounded bg-muted" />
+      <div className="h-10 w-full animate-pulse rounded-lg bg-muted" />
+      <div className="h-10 w-full animate-pulse rounded-lg bg-muted" />
+      <div className="h-10 w-full animate-pulse rounded-lg bg-primary/25" />
     </div>
   </div>
 )

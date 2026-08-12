@@ -46,8 +46,8 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
           {
             "bg-blue-50 border-blue-200 text-blue-800": variant === "info",
             "bg-green-50 border-green-200 text-green-800": variant === "success",
-            "bg-yellow-50 border-yellow-200 text-yellow-800": variant === "warning",
-            "bg-red-50 border-red-200 text-red-800": variant === "error",
+            "bg-slate-50 border-slate-200 text-slate-800": variant === "warning",
+            "bg-rose-50 border-rose-200 text-rose-800": variant === "error",
           },
           className
         )}
@@ -74,8 +74,8 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
               {
                 "text-blue-500 hover:bg-blue-100": variant === "info",
                 "text-green-500 hover:bg-green-100": variant === "success",
-                "text-yellow-500 hover:bg-yellow-100": variant === "warning",
-                "text-red-500 hover:bg-red-100": variant === "error",
+                "text-slate-500 hover:bg-slate-100": variant === "warning",
+                "text-rose-500 hover:bg-rose-100": variant === "error",
               }
             )}
             onClick={handleDismiss}

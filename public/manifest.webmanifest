@@ -1,0 +1,38 @@
+{
+  "name": "Cuisenio",
+  "short_name": "Cuisenio",
+  "description": "Découvrez, partagez et planifiez vos recettes avec Cuisenio.",
+  "theme_color": "#E57373",
+  "background_color": "#FFF5F5",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "start_url": "/home",
+  "lang": "fr",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Communauté",
+      "url": "/home",
+      "description": "Parcourir les recettes"
+    },
+    {
+      "name": "Planificateur",
+      "url": "/meal-planner"
+    }
+  ]
+}

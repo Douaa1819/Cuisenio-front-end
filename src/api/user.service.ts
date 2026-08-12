@@ -26,6 +26,11 @@ export const userService = {
     return apiClient.patch<UserDTO, { status: UserStatus }>(routes.users.status(userId), { status })
   },
 
+  /** Assign PREMIUM / CHEF without Stripe — admin demo control */
+  updateRole: async (userId: number, role: "CHEF" | "PREMIUM" | "USER"): Promise<UserDTO> => {
+    return apiClient.patch<UserDTO, { role: string }>(routes.users.role(userId), { role })
+  },
+
   getUserArchive: async (userId: number): Promise<UserArchivePayload> => {
     return apiClient.get<UserArchivePayload>(routes.users.archive(userId))
   },

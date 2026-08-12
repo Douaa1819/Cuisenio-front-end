@@ -364,7 +364,7 @@ export default function CreateRecipePage() {
             
             {steps.map((step, index) => (
               <div key={index} className="flex gap-4">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-rose-100">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
                   {step.stepNumber}
                 </div>
                 

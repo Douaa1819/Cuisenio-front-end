@@ -8,6 +8,7 @@ import { ThemeProvider } from "./hooks/use-theme"
 import { I18nProvider } from "./context/I18nContext"
 import { Role } from "./types/auth.types"
 import { InstallPrompt } from "./components/pwa/InstallPrompt"
+import { CookieBanner } from "./components/legal/CookieBanner"
 
 // ── Lazy-loaded pages for better performance (code splitting) ─────────────────
 const LandingPage      = lazy(() => import("./pages/LandingPage"))
@@ -24,33 +25,45 @@ const NotFoundPage     = lazy(() => import("./pages/not-found-page"))
 const RecipeDetailPage = lazy(() => import("./pages/community/recipe-detail"))
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPassword"))
 const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPassword"))
+const PaymentSuccessPage = lazy(() => import("./pages/payment/PaymentSuccessPage"))
+const PaymentCancelPage = lazy(() => import("./pages/payment/PaymentCancelPage"))
+const PrivacyPolicyPage = lazy(() => import("./pages/legal/PrivacyPolicyPage"))
+const TermsPage = lazy(() => import("./pages/legal/TermsPage"))
+const CookiesPolicyPage = lazy(() => import("./pages/legal/CookiesPolicyPage"))
+const NewsletterUnsubscribePage = lazy(() => import("./pages/newsletter/NewsletterUnsubscribePage"))
 
-/** Skeleton while lazy route chunks load — visible on dark auth screens too. */
+/** Skeleton while lazy route chunks load — follows active theme tokens. */
 const PageLoader = () => (
   <div
-    className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"
+    className="flex min-h-screen items-center justify-center bg-background"
     role="status"
     aria-label="Chargement de la page"
   >
     <div className="w-full max-w-md space-y-4 px-6">
-      <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-[#E8615C]/30" />
-      <div className="mx-auto h-4 w-1/2 animate-pulse rounded bg-white/10" />
-      <div className="h-32 w-full animate-pulse rounded-xl bg-white/8" />
+      <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-primary/25" />
+      <div className="mx-auto h-4 w-1/2 animate-pulse rounded bg-muted" />
+      <div className="h-32 w-full animate-pulse rounded-xl bg-muted" />
     </div>
   </div>
 )
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
       <I18nProvider>
         <NotificationProvider>
           <Router>
             <InstallPrompt />
+            <CookieBanner />
             <Suspense fallback={<PageLoader />}>
               <Routes>
           {/* ── Landing (public) ─────────────────────────────────────── */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/cookies" element={<CookiesPolicyPage />} />
+          <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribePage />} />
 
           {/* ── Auth pages: redirect away if already logged in ───────── */}
           <Route
@@ -71,6 +84,9 @@ function App() {
           />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
+
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
           {/* ── Protected pages: any authenticated user ──────────────── */}
           <Route

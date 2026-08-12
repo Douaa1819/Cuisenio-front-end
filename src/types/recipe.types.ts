@@ -5,6 +5,8 @@ export enum DifficultyLevel {
   HARD = "ADVANCED",
 }
 
+export type RecipeWorkflowStatus = "draft" | "pending_review" | "published" | "rejected"
+
 export interface RecipeIngredientRequest {
   ingredientId: number
   quantity: string
@@ -53,6 +55,11 @@ export interface RecipeStepResponse {
   description: string
 }
 
+export interface KitchenTool {
+  name: string
+  affiliateUrl?: string
+}
+
 
 export interface RecipeRequest {
   title: string
@@ -94,12 +101,18 @@ export interface RecipeResponse {
   creationDate: string
   updateDate: string
   isApproved: boolean
+  isFeatured?: boolean
+  isPremium?: boolean
+  status?: RecipeWorkflowStatus
+  videoUrl?: string
+  premiumLocked?: boolean
   user: {
     id: number
     username: string 
     lastName: string 
     email: string
     profilePicture: string
+    badge?: "Beginner" | "Chef" | "Verified"
   }
   categories: {
     id: number
@@ -108,6 +121,8 @@ export interface RecipeResponse {
   }[]
   recipeIngredients: RecipeIngredientResponse[]
   steps: RecipeStepResponse[]
+  instructions?: string
+  kitchenTools?: KitchenTool[]
   averageRating: number
   totalRatings: number
   totalComments: number
@@ -158,4 +173,13 @@ export interface RecipeCommentResponse {
     username: string;
     lastName: string;
   };
+}
+
+export interface ModerationReportItem {
+  recipeId: number
+  title: string
+  reportCount: number
+  latestReason: string
+  lastReportedAt: string
+  urgency: number
 }

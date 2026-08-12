@@ -1,6 +1,7 @@
 import {
   THEME_STORAGE_KEY,
-  applyThemeClass,
+  DEFAULT_THEME,
+  resolveSystemTheme,
   type ProductTheme,
 } from "./theme"
 
@@ -12,7 +13,7 @@ export function readStoredTheme(): ProductTheme {
       const legacy = localStorage.getItem("ui-theme")
       if (legacy === "light") return "light"
       if (legacy === "dark") return "dark"
-      return "dark"
+      return resolveSystemTheme()
     }
     if (raw === "light" || raw === "dark") return raw
     const parsed = JSON.parse(raw) as { state?: { theme?: string } } | string
@@ -20,13 +21,13 @@ export function readStoredTheme(): ProductTheme {
       return parsed
     }
     if (parsed && typeof parsed === "object" && parsed.state?.theme) {
-      return parsed.state.theme === "light" ? "light" : "dark"
+      return parsed.state.theme === "dark" ? "dark" : "light"
     }
   } catch {
     /* ignore */
   }
-  return "dark"
+  return resolveSystemTheme() || DEFAULT_THEME
 }
 
-export { THEME_STORAGE_KEY, applyThemeClass, themeTokens } from "./theme"
+export { THEME_STORAGE_KEY, DEFAULT_THEME, applyThemeClass, themeTokens, resolveSystemTheme } from "./theme"
 export type { ProductTheme } from "./theme"

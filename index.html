@@ -3,37 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#E57373" />
+    <meta name="theme-color" content="#2E7D32" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Cuisenio" />
 
     <!-- SEO -->
-    <title>Cuisenio — Partagez vos recettes</title>
-    <meta name="description" content="Cuisenio est la plateforme culinaire pour découvrir, partager et planifier vos recettes préférées. Rejoignez notre communauté de passionnés de cuisine." />
-    <meta name="keywords" content="recettes, cuisine, communauté culinaire, meal planner, partager recettes, Cuisenio" />
+    <title>Cuisenio | Recettes faciles, planning repas & cuisine vocale</title>
+    <meta name="description" content="Planifiez vos repas, générez une liste de courses automatique, cuisinez à la voix et organisez votre frigo. Cuisenio, l'ami chef qui simplifie vos soirées." />
+    <meta name="keywords" content="recettes faciles, gestion du frigo, liste de courses automatique, cuisine vocale, planning repas, Cuisenio" />
     <meta name="author" content="Cuisenio" />
     <meta name="robots" content="index, follow" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Cuisenio" />
-    <meta property="og:title" content="Cuisenio — Partagez vos recettes" />
-    <meta property="og:description" content="Découvrez, partagez et planifiez vos recettes avec la communauté Cuisenio." />
+    <meta property="og:title" content="Cuisenio | Recettes faciles, planning repas & cuisine vocale" />
+    <meta property="og:description" content="Planifiez vos repas, cuisinez à la voix et organisez votre frigo." />
     <meta property="og:locale" content="fr_FR" />
     <meta property="og:image" content="/pwa-512.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Cuisenio — Partagez vos recettes" />
-    <meta name="twitter:description" content="Découvrez, partagez et planifiez vos recettes avec la communauté Cuisenio." />
+    <meta name="twitter:title" content="Cuisenio | Recettes faciles & planning repas" />
+    <meta name="twitter:description" content="Planifiez vos repas, cuisinez à la voix et organisez votre frigo." />
     <meta name="twitter:image" content="/pwa-512.png" />
 
     <!-- Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -42,33 +42,44 @@
 
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 
-    <!-- Anti-FOUC: apply theme class before React mounts -->
+    <!-- Anti-FOUC: theme before React (stored → system → light) -->
     <script>
       (function () {
         try {
           var key = "cuisenio-theme";
           var raw = localStorage.getItem(key);
-          var theme = "dark";
+          var theme = null;
           if (raw) {
             try {
               var parsed = JSON.parse(raw);
-              if (parsed && (parsed.state === "light" || parsed.state === "dark")) theme = parsed.state;
-              else if (parsed === "light" || parsed === "dark") theme = parsed;
+              if (parsed && parsed.state && (parsed.state.theme === "light" || parsed.state.theme === "dark")) {
+                theme = parsed.state.theme;
+              } else if (parsed === "light" || parsed === "dark") theme = parsed;
             } catch (_) {
               if (raw === "light" || raw === "dark") theme = raw;
             }
-          } else {
+          }
+          if (!theme) {
             var legacy = localStorage.getItem("ui-theme");
-            if (legacy === "light") theme = "light";
+            if (legacy === "dark" || legacy === "light") theme = legacy;
+          }
+          if (!theme) {
+            theme =
+              window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
           }
           document.documentElement.classList.remove("light", "dark");
           document.documentElement.classList.add(theme);
           document.documentElement.dataset.theme = theme;
           document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", theme === "dark" ? "#E8615C" : "#2F7A4D");
+          if (meta) meta.setAttribute("content", theme === "dark" ? "#0B1310" : "#2E7D32");
+          var locale = localStorage.getItem("ui-locale") || "fr";
+          document.documentElement.lang = locale === "ar" || locale === "ar-MA" ? locale : locale;
+          document.documentElement.dir = locale === "ar" || locale === "ar-MA" ? "rtl" : "ltr";
         } catch (e) {
-          document.documentElement.classList.add("dark");
+          document.documentElement.classList.add("light");
         }
       })();
     </script>

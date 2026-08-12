@@ -3,11 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const textareaVariants = cva(
-  "flex min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+  "flex min-h-[80px] w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors duration-200 ease-out focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "border-gray-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-500",
+        default: "border-input focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring",
         error: "border-red-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-500",
         success: "border-green-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500",
       },
@@ -49,7 +49,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {helperText && !error && (
-          <p id={`${id}-description`} className="text-xs text-gray-500">
+          <p id={`${id}-description`} className="text-xs text-muted-foreground">
             {helperText}
           </p>
         )}

@@ -8,13 +8,6 @@ import {
   Trash2,
   Edit,
   CheckCircle,
-  X,
-  Menu,
-  Bell,
-  User,
-  ChevronDown,
-  LogOut,
-  BookmarkIcon,
   CalendarDays,
   Utensils,
   ShoppingCart,
@@ -28,11 +21,11 @@ import {
   Heart,
   Sparkles,
 } from "lucide-react"
-import { AnimatePresence, motion, useAnimation } from "framer-motion"
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
+import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../../components/ui/card"
-import { authService } from "../../api/auth.service"
+import { AppShell } from "../../components/layout/AppShell"
+import { env } from "../../lib/env"
 
 import {
   Dialog,
@@ -49,14 +42,6 @@ import { Textarea } from "../../components/ui/textarea"
 import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu"
 import { Checkbox } from "../../components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import { useAuthStore } from "../../store/auth.store"
@@ -186,7 +171,6 @@ const Apple = (props: React.SVGProps<SVGSVGElement>) => (
 export default function MealPlannerPage() {
   const { isAuthenticated, user } = useAuthStore()
   const navigate = useNavigate()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { mealPlans, loading, error: hookError, createMealPlan, updateMealPlan, deleteMealPlan } = useMealPlanner()
   const [localError, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
@@ -219,7 +203,6 @@ export default function MealPlannerPage() {
   const [showRecipeSearch, setShowRecipeSearch] = useState(false)
   const [recipeSearchQuery, setRecipeSearchQuery] = useState("")
 
-  const headerControls = useAnimation()
   const contentRef = useRef<HTMLDivElement>(null)
   const weekViewRef = useRef<HTMLDivElement>(null)
   const listViewRef = useRef<HTMLDivElement>(null)
@@ -253,34 +236,6 @@ export default function MealPlannerPage() {
       navigate("/login")
     }
   }, [isAuthenticated, navigate])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (contentRef.current) {
-        const scrollY = window.scrollY
-        if (scrollY > 100) {
-          headerControls.start({
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(8px)",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-            height: "60px",
-            transition: { duration: 0.3 },
-          })
-        } else {
-          headerControls.start({
-            backgroundColor: "rgba(255, 255, 255, 1)",
-            backdropFilter: "blur(0px)",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-            height: "72px",
-            transition: { duration: 0.3 },
-          })
-        }
-      }
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [headerControls])
 
   const handleInputChange = (name: string, value: string | number) => {
     setMealForm((prev) => ({
@@ -374,8 +329,6 @@ export default function MealPlannerPage() {
     setConfirmDeleteOpen(true)
   }
 
-  const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen)
-
   const getMealsByDay = () => {
     const mealsByDay: Record<string, MealPlannerResponse[]> = {}
 
@@ -396,15 +349,15 @@ export default function MealPlannerPage() {
   const getMealTypeColor = (type: string) => {
     switch (type) {
       case "BREAKFAST":
-        return "bg-amber-100 text-amber-700 border-amber-200"
+        return "border-primary/25 bg-primary/10 text-primary"
       case "LUNCH":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200"
+        return "border-emerald-600/25 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
       case "DINNER":
-        return "bg-indigo-100 text-indigo-700 border-indigo-200"
+        return "border-border bg-secondary text-foreground"
       case "SNACK":
-        return "bg-purple-100 text-purple-700 border-purple-200"
+        return "border-border bg-muted text-muted-foreground"
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200"
+        return "border-border bg-muted text-muted-foreground"
     }
   }
 
@@ -470,7 +423,7 @@ export default function MealPlannerPage() {
           });
   
           doc.setFontSize(20);
-          doc.setTextColor(229, 29, 72); 
+          doc.setTextColor(46, 125, 50); 
           doc.text("Planning de Repas", 105, 20, { align: "center" });
   
           doc.setFontSize(12);
@@ -532,7 +485,7 @@ export default function MealPlannerPage() {
                   doc.addPage();
   
                   doc.setFontSize(16);
-                  doc.setTextColor(229, 29, 72);
+                  doc.setTextColor(46, 125, 50);
                   doc.text("Liste de Courses", 105, 20, { align: "center" });
   
                   doc.setFontSize(12);
@@ -601,24 +554,6 @@ export default function MealPlannerPage() {
               setIsExporting(false);
       }
   };
-    const handleLogout = async () => {
-      try {
-        await authService.logout()
-        setSuccessMessage("Déconnexion réussie !")
-        setShowSuccessModal(true)
-        setTimeout(() => {
-          setShowSuccessModal(false)
-          navigate("/login")
-        }, 2000)
-      } catch (error) {
-        console.error("Erreur lors de la déconnexion :", error)
-        setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.")
-        setShowSuccessModal(true)
-        setTimeout(() => {
-          setShowSuccessModal(false)
-        }, 2000)
-      }
-    }
     const generateShoppingList = () => {
     const ingredients: { id: number; name: string; checked: boolean }[] = []
 
@@ -660,14 +595,14 @@ export default function MealPlannerPage() {
           className="text-center"
         >
           <div className="relative">
-            <Loader2 className="h-12 w-12 text-rose-500 animate-spin mx-auto" />
+            <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.3 }}
               className="absolute inset-0 flex items-center justify-center"
             >
-              <ChefHat className="h-6 w-6 text-rose-500" />
+              <ChefHat className="h-6 w-6 text-primary" />
             </motion.div>
           </div>
           <motion.p
@@ -686,7 +621,7 @@ export default function MealPlannerPage() {
           >
             <div className="w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-rose-500"
+                className="h-full bg-primary"
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
                 transition={{ duration: 2, ease: "easeInOut" }}
@@ -700,139 +635,15 @@ export default function MealPlannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      {/* Navigation */}
-      <motion.header
-        className="fixed top-0 left-0 w-full z-50 border-b border-gray-100"
-        initial={{ backgroundColor: "rgba(255, 255, 255, 1)" }}
-        animate={headerControls}
-      >
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <ChefHat className="h-6 w-6 text-rose-500" />
-            <span className="font-medium text-xl">Cuisenio</span>
-          </Link>
-
-          <nav
-            className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
-          >
-            {["Communauté", "Planificateur", ].map((item) => (
-          <Link
-          key={item}
-          to={
-            item === "Communauté"
-              ? "/home"
-              : item === "Planificateur"
-              ? "/meal-planner"
-              : "/"
-          }
-          className={`text-sm font-medium transition-colors duration-200 ${
-            item === "Communauté" ? "text-gray-600" : "text-rose-500 hover:text-rose-500"
-          }`}
-        >
-          {item}
-        </Link>
-      ))}
-    
-      {/* Ajout de Profile et Logout */}
-      <Link
-        to="/profile"
-        className="text-sm font-medium text-gray-600 hover:text-rose-500"
-      >
-        Profile
-      </Link>
-    
-      <button
-        onClick={handleLogout}
-        className="text-sm font-medium text-red-600 hover:text-red-700"
-      >
-        Se déconnecter
-      </button>
-
-
-            {/* Notifications */}
-            {isAuthenticated && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="p-1 rounded-full hover:bg-gray-100 relative">
-                      <Bell className="h-5 w-5 text-gray-600" />
-                      <span className="absolute top-0 right-0 h-2 w-2 bg-rose-500 rounded-full"></span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Notifications</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            {/* User menu */}
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100">
-                    <Avatar className="h-8 w-8 border">
-                      {user?.profilePicture ? (
-                        <AvatarImage src={user.profilePicture} alt={user.username || "Utilisateur"} />
-                      ) : (
-                        <AvatarFallback>
-                          <User className="text-rose-500 h-4 w-4" />
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  <Link to="/profile">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profil</span>
-                    </DropdownMenuItem>
-                  </Link>
-
-                  <Link to="/mes-recettes">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <BookmarkIcon className="mr-2 h-4 w-4" />
-                      <span>Mes recettes sauvegardées</span>
-                    </DropdownMenuItem>
-                  </Link>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem className="cursor-pointer text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Se déconnecter</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link to="/login">
-                <Button className="bg-rose-500 hover:bg-rose-600 text-white">Se connecter</Button>
-              </Link>
-            )}
-          </nav>
-
-          <button onClick={toggleMobileMenu} className="md:hidden text-gray-800">
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-      </motion.header>
-
+    <AppShell>
       {/* Main Content */}
-      <main className="pt-24 pb-16 px-4" ref={contentRef}>
+      <main className="px-4 pb-4" ref={contentRef}>
         <div className="container mx-auto max-w-6xl">
           {/* Header */}
           <motion.div initial="hidden" animate="visible" variants={containerVariants} className="mb-10">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
               <motion.div variants={itemVariants}>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 flex items-center">
+                <h1 className="flex items-center font-serif text-3xl text-foreground md:text-4xl">
                   Planificateur de Repas
                   <motion.span
                     initial={{ scale: 0, rotate: -30 }}
@@ -840,10 +651,10 @@ export default function MealPlannerPage() {
                     transition={{ delay: 0.5, type: "spring", stiffness: 260, damping: 20 }}
                     className="ml-2"
                   >
-                    <Sparkles className="h-6 w-6 text-amber-400" />
+                    <Sparkles className="h-6 w-6 text-primary" />
                   </motion.span>
                 </h1>
-                <p className="text-gray-600 mt-2">Organisez vos repas de la semaine et simplifiez votre quotidien</p>
+                <p className="mt-2 font-sans text-muted-foreground">Organisez vos repas de la semaine et simplifiez votre quotidien</p>
               </motion.div>
               <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
                 
@@ -935,7 +746,7 @@ export default function MealPlannerPage() {
                             variant={exportFormat === "pdf" ? "primary" : "outline"}
                             className={cn(
                               "flex flex-col items-center py-6",
-                              exportFormat === "pdf" ? "bg-rose-500 hover:bg-rose-600" : "",
+                              exportFormat === "pdf" ? "bg-primary hover:bg-primary/90" : "",
                             )}
                             onClick={() => setExportFormat("pdf")}
                           >
@@ -946,7 +757,7 @@ export default function MealPlannerPage() {
                             variant={exportFormat === "csv" ? "primary" : "outline"}
                             className={cn(
                               "flex flex-col items-center py-6",
-                              exportFormat === "csv" ? "bg-rose-500 hover:bg-rose-600" : "",
+                              exportFormat === "csv" ? "bg-primary hover:bg-primary/90" : "",
                             )}
                             onClick={() => setExportFormat("csv")}
                           >
@@ -957,7 +768,7 @@ export default function MealPlannerPage() {
                             variant={exportFormat === "ical" ? "primary" : "outline"}
                             className={cn(
                               "flex flex-col items-center py-6",
-                              exportFormat === "ical" ? "bg-rose-500 hover:bg-rose-600" : "",
+                              exportFormat === "ical" ? "bg-primary hover:bg-primary/90" : "",
                             )}
                             onClick={() => setExportFormat("ical")}
                           >
@@ -1052,7 +863,7 @@ export default function MealPlannerPage() {
                         Annuler
                       </Button>
                       <Button
-                        className="bg-rose-500 hover:bg-rose-600 text-white"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
                         onClick={handleExport}
                         disabled={isExporting}
                       >
@@ -1091,12 +902,13 @@ export default function MealPlannerPage() {
             <motion.div variants={itemVariants}>
               <Tabs
                 defaultValue="week"
+                variant="soft"
                 className="w-full"
                 onValueChange={(value) => setActiveView(value as "week" | "list")}
               >
-                <div className="flex justify-between items-center mb-4">
-                  <TabsList>
-                    <TabsTrigger value="week" className="flex items-center gap-1.5">
+                <div className="mb-4 flex items-center justify-between">
+                  <TabsList variant="soft" className="border border-border bg-secondary/80">
+                    <TabsTrigger value="week" className="flex items-center gap-1.5 data-[state=active]:text-primary">
                       <CalendarDays className="h-4 w-4" />
                       <span>Vue Semaine</span>
                     </TabsTrigger>
@@ -1149,16 +961,16 @@ export default function MealPlannerPage() {
                 </div>
 
                 <TabsContent value="week" className="mt-0">
-                  <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-white border-b border-gray-100 pb-4">
+                  <Card className="overflow-hidden border border-border bg-card shadow-card-theme">
+                    <CardHeader className="border-b border-border bg-[color:var(--cu-paper)] pb-4">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-5 w-5 text-rose-500" />
-                          <CardTitle>Planning de la semaine</CardTitle>
+                          <Calendar className="h-5 w-5 text-primary" strokeWidth={1.75} />
+                          <CardTitle className="font-serif text-foreground">Planning de la semaine</CardTitle>
                         </div>
                         
                       </div>
-                      <CardDescription>Organisez vos repas pour chaque jour de la semaine</CardDescription>
+                      <CardDescription className="font-sans">Organisez vos repas pour chaque jour de la semaine</CardDescription>
                     </CardHeader>
                     <CardContent className="p-6" ref={weekViewRef}>
                       {mealPlans.length === 0 ? (
@@ -1166,17 +978,17 @@ export default function MealPlannerPage() {
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.3 }}
-                          className="text-center py-16 bg-gray-50 rounded-lg"
+                          className="rounded-2xl bg-secondary/60 py-16 text-center"
                         >
-                          <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-xl font-medium text-gray-700 mb-2">Aucun repas planifié</h3>
-                          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                          <Calendar className="mx-auto mb-4 h-16 w-16 text-primary/35" strokeWidth={1.75} />
+                          <h3 className="mb-2 font-serif text-xl text-foreground">Aucun repas planifié</h3>
+                          <p className="mx-auto mb-6 max-w-md font-sans text-muted-foreground">
                             Commencez à planifier vos repas pour la semaine et simplifiez votre organisation
                             quotidienne.
                           </p>
                           <Button
                             onClick={() => setAddMealDialogOpen(true)}
-                            className="bg-rose-500 hover:bg-rose-600 text-white"
+                            className="bg-primary-gradient text-primary-foreground hover:brightness-110"
                           >
                             <Plus className="h-4 w-4 mr-2" /> Ajouter votre premier repas
                           </Button>
@@ -1193,29 +1005,29 @@ export default function MealPlannerPage() {
                               key={day}
                               variants={itemVariants}
                               custom={dayIndex}
-                              className="border-b border-gray-100 pb-6 last:border-0 last:pb-0"
+                              className="border-b border-border pb-6 last:border-0 last:pb-0"
                             >
-                              <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium">{getDayLabel(day)}</h3>
+                              <div className="mb-4 flex items-center justify-between">
+                                <h3 className="font-serif text-lg text-foreground">{getDayLabel(day)}</h3>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                  className="h-8 text-primary hover:bg-primary/10 hover:text-primary"
                                   onClick={() => {
                                     setMealForm((prev) => ({ ...prev, dayOfWeek: day }))
                                     setAddMealDialogOpen(true)
                                   }}
                                 >
-                                  <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
+                                  <Plus className="mr-1 h-3.5 w-3.5" /> Ajouter
                                 </Button>
                               </div>
 
                               {meals.length === 0 ? (
-                                <div className="bg-gray-50 rounded-lg p-6 text-center">
-                                  <p className="text-gray-500">Aucun repas planifié pour ce jour</p>
+                                <div className="rounded-xl bg-secondary/50 p-6 text-center">
+                                  <p className="font-sans text-muted-foreground">Aucun repas planifié pour ce jour</p>
                                 </div>
                               ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                   <AnimatePresence>
                                     {meals
                                       .filter((meal) => {
@@ -1235,13 +1047,13 @@ export default function MealPlannerPage() {
                                           whileHover="hover"
                                           variants={cardHoverVariants}
                                         >
-                                          <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-200 group">
+                                          <Card className="group overflow-hidden border border-border bg-card transition-shadow duration-300 hover:shadow-card-theme">
                                             <div className="flex">
-                                              <div className="relative w-1/3">
+                                              <div className="relative w-1/3 bg-secondary">
                                                 <Image
                                                   src={
                                                     meal.recipe?.imageUrl
-                                                      ? `http://localhost:8080/uploads/${meal.recipe.imageUrl}`
+                                                      ? `${env.uploadsUrl}/${meal.recipe.imageUrl}`
                                                       : "/placeholder.svg?height=150&width=150"
                                                   }
                                                   alt={meal.recipe?.title || "Recipe"}
@@ -1251,10 +1063,10 @@ export default function MealPlannerPage() {
                                                 {meal.recipe && (
                                                   <button
                                                     className={cn(
-                                                      "absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200",
+                                                      "absolute right-2 top-2 rounded-full bg-card/90 p-1.5 backdrop-blur-sm transition-all duration-200",
                                                       favoriteRecipes.includes(meal.recipe.id)
-                                                        ? "text-rose-500"
-                                                        : "text-gray-400 opacity-0 group-hover:opacity-100",
+                                                        ? "text-primary"
+                                                        : "text-muted-foreground opacity-0 group-hover:opacity-100",
                                                     )}
                                                     onClick={(e) => {
                                                       e.stopPropagation()
@@ -1275,13 +1087,13 @@ export default function MealPlannerPage() {
                                               <div className="w-2/3 p-4">
                                                 <div className="flex justify-between items-start">
                                                   <div>
-                                                    <Badge className={`mb-2 ${getMealTypeColor(meal.mealType)}`}>
+                                                    <Badge variant="outline" className={`mb-2 border ${getMealTypeColor(meal.mealType)}`}>
                                                       <span className="flex items-center">
                                                         {getMealTypeIcon(meal.mealType)}
                                                         {getMealTypeLabel(meal.mealType)}
                                                       </span>
                                                     </Badge>
-                                                    <h4 className="font-medium text-sm line-clamp-1">
+                                                    <h4 className="line-clamp-1 font-sans text-sm font-medium text-foreground">
                                                       {meal.recipe?.title || "Untitled Recipe"}
                                                     </h4>
                                                   </div>
@@ -1290,11 +1102,11 @@ export default function MealPlannerPage() {
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            className="p-1.5 hover:bg-rose-50 rounded-full transition-colors duration-200"
+                                                            className="rounded-full p-1.5 transition-colors duration-200 hover:bg-primary/10"
                                                             onClick={() => openEditDialog(meal)}
                                                             aria-label="Modifier"
                                                           >
-                                                            <Edit className="h-4 w-4 text-gray-500 hover:text-rose-500" />
+                                                            <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
                                                           </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent>
@@ -1306,11 +1118,11 @@ export default function MealPlannerPage() {
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            className="p-1.5 hover:bg-red-50 rounded-full transition-colors duration-200"
+                                                            className="rounded-full p-1.5 transition-colors duration-200 hover:bg-destructive/10"
                                                             onClick={() => confirmDelete(meal.id)}
                                                             aria-label="Supprimer"
                                                           >
-                                                            <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                                                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                                                           </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent>
@@ -1320,7 +1132,7 @@ export default function MealPlannerPage() {
                                                     </TooltipProvider>
                                                   </div>
                                                 </div>
-                                                <div className="flex items-center text-xs text-gray-500 mt-2">
+                                                <div className="mt-2 flex items-center font-sans text-xs text-muted-foreground">
                                                   <Clock className="h-3 w-3 mr-1" />
                                                   <span>
                                                     {(meal.recipe?.preparationTime || 0) +
@@ -1333,7 +1145,7 @@ export default function MealPlannerPage() {
                                                   </span>
                                                 </div>
                                                 {meal.notes && (
-                                                  <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                                                  <p className="mt-2 line-clamp-2 font-sans text-xs text-muted-foreground">
                                                     {meal.notes}
                                                   </p>
                                                 )}
@@ -1346,14 +1158,14 @@ export default function MealPlannerPage() {
                                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                     <Button
                                       variant="outline"
-                                      className="h-full min-h-[100px] border-dashed flex flex-col items-center justify-center gap-2 w-full"
+                                      className="flex h-full min-h-[100px] w-full flex-col items-center justify-center gap-2 border-dashed border-primary/30 text-muted-foreground hover:border-primary hover:bg-primary/5 hover:text-primary"
                                       onClick={() => {
                                         setMealForm((prev) => ({ ...prev, dayOfWeek: day }))
                                         setAddMealDialogOpen(true)
                                       }}
                                     >
-                                      <Plus className="h-5 w-5 text-gray-400" />
-                                      <span className="text-sm text-gray-500">Ajouter un repas</span>
+                                      <Plus className="h-5 w-5" />
+                                      <span className="text-sm">Ajouter un repas</span>
                                     </Button>
                                   </motion.div>
                                 </div>
@@ -1367,12 +1179,12 @@ export default function MealPlannerPage() {
                 </TabsContent>
 
                 <TabsContent value="list" className="mt-0">
-                  <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-white border-b border-gray-100 pb-4">
+                  <Card className="overflow-hidden border border-border bg-card shadow-card-theme">
+                    <CardHeader className="border-b border-border bg-[color:var(--cu-paper)] pb-4">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <Utensils className="h-5 w-5 text-rose-500" />
-                          <CardTitle>Liste des repas</CardTitle>
+                          <Utensils className="h-5 w-5 text-primary" strokeWidth={1.75} />
+                          <CardTitle className="font-serif text-foreground">Liste des repas</CardTitle>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="relative">
@@ -1472,7 +1284,7 @@ export default function MealPlannerPage() {
                           ) : (
                             <Button
                               onClick={() => setAddMealDialogOpen(true)}
-                              className="bg-rose-500 hover:bg-rose-600 text-white"
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground"
                             >
                               <Plus className="h-4 w-4 mr-2" /> Ajouter un repas
                             </Button>
@@ -1496,7 +1308,7 @@ export default function MealPlannerPage() {
                                     <Image
                                       src={
                                         meal.recipe?.imageUrl
-                                          ? `http://localhost:8080/uploads/${meal.recipe.imageUrl}`
+                                          ? `${env.uploadsUrl}/${meal.recipe.imageUrl}`
                                           : "/placeholder.svg?height=64&width=64"
                                       }
                                       alt={meal.recipe?.title || "Recipe"}
@@ -1508,7 +1320,7 @@ export default function MealPlannerPage() {
                                         className={cn(
                                           "absolute top-1 right-1 p-1 rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200",
                                           favoriteRecipes.includes(meal.recipe.id)
-                                            ? "text-rose-500"
+                                            ? "text-primary"
                                             : "text-gray-400 opacity-0 hover:opacity-100",
                                         )}
                                         onClick={(e) => {
@@ -1526,7 +1338,7 @@ export default function MealPlannerPage() {
                                   <div className="ml-4 flex-1 min-w-0">
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                                       <div>
-                                        <Badge className={`${getMealTypeColor(meal.mealType)} mb-1`}>
+                                        <Badge variant="outline" className={`mb-1 border ${getMealTypeColor(meal.mealType)}`}>
                                           <span className="flex items-center">
                                             {getMealTypeIcon(meal.mealType)}
                                             {getMealTypeLabel(meal.mealType)}
@@ -1562,7 +1374,7 @@ export default function MealPlannerPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-8 px-2 text-gray-500 hover:text-rose-500 hover:bg-rose-50"
+                                          className="h-8 px-2 text-gray-500 hover:text-primary hover:bg-primary/5"
                                           onClick={() => openEditDialog(meal)}
                                         >
                                           <Edit className="h-3.5 w-3.5 mr-1" />
@@ -1629,13 +1441,13 @@ export default function MealPlannerPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto p-2 border rounded-md">
                 {loadingRecipes ? (
                   <div className="col-span-full text-center py-4">
-                    <Loader2 className="h-6 w-6 text-rose-500 animate-spin mx-auto" />
+                    <Loader2 className="h-6 w-6 text-primary animate-spin mx-auto" />
                     <p className="text-sm text-gray-500 mt-2">Chargement des recettes...</p>
                   </div>
                 ) : recipes.length === 0 ? (
                   <div className="col-span-full text-center py-4">
                     <p className="text-gray-500">Aucune recette disponible</p>
-                    <Link to="/home" className="text-rose-500 text-sm hover:underline mt-1 inline-block">
+                    <Link to="/home" className="text-primary text-sm hover:underline mt-1 inline-block">
                       Ajouter une recette
                     </Link>
                   </div>
@@ -1650,7 +1462,7 @@ export default function MealPlannerPage() {
                         key={recipe.id}
                         className={`p-2 rounded-lg border cursor-pointer flex items-center gap-3 transition-all duration-200 ${
                           selectedRecipe?.id === recipe.id
-                            ? "border-rose-500 bg-rose-50 shadow-sm"
+                            ? "border-primary bg-primary/5 shadow-sm"
                             : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                         }`}
                         onClick={() => setSelectedRecipe(recipe)}
@@ -1659,7 +1471,7 @@ export default function MealPlannerPage() {
                           <Image
                             src={
                               recipe.imageUrl
-                                ? `http://localhost:8080/uploads/${recipe.imageUrl}`
+                                ? `${env.uploadsUrl}/${recipe.imageUrl}`
                                 : "/placeholder.svg?height=50&width=50"
                             }
                             alt={recipe.title}
@@ -1675,7 +1487,7 @@ export default function MealPlannerPage() {
                           </div>
                         </div>
                         {selectedRecipe?.id === recipe.id && (
-                          <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                             <Check className="h-3 w-3 text-white" />
                           </div>
                         )}
@@ -1762,7 +1574,7 @@ export default function MealPlannerPage() {
               Annuler
             </Button>
             <Button
-              className="bg-rose-500 hover:bg-rose-600 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={handleAddMeal}
               disabled={!selectedRecipe}
             >
@@ -1786,7 +1598,7 @@ export default function MealPlannerPage() {
                   <Image
                     src={
                       currentMeal.recipe.imageUrl
-                        ? `http://localhost:8080/uploads/${currentMeal.recipe.imageUrl}`
+                        ? `${env.uploadsUrl}/${currentMeal.recipe.imageUrl}`
                         : "/placeholder.svg?height=64&width=64"
                     }
                     alt={currentMeal.recipe.title}
@@ -1897,7 +1709,7 @@ export default function MealPlannerPage() {
             <Button variant="outline" onClick={() => setEditMealDialogOpen(false)}>
               Annuler
             </Button>
-            <Button className="bg-rose-500 hover:bg-rose-600 text-white" onClick={handleEditMeal}>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleEditMeal}>
               Enregistrer les modifications
             </Button>
           </DialogFooter>
@@ -1976,7 +1788,7 @@ export default function MealPlannerPage() {
                 Fermer
               </Button>
               <Button
-                className="bg-rose-500 hover:bg-rose-600 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => {
                   // Export shopping list as PDF
                   const doc = new jsPDF({
@@ -1987,7 +1799,7 @@ export default function MealPlannerPage() {
 
                   // Add title
                   doc.setFontSize(20)
-                  doc.setTextColor(229, 29, 72) // Rose color
+                  doc.setTextColor(46, 125, 50) // Rose color
                   doc.text("Liste de Courses", 105, 20, { align: "center" })
 
                   doc.setFontSize(12)
@@ -2044,7 +1856,7 @@ export default function MealPlannerPage() {
             <div className="space-y-4 max-h-[400px] overflow-y-auto">
               {loadingRecipes ? (
                 <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 text-rose-500 animate-spin mx-auto" />
+                  <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto" />
                   <p className="text-sm text-gray-500 mt-2">Chargement des recettes...</p>
                 </div>
               ) : recipes.filter(
@@ -2068,7 +1880,7 @@ export default function MealPlannerPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       whileHover={{ scale: 1.01 }}
-                      className="flex items-center gap-4 p-3 border rounded-lg hover:border-rose-200 hover:bg-rose-50/30 cursor-pointer"
+                      className="flex items-center gap-4 p-3 border rounded-lg hover:border-primary/30 hover:bg-primary/5 cursor-pointer"
                       onClick={() => {
                         setSelectedRecipe(recipe)
                         setMealForm((prev) => ({
@@ -2083,7 +1895,7 @@ export default function MealPlannerPage() {
                         <Image
                           src={
                             recipe.imageUrl
-                              ? `http://localhost:8080/uploads/${recipe.imageUrl}`
+                              ? `${env.uploadsUrl}/${recipe.imageUrl}`
                               : "/placeholder.svg?height=64&width=64"
                           }
                           alt={recipe.title}
@@ -2141,29 +1953,7 @@ export default function MealPlannerPage() {
           </motion.div>
         )}
       </AnimatePresence>
-       {/* Footer */}
-       <footer className="py-8 px-4 bg-white border-t border-gray-100">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <ChefHat className="h-5 w-5 text-rose-500" />
-              <span className="font-medium">Cuisenio</span>
-            </div>
-            <div className="flex space-x-6">
-              {["Confidentialité", "Conditions", "Contact"].map((item) => (
-                <Link key={item} to="#" className="text-sm text-gray-500 hover:text-rose-500 transition-colors">
-                  {item}
-                </Link>
-              ))}
-            </div>
-            <div className="text-sm text-gray-500 mt-4 md:mt-0">
-              © {new Date().getFullYear()} Cuisenio. Tous droits réservés.
-            </div>
-          </div>
-        </div>
-      </footer>
-
-    </div>
+    </AppShell>
   )
 }
 

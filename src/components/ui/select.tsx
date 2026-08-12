@@ -37,7 +37,7 @@ const Select = React.forwardRef<React.ElementRef<typeof SelectPrimitive.Trigger>
           {label && (
             <label
               htmlFor={id}
-              className={cn("text-sm font-medium text-gray-900 dark:text-gray-100", error && "text-red-500")}
+              className={cn("text-sm font-medium text-foreground", error && "text-red-500")}
             >
               {label}
             </label>
@@ -45,7 +45,7 @@ const Select = React.forwardRef<React.ElementRef<typeof SelectPrimitive.Trigger>
           <SelectPrimitive.Trigger ref={ref} id={id}>
             {children}
           </SelectPrimitive.Trigger>
-          {helperText && !error && <p className="text-xs text-gray-500">{helperText}</p>}
+          {helperText && !error && <p className="text-xs text-muted-foreground">{helperText}</p>}
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
       </SelectPrimitive.Root>
@@ -70,8 +70,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex items-center justify-between rounded-md border bg-white text-gray-900 ring-offset-white",
-      "placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+      "flex items-center justify-between rounded-md border bg-background text-foreground ring-offset-background transition-colors duration-200 ease-out",
+      "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
       {
         // Size variants
         "h-8 px-3 text-xs": size === "sm",
@@ -79,11 +79,11 @@ const SelectTrigger = React.forwardRef<
         "h-12 px-4 text-base": size === "lg",
 
         // Style variants
-        "border-gray-300 focus:border-rose-500 focus:ring-rose-500/20": variant === "default" && !error,
-        "border-transparent bg-gray-100 focus:bg-white focus:border-rose-500 focus:ring-rose-500/20":
+        "border-input focus:border-ring focus:ring-ring/20": variant === "default" && !error,
+        "border-transparent bg-muted focus:bg-background focus:border-ring focus:ring-ring/20":
           variant === "filled" && !error,
-        "border-gray-300 bg-transparent focus:border-rose-500 focus:ring-rose-500/20": variant === "outline" && !error,
-        "border-transparent bg-transparent hover:bg-gray-50 focus:bg-gray-50 focus:ring-rose-500/20":
+        "border-input bg-transparent focus:border-ring focus:ring-ring/20": variant === "outline" && !error,
+        "border-transparent bg-transparent hover:bg-muted focus:bg-muted focus:ring-ring/20":
           variant === "ghost" && !error,
 
         // Error state
@@ -94,9 +94,9 @@ const SelectTrigger = React.forwardRef<
     {...props}
   >
     <div className="flex items-center gap-2 w-full">
-      {startIcon && <span className="flex-shrink-0 text-gray-500">{startIcon}</span>}
+      {startIcon && <span className="flex-shrink-0 text-muted-foreground">{startIcon}</span>}
       <span className="flex-grow truncate">{children}</span>
-      {endIcon && <span className="flex-shrink-0 text-gray-500">{endIcon}</span>}
+      {endIcon && <span className="flex-shrink-0 text-muted-foreground">{endIcon}</span>}
     </div>
     <SelectPrimitive.Icon asChild>
       <ChevronDown
@@ -147,8 +147,7 @@ const SelectContent = React.forwardRef<
       <SelectPrimitive.Content
         ref={ref}
         className={cn(
-          "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white text-gray-900 shadow-md",
-          "dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50",
+          "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md",
           position === "popper" && "translate-y-1",
           className,
         )}
@@ -190,7 +189,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-gray-900 dark:text-gray-100", className)}
+    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-foreground", className)}
     {...props}
   />
 ))
@@ -207,9 +206,8 @@ const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none",
-      "data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-700",
-      "dark:data-[highlighted]:bg-rose-900/20 dark:data-[highlighted]:text-rose-300",
-      "focus:bg-rose-50 focus:text-rose-700 dark:focus:bg-rose-900/20 dark:focus:text-rose-300",
+      "data-[highlighted]:bg-primary/10 data-[highlighted]:text-foreground",
+      "focus:bg-primary/10 focus:text-foreground",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       "transition-colors duration-150",
       className,
@@ -218,16 +216,16 @@ const SelectItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-rose-500" />
+        <Check className="h-4 w-4 text-primary" />
       </SelectPrimitive.ItemIndicator>
     </span>
 
     <div className="flex flex-col">
       <div className="flex items-center">
-        {icon && <span className="mr-2 text-gray-500">{icon}</span>}
+        {icon && <span className="mr-2 text-muted-foreground">{icon}</span>}
         <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
       </div>
-      {description && <span className="text-xs text-gray-500">{description}</span>}
+      {description && <span className="text-xs text-muted-foreground">{description}</span>}
     </div>
   </SelectPrimitive.Item>
 ))

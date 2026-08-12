@@ -1,6 +1,5 @@
 "use client"
 
-import React from "react"
 import type { RecipeCommentResponse } from "../../types/recipe.types"
 import type { Recipe } from "../../types/recipe.types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
@@ -58,7 +57,7 @@ const CommentDialog = ({
                 size="sm"
                 onClick={onAddComment}
                 disabled={!newComment.trim()}
-                className="bg-rose-500 hover:bg-rose-600 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Publier</span>

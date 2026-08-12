@@ -20,9 +20,9 @@ const avatarVariants = cva("relative overflow-hidden flex items-center justify-c
     },
     border: {
       none: "",
-      thin: "border border-gray-200",
-      thick: "border-2 border-gray-200",
-      accent: "border-2 border-rose-500",
+      thin: "border border-border",
+      thick: "border-2 border-border",
+      accent: "border-2 border-primary",
     },
     status: {
       none: "",
@@ -75,7 +75,7 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
             onError={() => setHasError(true)}
           />
         ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-500">
+          <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
             {fallback || <span className="uppercase">{alt?.charAt(0) || "U"}</span>}
           </div>
         )}
@@ -103,7 +103,7 @@ export const AvatarGroup = React.forwardRef<HTMLDivElement, React.HTMLAttributes
           <div
             className={cn(
               avatarVariants({ size: "md", shape: "circle", border: "thin" }),
-              "bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600",
+              "flex items-center justify-center bg-muted text-sm font-medium text-muted-foreground",
             )}
             style={{ zIndex: 0 }}
           >
@@ -134,7 +134,7 @@ AvatarImage.displayName = "AvatarImage"
 export const AvatarFallback = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div ref={ref} className={cn("w-full h-full bg-gray-100 flex items-center justify-center", className)} {...props}>
+      <div ref={ref} className={cn("flex h-full w-full items-center justify-center bg-muted", className)} {...props}>
         {children}
       </div>
     )

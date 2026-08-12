@@ -1,28 +1,23 @@
 
 import {
   BookmarkIcon,
-  ChefHat,
-  ChevronDown,
   Clock,
+  Flag,
   Filter,
   Heart,
-  Menu,
   MessageCircle,
   Plus,
   Search,
   Send,
   User,
-  X,
-  CheckCircle,
   Edit,
   Trash2,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { Avatar , AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
-import { AnimatePresence, motion } from "framer-motion"
 import { Card, CardContent, CardFooter, CardHeader } from "../../components/ui/card"
 import { Checkbox } from "../../components/ui/checkbox"
 import {
@@ -30,28 +25,29 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogTrigger,
 } from "../../components/ui/dialog"
-import {
-  DropdownMenu,
-
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu"
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog"
+import { AppShell } from "../../components/layout/AppShell"
+import { env } from "../../lib/env"
 import { Label } from "../../components/ui/label"
 import { Slider } from "../../components/ui/slider"
 import { Tabs, TabsContent} from "../../components/ui/tabs"
 import { Textarea } from "../../components/ui/textarea"
+import { AsyncSection, type AsyncStatus } from "../../components/ui/async-section"
+import { ListSkeleton } from "../../components/ui/list-skeleton"
 import { useRecipe } from "../../hooks/useRecipe"
 import { useComments } from "../../hooks/useComments"
+import { useOptimisticMutation } from "../../hooks/useOptimisticMutation"
 import { cn } from "../../lib/utils"
 import { useAuthStore } from "../../store/auth.store"
+import { useNotification } from "../../context/NotificationContext"
 import type { RecipeResponse } from "../../types/recipe.types"
 
-import { authService } from "../../api/auth.service"
 import { recipeService } from "../../api/recipe.service"
 import AddRecipeDialog from "./AddRecipeForm"
 import { ImageUploadDialog } from "./add-image"
+import { useRecentlyViewedStore } from "../../store/recently-viewed.store"
 
 interface ImageProps {
   src: string
@@ -60,6 +56,12 @@ interface ImageProps {
   height?: number
   className?: string
   fill?: boolean
+}
+
+type CommunityRecipe = RecipeResponse & {
+  isLiked?: boolean
+  isSaved?: boolean
+  optimisticRatingCount?: number
 }
 
 const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
@@ -80,21 +82,23 @@ const Image = ({ src, alt, width, height, className, fill }: ImageProps) => {
 }
 
 export default function CommunityPage() {
+  const [searchParams] = useSearchParams()
   const { isAuthenticated, user } = useAuthStore()
+  const recentRecipes = useRecentlyViewedStore((s) => s.items)
+  const { success: notifySuccess, error: notifyError } = useNotification()
+  const { runOptimisticMutation } = useOptimisticMutation()
   const { recipes, loading, error, page, totalPages, fetchRecipes, searchRecipes, createRecipe, nextPage, prevPage } =
     useRecipe({ pageSize: 9 })
+  const [feedRecipes, setFeedRecipes] = useState<CommunityRecipe[]>([])
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [commentText, setCommentText] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") ?? "")
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
   const [replyText, setReplyText] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [addRecipeDialogOpen, setAddRecipeDialogOpen] = useState(false)
   const [commentDialogOpen, setCommentDialogOpen] = useState(false)
   const [activeRecipe, setActiveRecipe] = useState<RecipeResponse | null>(null)
-  const [successMessage, setSuccessMessage] = useState("")
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
 
@@ -105,7 +109,6 @@ export default function CommunityPage() {
   const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [recipeId, setRecipeId] = useState<number | null>(null)
-  const navigate = useNavigate()
 
   const { comments, loading: commentsLoading, error: commentsError, fetchComments, addComment } = useComments()
 
@@ -119,26 +122,20 @@ export default function CommunityPage() {
     setShowFilters(false)
   }
 
-  const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen)
-
   const handleCommentSubmit = async () => {
     if (!activeRecipe || !commentText.trim()) return
 
     try {
       await addComment(activeRecipe.id, commentText)
       setCommentText("")
-      setSuccessMessage("Commentaire ajouté avec succès!")
-      setShowSuccessModal(true)
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Error posting comment:", error)
+      notifySuccess("Commentaire ajouté", "Votre commentaire a été publié avec succès.")
+    } catch {
+      notifyError("Erreur", "Impossible d'ajouter le commentaire. Veuillez réessayer.")
     }
   }
 
   const handleReplySubmit = (commentId: number) => {
-    console.log("Posted reply to comment", commentId, ":", replyText)
+    void commentId
     setReplyText("")
     setActiveCommentId(null)
   }
@@ -173,21 +170,36 @@ export default function CommunityPage() {
   const handleDeleteRecipe = async () => {
     if (!recipeToDelete) return
 
+    const targetId = recipeToDelete
+    setConfirmDeleteOpen(false)
+    setRecipeToDelete(null)
+
     try {
-      await recipeService.deleteRecipe(recipeToDelete)
-      setSuccessMessage("Recette supprimée avec succès!")
-      setShowSuccessModal(true)
-      fetchRecipes() 
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Error deleting recipe:", error)
-      setSuccessMessage("Erreur lors de la suppression de la recette")
-      setShowSuccessModal(true)
-    } finally {
-      setConfirmDeleteOpen(false)
-      setRecipeToDelete(null)
+      await runOptimisticMutation({
+        applyOptimistic: () => {
+          const snapshot = feedRecipes
+          setFeedRecipes((prev) => prev.filter((recipe) => recipe.id !== targetId))
+          return snapshot
+        },
+        mutation: () => recipeService.deleteRecipe(targetId),
+        rollback: (snapshot) => setFeedRecipes(snapshot),
+        onSuccess: () => {
+          notifySuccess("Recette archivée", "Cette recette n'est plus visible sur la plateforme.")
+        },
+        onError: (_error, retry) => {
+          notifyError("Archivage annulé", "La recette n'a pas pu être archivée.", {
+            action: {
+              label: "Réessayer",
+              onClick: () => {
+                void retry()
+              },
+            },
+            durationMs: 6500,
+          })
+        },
+      })
+    } catch {
+      // Rollback and toast are handled by the optimistic hook callbacks.
     }
   }
 
@@ -201,6 +213,17 @@ export default function CommunityPage() {
   }, [fetchRecipes])
 
   useEffect(() => {
+    setFeedRecipes(
+      recipes.map((recipe) => ({
+        ...recipe,
+        optimisticRatingCount: recipe.totalRatings ?? 0,
+        isLiked: false,
+        isSaved: false,
+      })),
+    )
+  }, [recipes])
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchTerm) {
         handleSearch()
@@ -211,25 +234,6 @@ export default function CommunityPage() {
 
     return () => clearTimeout(delayDebounceFn)
   }, [searchTerm, handleSearch, fetchRecipes])
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout()
-      setSuccessMessage("Déconnexion réussie !")
-      setShowSuccessModal(true)
-      setTimeout(() => {
-        setShowSuccessModal(false)
-        navigate("/login")
-      }, 2000)
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion :", error)
-      setSuccessMessage("Erreur lors de la déconnexion. Veuillez réessayer.")
-      setShowSuccessModal(true)
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    }
-  }
 
   const categories = [
     { value: "1", label: "Desserts" },
@@ -257,29 +261,119 @@ export default function CommunityPage() {
     { value: "HARD", label: "Difficile" },
   ]
 
-  if (loading && recipes.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des recettes...</p>
-        </div>
-      </div>
-    )
+  const feedStatus: AsyncStatus = loading && feedRecipes.length === 0 ? "loading" : error && feedRecipes.length === 0 ? "error" : feedRecipes.length === 0 ? "empty" : "success"
+  const isRefreshingFeed = loading && feedRecipes.length > 0
+
+  const handleOptimisticLike = async (recipeId: number) => {
+    const currentRecipe = feedRecipes.find((recipe) => recipe.id === recipeId)
+    if (!currentRecipe) return
+
+    const nextIsLiked = !currentRecipe.isLiked
+
+    try {
+      await runOptimisticMutation({
+        applyOptimistic: () => {
+          const snapshot = feedRecipes
+          setFeedRecipes((prev) =>
+            prev.map((recipe) =>
+              recipe.id === recipeId
+                ? {
+                    ...recipe,
+                    isLiked: nextIsLiked,
+                    optimisticRatingCount: Math.max(0, (recipe.optimisticRatingCount ?? recipe.totalRatings ?? 0) + (nextIsLiked ? 1 : -1)),
+                  }
+                : recipe,
+            ),
+          )
+          return snapshot
+        },
+        // Temporary bridge until a dedicated like/unlike endpoint is available.
+        mutation: () => recipeService.rateRecipe(recipeId, nextIsLiked ? 5 : 1),
+        rollback: (snapshot) => setFeedRecipes(snapshot),
+        onError: (_error, retry) => {
+          notifyError("Action annulée", "Le like n'a pas été enregistré.", {
+            action: {
+              label: "Réessayer",
+              onClick: () => {
+                void retry()
+              },
+            },
+            durationMs: 6500,
+          })
+        },
+      })
+    } catch {
+      // Rollback and toast are handled by the optimistic hook callbacks.
+    }
   }
 
-  if (error && recipes.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-xl mb-4">Une erreur est survenue</div>
-          <p className="text-gray-600">Impossible de charger les recettes. Veuillez réessayer plus tard.</p>
-          <Button onClick={() => fetchRecipes()} className="mt-4 bg-rose-500 hover:bg-rose-600 text-white">
-            Réessayer
-          </Button>
-        </div>
-      </div>
-    )
+  const handleOptimisticBookmark = async (recipeId: number) => {
+    const currentRecipe = feedRecipes.find((recipe) => recipe.id === recipeId)
+    if (!currentRecipe) return
+
+    const nextIsSaved = !currentRecipe.isSaved
+
+    try {
+      await runOptimisticMutation({
+        applyOptimistic: () => {
+          const snapshot = feedRecipes
+          setFeedRecipes((prev) =>
+            prev.map((recipe) =>
+              recipe.id === recipeId
+                ? {
+                    ...recipe,
+                    isSaved: nextIsSaved,
+                  }
+                : recipe,
+            ),
+          )
+          return snapshot
+        },
+        mutation: () => (nextIsSaved ? recipeService.saveRecipe(recipeId) : recipeService.unsaveRecipe(recipeId)),
+        rollback: (snapshot) => setFeedRecipes(snapshot),
+        onSuccess: () => {
+          notifySuccess(
+            nextIsSaved ? "Recette sauvegardée" : "Recette retirée",
+            nextIsSaved ? "La recette a été ajoutée à vos favoris." : "La recette a été retirée de vos favoris.",
+          )
+        },
+        onError: (_error, retry) => {
+          notifyError("Action annulée", "La sauvegarde n'a pas été synchronisée.", {
+            action: {
+              label: "Réessayer",
+              onClick: () => {
+                void retry()
+              },
+            },
+            durationMs: 6500,
+          })
+        },
+      })
+    } catch {
+      // Rollback and toast are handled by the optimistic hook callbacks.
+    }
+  }
+
+  const handleReportRecipe = async (recipeId: number) => {
+    const reason = window.prompt("Raison du signalement")
+    if (!reason?.trim()) return
+    try {
+      const response = await recipeService.reportRecipe(recipeId, reason.trim())
+      notifySuccess("Recette signalee", `${response.reportCount} signalement(s) pour cette recette.`)
+    } catch {
+      notifyError("Erreur", "Impossible de signaler la recette.")
+    }
+  }
+
+  const handleReportComment = async (recipeId: number, commentId: number) => {
+    const reason = window.prompt("Raison du signalement du commentaire")
+    if (!reason?.trim()) return
+    try {
+      const response = await recipeService.reportComment(recipeId, commentId, reason.trim())
+      notifySuccess("Commentaire signale", `${response.reportCount} signalement(s) pour ce commentaire.`)
+    } catch {
+      notifyError("Erreur", "Impossible de signaler le commentaire.")
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -291,108 +385,45 @@ export default function CommunityPage() {
     })
   }
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      {/* Navigation */}
-      <header className="fixed top-0 left-0 w-full bg-white z-50 border-b border-gray-100 shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <ChefHat className="h-6 w-6 text-rose-500" />
-            <span className="font-medium text-xl">Cuisenio</span>
-          </Link>
-
-          <nav
-            className={`${mobileMenuOpen ? "flex" : "hidden"} md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent p-6 md:p-0 space-y-4 md:space-y-0 md:space-x-6 items-center shadow-md md:shadow-none z-50`}
-          >
-            {["Communauté", "Planificateur", ].map((item) => (
-          <Link
-          key={item}
-          to={
-            item === "Communauté"
-              ? "/home"
-              : item === "Planificateur"
-              ? "/meal-planner"
-              : "/"
-          }
-          className={`text-sm font-medium transition-colors duration-200 ${
-            item === "Communauté" ? "text-rose-500" : "text-gray-600 hover:text-rose-500"
-          }`}
-        >
-          {item}
-        </Link>
-      ))}
-    
-      {/* Ajout de Profile et Logout */}
-      <Link
-        to="/profile"
-        className="text-sm font-medium text-gray-600 hover:text-rose-500"
-      >
-        Profile
-      </Link>
-    
-      <button
-        onClick={handleLogout}
-        className="text-sm font-medium text-red-600 hover:text-red-700"
-      >
-        Se déconnecter
-      </button>
-
-            {/* Add Recipe Button */}
+    <AppShell>
+      {/* Main Content */}
+      <main className="px-4 pb-4 pt-6">
+        <div className="container mx-auto max-w-6xl">
+          {/* Community Header */}
+          <div className="mb-10 text-center">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Explorer</h1>
+            <p className="text-gray-600 max-w-2xl mx-auto mb-6">
+              Recherche avancée, filtres et fil communautaire — pour trouver exactement ce que vous allez cuisiner.
+            </p>
             {isAuthenticated && (
               <Button
                 onClick={() => setAddRecipeDialogOpen(true)}
-                className="bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1.5 mx-auto"
               >
                 <Plus className="h-4 w-4" /> Ajouter une recette
               </Button>
             )}
-
-
-
-            {/* User menu */}
-            {isAuthenticated ? (
-          <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 p-2">
-              <Avatar className="h-8 w-8 border">
-                {user?.profilePicture ? (
-                  <AvatarImage src={user.profilePicture} alt={user.username || "Utilisateur"} />
-                ) : (
-                  <AvatarFallback>
-                    <User className="text-[#E57373]" />
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <span className="text-sm font-medium hidden md:inline">{user?.username || "Utilisateur"}</span>
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            </Button>
-          </DropdownMenuTrigger>
-
-        
-        </DropdownMenu>
-            ) : (
-              <Link to="/login">
-                <Button className="bg-rose-500 hover:bg-rose-600 text-white">Se connecter</Button>
-              </Link>
-            )}
-          </nav>
-
-          <button onClick={toggleMobileMenu} className="md:hidden text-gray-800">
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="pt-24 pb-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          {/* Community Header */}
-          <div className="mb-10 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Communauté Cuisenio</h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Partagez vos créations culinaires, découvrez de nouvelles recettes et échangez avec d'autres passionnés de
-              cuisine
-            </p>
           </div>
+
+          {recentRecipes.length > 0 && (
+            <section className="mb-8" aria-label="Récemment consultées">
+              <h2 className="mb-3 text-left text-sm font-semibold uppercase tracking-wide text-primary">
+                Continuer · récemment vues
+              </h2>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {recentRecipes.map((r) => (
+                  <Link
+                    key={r.id}
+                    to={`/recipe/${r.id}`}
+                    className="min-w-[180px] rounded-xl border border-gray-100 bg-white px-3 py-2 text-left shadow-sm transition hover:border-primary/30 hover:shadow"
+                  >
+                    <p className="truncate text-sm font-medium text-gray-900">{r.title}</p>
+                    <p className="text-[11px] text-gray-400">Reprendre la lecture</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Search and Filter Bar */}
           <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 p-4">
@@ -404,7 +435,7 @@ export default function CommunityPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Rechercher..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-rose-500 focus:ring focus:ring-rose-200 transition"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring focus:ring-primary/20 transition"
                 />
               </div>
 
@@ -538,7 +569,7 @@ export default function CommunityPage() {
                     >
                       Réinitialiser
                     </Button>
-                    <Button className="bg-rose-500 hover:bg-rose-600 text-white" onClick={applyFilters}>
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={applyFilters}>
                       Appliquer les filtres
                     </Button>
                   </div>
@@ -578,177 +609,252 @@ export default function CommunityPage() {
 
             <TabsContent value="recettes" className="space-y-8">
               {/* All Recipes as Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recipes.length > 0 ? (
-                  recipes.map((recipe, index) => (
-                    <Card
-                      key={recipe.id}
-                      className={cn(
-                        "overflow-hidden group cursor-pointer hover:shadow-md transition-shadow",
-                        index === 0 ? "sm:col-span-2 lg:col-span-3" : "",
-                      )}
-                    >
-                      <div className={cn("relative", index === 0 ? "h-64 md:h-80" : "h-48")}>
-                        {recipe.imageUrl ? (
-                          <Link to={`/recipe/${recipe.id}`}>
-                            <Image
-                              src={"http://localhost:8080/uploads/" + recipe.imageUrl || "/placeholder.svg"}
-                              alt={recipe.title}
-                              fill
-                              className="object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                          </Link>
-                        ) : (
-                          <div
-                            onClick={() => handleAddImageClick(recipe.id)}
-                            className="w-full h-full flex flex-col items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
-                          >
-                            <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
-                              <Plus className="h-6 w-6 text-rose-500" />
-                            </div>
-                            <p className="text-sm font-medium text-gray-700">Ajouter une image</p>
-                            <p className="text-xs text-gray-500 mt-1">Cliquez pour télécharger</p>
-                          </div>
-                        )}
-                        {recipe.averageRating >= 4.5 && (
-                          <div className="absolute top-4 left-4">
-                            <Badge className="bg-rose-500 text-white">Tendance</Badge>
-                          </div>
-                        )}
-                        <div className="absolute top-2 right-2 p-2 flex space-x-1">
-                          <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
-                            <Heart className="h-4 w-4 text-gray-600 hover:text-rose-500" />
-                          </button>
-                          <button className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors">
-                            <BookmarkIcon className="h-4 w-4 text-gray-600 hover:text-rose-500" />
-                          </button>
-                     
-
-                          {/* Show edit/delete buttons if user is the recipe owner */}
-                          {user && recipe.user && user.id === recipe.user.id && (
-                            <>
-                              <Link
-                                to={`/edit-recipe/${recipe.id}`}
-                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
-                              >
-                                <Edit className="h-4 w-4 text-gray-600 hover:text-rose-500" />
+              <AsyncSection
+                status={feedStatus}
+                loadingView={<ListSkeleton count={9} />}
+                errorView={
+                  <div className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+                    <p className="mb-2 text-lg font-semibold text-foreground">Une erreur est survenue</p>
+                    <p className="text-sm text-muted-foreground">Impossible de charger les recettes. Veuillez réessayer.</p>
+                    <Button onClick={() => fetchRecipes()} className="mt-4">
+                      Réessayer
+                    </Button>
+                  </div>
+                }
+                emptyView={
+                  <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
+                    <p className="text-base font-medium text-foreground">Aucune recette trouvée</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Essayez un autre filtre ou ajustez votre recherche.
+                    </p>
+                  </div>
+                }
+                successView={
+                  <div className="relative">
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {feedRecipes.map((recipe, index) => (
+                        <Card
+                          key={recipe.id}
+                          className={cn(
+                            "overflow-hidden group cursor-pointer hover:shadow-md transition-shadow",
+                            index === 0 ? "sm:col-span-2 lg:col-span-3" : "",
+                          )}
+                        >
+                          <div className={cn("relative", index === 0 ? "h-64 md:h-80" : "h-48")}>
+                            {recipe.imageUrl ? (
+                              <Link to={`/recipe/${recipe.id}`}>
+                                <Image
+                                  src={`${env.uploadsUrl}/${recipe.imageUrl}`}
+                                  alt={recipe.title}
+                                  fill
+                                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
                               </Link>
+                            ) : user?.id === recipe.user?.id ? (
+                              <div
+                                onClick={() => handleAddImageClick(recipe.id)}
+                                className="w-full h-full flex flex-col items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
+                              >
+                                <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
+                                  <Plus className="h-6 w-6 text-primary" />
+                                </div>
+                                <p className="text-sm font-medium text-gray-700">Ajouter une image</p>
+                                <p className="text-xs text-gray-500 mt-1">Cliquez pour télécharger</p>
+                              </div>
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                <p className="text-sm text-gray-400">Aucune image</p>
+                              </div>
+                            )}
+                            {recipe.averageRating >= 4.5 && (
+                              <div className="absolute top-4 left-4">
+                                <Badge className="bg-primary text-white">Tendance</Badge>
+                              </div>
+                            )}
+                            <div className="absolute top-2 right-2 p-2 flex space-x-1">
                               <button
+                                type="button"
                                 className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  confirmDelete(recipe.id)
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  void handleOptimisticLike(recipe.id)
                                 }}
                               >
-                                <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-500" />
+                                <Heart
+                                  className={cn(
+                                    "h-4 w-4 transition-colors",
+                                    recipe.isLiked ? "text-primary" : "text-gray-600 hover:text-primary",
+                                  )}
+                                  fill={recipe.isLiked ? "currentColor" : "none"}
+                                />
                               </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <CardContent className="p-4">
-                        <Link to={`/recipe/${recipe.id}`}>
-                          <h3 className="text-lg font-medium mb-1 group-hover:text-rose-500 transition-colors">
-                            {recipe.title}
-                          </h3>
-                        </Link>
-                        <div className="flex justify-between text-sm text-gray-500 mb-2">
-                          <span>
-                            Par{" "}
-                            {[recipe.user?.username, recipe.user?.lastName].filter(Boolean).join(" ") ||
-                              "Chef inconnu"}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime} min
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
-
-                        {index === 0 && recipe.categories && (
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {recipe.categories.map((category) => (
-                              <Badge key={category.id} className="bg-rose-100 text-rose-700 hover:bg-rose-200">
-                                {category.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        {index === 0 && (
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                            <Avatar className="h-8 w-8 border">
-                 {user?.profilePicture ? (
-                   <AvatarImage
-                     src={user.profilePicture}
-                     alt={user.username || "Utilisateur"}
-                   />
-                 ) : (
-                   <AvatarFallback>
-                     <User className="text-[#E57373] text-2xl" />
-                   </AvatarFallback>
-                 )}
-               </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">{recipe.user?.username || "Chef inconnu"}</p>
-                                <p className="text-xs text-gray-500">
-                                  Partagé le{" "}
-                                  <span className="text-sm text-gray-500">{formatDate(recipe.creationDate)}</span>
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {index === 0 && (
-                          <div className="flex justify-between items-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-rose-500 border-rose-200"
-                              onClick={() => openCommentDialog(recipe)}
-                            >
-                              <MessageCircle className="h-4 w-4 mr-1" /> Commenter
-                            </Button>
-                            <Link to={`/recipe/${recipe.id}`}>
-                              <Button className="bg-rose-500 hover:bg-rose-600 text-white">Voir la recette</Button>
-                            </Link>
-                          </div>
-                        )}
-                      </CardContent>
-
-                      {index !== 0 && (
-                        <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                          <div className="flex justify-between items-center w-full">
-                            <div className="flex items-center text-sm text-gray-500">
-                              <span className="flex items-center mr-3">
-                                <Heart className="h-3 w-3 mr-1" /> {recipe.totalRatings || 0}
-                              </span>
                               <button
-                                className="flex items-center hover:text-rose-500"
-                                onClick={() => openCommentDialog(recipe)}
+                                type="button"
+                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  void handleReportRecipe(recipe.id)
+                                }}
+                                aria-label="Signaler la recette"
                               >
-                                <MessageCircle className="h-3 w-3 mr-1" /> {recipe.totalComments || 0}
+                                <Flag className="h-4 w-4 text-gray-600 hover:text-primary" />
                               </button>
+                              <button
+                                type="button"
+                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  void handleOptimisticBookmark(recipe.id)
+                                }}
+                              >
+                                <BookmarkIcon
+                                  className={cn(
+                                    "h-4 w-4 transition-colors",
+                                    recipe.isSaved ? "text-primary" : "text-gray-600 hover:text-primary",
+                                  )}
+                                  fill={recipe.isSaved ? "currentColor" : "none"}
+                                />
+                              </button>
+
+                              {/* Show edit/delete buttons if user is the recipe owner */}
+                              {user && recipe.user && user.id === recipe.user.id && (
+                                <>
+                                  <Link
+                                    to={`/edit-recipe/${recipe.id}`}
+                                    className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                  >
+                                    <Edit className="h-4 w-4 text-gray-600 hover:text-primary" />
+                                  </Link>
+                                  <button
+                                    className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      confirmDelete(recipe.id)
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-500" />
+                                  </button>
+                                </>
+                              )}
                             </div>
-                            <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200">
-                              {recipe.difficultyLevel === "EASY"
-                                ? "Facile"
-                                : recipe.difficultyLevel === "INTERMEDIATE"
-                                  ? "Intermédiaire"
-                                  : "Difficile"}
-                            </Badge>
                           </div>
-                        </CardFooter>
-                      )}
-                    </Card>
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-10">
-                    <p className="text-gray-500">Aucune recette trouvée</p>
+                          <CardContent className="p-4">
+                            <Link to={`/recipe/${recipe.id}`}>
+                              <h3 className="text-lg font-medium mb-1 group-hover:text-primary transition-colors">
+                                {recipe.title}
+                              </h3>
+                            </Link>
+                            <div className="flex justify-between text-sm text-gray-500 mb-2">
+                              <span>
+                                Par{" "}
+                                {[recipe.user?.username, recipe.user?.lastName].filter(Boolean).join(" ") ||
+                                  "Chef inconnu"}
+                              </span>
+                              <span className="flex items-center">
+                                <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime} min
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
+
+                            {index === 0 && recipe.categories && (
+                              <div className="flex flex-wrap gap-2 mb-4">
+                                {recipe.categories.map((category) => (
+                                  <Badge key={category.id} className="bg-primary/10 text-primary hover:bg-primary/15">
+                                    {category.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {index === 0 && (
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center">
+                                <Avatar className="h-8 w-8 border">
+                     {user?.profilePicture ? (
+                       <AvatarImage
+                         src={user.profilePicture}
+                         alt={user.username || "Utilisateur"}
+                       />
+                     ) : (
+                       <AvatarFallback>
+                         <User className="text-primary text-2xl" />
+                       </AvatarFallback>
+                     )}
+                   </Avatar>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-medium">{recipe.user?.username || "Chef inconnu"}</p>
+                                      {recipe.user?.badge && (
+                                        <Badge variant="outline" className="text-[10px]">
+                                          {recipe.user.badge}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                      Partagé le{" "}
+                                      <span className="text-sm text-gray-500">{formatDate(recipe.creationDate)}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {index === 0 && (
+                              <div className="flex justify-between items-center">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-primary border-primary/30"
+                                  onClick={() => openCommentDialog(recipe)}
+                                >
+                                  <MessageCircle className="h-4 w-4 mr-1" /> Commenter
+                                </Button>
+                                <Link to={`/recipe/${recipe.id}`}>
+                                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Voir la recette</Button>
+                                </Link>
+                              </div>
+                            )}
+                          </CardContent>
+
+                          {index !== 0 && (
+                            <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                              <div className="flex justify-between items-center w-full">
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <span className="flex items-center mr-3">
+                                    <Heart className="h-3 w-3 mr-1" /> {recipe.optimisticRatingCount ?? recipe.totalRatings ?? 0}
+                                  </span>
+                                  <button
+                                    className="flex items-center hover:text-primary"
+                                    onClick={() => openCommentDialog(recipe)}
+                                  >
+                                    <MessageCircle className="h-3 w-3 mr-1" /> {recipe.totalComments || 0}
+                                  </button>
+                                </div>
+                                <Badge className="bg-primary/10 text-primary hover:bg-primary/15">
+                                  {recipe.difficultyLevel === "EASY"
+                                    ? "Facile"
+                                    : recipe.difficultyLevel === "INTERMEDIATE"
+                                      ? "Intermédiaire"
+                                      : "Difficile"}
+                                </Badge>
+                              </div>
+                            </CardFooter>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+
+                    {isRefreshingFeed && (
+                      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl border border-border/40 bg-background/45 backdrop-blur-[1px]">
+                        <div className="h-full w-full animate-pulse bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                }
+              />
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -781,7 +887,7 @@ export default function CommunityPage() {
           <div className="max-h-[60vh] overflow-y-auto py-4">
             {commentsLoading ? (
               <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
               </div>
             ) : commentsError ? (
               <div className="text-center py-8">
@@ -811,7 +917,7 @@ export default function CommunityPage() {
                     />
                   ) : (
                     <AvatarFallback>
-                      <User className="text-[#E57373] text-2xl" />
+                      <User className="text-primary text-2xl" />
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -829,9 +935,18 @@ export default function CommunityPage() {
                           </div>
                         </div>
                         <div className="flex items-center text-gray-500">
-                          <button className="p-1 hover:text-rose-500">
+                          <button className="p-1 hover:text-primary">
                             <Heart className="h-4 w-4" />
                           </button>
+                          {activeRecipe && (
+                            <button
+                              className="p-1 hover:text-primary"
+                              onClick={() => void handleReportComment(activeRecipe.id, comment.id)}
+                              aria-label="Signaler le commentaire"
+                            >
+                              <Flag className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
@@ -842,7 +957,7 @@ export default function CommunityPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-gray-500 hover:text-rose-500"
+                        className="text-xs text-gray-500 hover:text-primary"
                         onClick={() => setActiveCommentId(comment.id)}
                       >
                         Répondre
@@ -880,7 +995,7 @@ export default function CommunityPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="text-xs bg-rose-500 hover:bg-rose-600 text-white"
+                                  className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   disabled={!replyText.trim()}
                                   onClick={() => handleReplySubmit(comment.id)}
                                 >
@@ -909,7 +1024,7 @@ export default function CommunityPage() {
                    />
                  ) : (
                    <AvatarFallback>
-                     <User className="text-[#E57373] text-2xl" />
+                     <User className="text-primary text-2xl" />
                    </AvatarFallback>
                  )}
                </Avatar>
@@ -922,7 +1037,7 @@ export default function CommunityPage() {
                 />
                 <Button
                   className={`absolute bottom-3 right-3 p-2 rounded-full ${
-                    commentText.trim() ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-gray-100 text-gray-400"
+                    commentText.trim() ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-gray-100 text-gray-400"
                   }`}
                   size="sm"
                   disabled={!commentText.trim()}
@@ -941,85 +1056,27 @@ export default function CommunityPage() {
         open={addRecipeDialogOpen}
         onOpenChange={setAddRecipeDialogOpen}
         onSubmit={async (recipeData) => {
-          const recipeId = await createRecipe(recipeData)
-          return recipeId
+          const recipe = await createRecipe(recipeData)
+          return recipe?.id ?? 0
         }}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-700">
-              Êtes-vous sûr de vouloir supprimer cette recette ? Cette action est irréversible.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
-              Annuler
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleDeleteRecipe}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            >
-              Supprimer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Footer */}
-      <footer className="py-8 px-4 bg-white border-t border-gray-100">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <ChefHat className="h-5 w-5 text-rose-500" />
-              <span className="font-medium">Cuisenio</span>
-            </div>
-            <div className="flex space-x-6">
-              {["Confidentialité", "Conditions", "Contact"].map((item) => (
-                <Link key={item} to="#" className="text-sm text-gray-500 hover:text-rose-500 transition-colors">
-                  {item}
-                </Link>
-              ))}
-            </div>
-            <div className="text-sm text-gray-500 mt-4 md:mt-0">
-              © {new Date().getFullYear()} Cuisenio. Tous droits réservés.
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Archive Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        severity="danger"
+        title="Archiver cette recette ?"
+        description="Cette recette sera archivée et ne sera plus visible sur la plateforme."
+        confirmLabel="Archiver"
+        onConfirm={handleDeleteRecipe}
+      />
 
       {recipeId && isPopupOpen && (
         <ImageUploadDialog open={isPopupOpen} onOpenChange={setIsPopupOpen} recipeId={recipeId} />
       )}
 
-      {/* Success Modal */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-4 right-4 z-50"
-          >
-            <motion.div
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 100, opacity: 0 }}
-              className="bg-white rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
-            >
-              <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-              <p className="font-medium">{successMessage}</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </AppShell>
   )
 }
 

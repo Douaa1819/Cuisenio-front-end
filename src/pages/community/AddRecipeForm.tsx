@@ -228,7 +228,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="recipe-title" className="block text-sm font-medium mb-1">
-                    Titre de la recette <span className="text-rose-500">*</span>
+                    Titre de la recette <span className="text-primary">*</span>
                   </Label>
                   <Input
                     id="recipe-title"
@@ -243,7 +243,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
 
                 <div>
                   <Label htmlFor="recipe-description" className="block text-sm font-medium mb-1">
-                    Description <span className="text-rose-500">*</span>
+                    Description <span className="text-primary">*</span>
                   </Label>
                   <Textarea
                     id="recipe-description"
@@ -260,7 +260,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="recipe-category" className="block text-sm font-medium mb-1">
-                      Catégorie <span className="text-rose-500">*</span>
+                      Catégorie <span className="text-primary">*</span>
                     </Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger id="recipe-category" className={errors.categoryIds ? "border-red-500" : ""}>
@@ -279,7 +279,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
 
                   <div>
                     <Label htmlFor="recipe-difficulty" className="block text-sm font-medium mb-1">
-                      Niveau de difficulté <span className="text-rose-500">*</span>
+                      Niveau de difficulté <span className="text-primary">*</span>
                     </Label>
                     <Select
                       value={recipeDifficulty}
@@ -303,7 +303,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="prep-time" className="block text-sm font-medium mb-1">
-                      Temps de préparation (min) <span className="text-rose-500">*</span>
+                      Temps de préparation (min) <span className="text-primary">*</span>
                     </Label>
                     <Input
                       id="prep-time"
@@ -336,7 +336,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
                   <div>
                     <Label htmlFor="servings" className="block text-sm font-medium mb-1">
                       Nombre de <br />
-                      portions <span className="text-rose-500">*</span>
+                      portions <span className="text-primary">*</span>
                     </Label>
                     <Input
                       id="servings"
@@ -356,7 +356,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <Label className="block text-sm font-medium">
-                    Ingrédients <span className="text-rose-500">*</span>
+                    Ingrédients <span className="text-primary">*</span>
                   </Label>
                 </div>
 
@@ -425,7 +425,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <Label className="block text-sm font-medium">
-                    Étapes de préparation <span className="text-rose-500">*</span>
+                    Étapes de préparation <span className="text-primary">*</span>
                   </Label>
                   <Button variant="outline" size="sm" className="text-xs flex items-center gap-1" onClick={addStep}>
                     <Plus className="h-3 w-3" /> Ajouter
@@ -439,7 +439,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
                         key={index}
                         className={`flex-1 py-2 px-4 text-sm font-medium ${
                           currentStep === step.stepNumber
-                            ? "bg-rose-50 text-rose-600 border-b-2 border-rose-500"
+                            ? "bg-primary/5 text-primary border-b-2 border-primary"
                             : "text-gray-500 hover:bg-gray-50"
                         }`}
                         onClick={() => setCurrentStep(step.stepNumber)}
@@ -458,7 +458,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-gray-400 hover:text-rose-500"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-primary"
                               onClick={() => removeStep(index)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -507,7 +507,7 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button className="bg-rose-500 hover:bg-rose-600 text-white" onClick={handleSubmitRecipe}>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSubmitRecipe}>
               Publier la recette
             </Button>
           </DialogFooter>

@@ -77,7 +77,7 @@ interface ChartTooltipContentProps extends React.HTMLAttributes<HTMLDivElement> 
 
 const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContentProps>(
   ({ className, formatter, ...props }, ref) => {
-    const defaultFormatter = (value: number | string, name: string, props: { payload: { color: string; name: string; value: number | string }[]; label: string }) => {
+    const defaultFormatter = (_value: number | string, _name: string, props: { payload: { color: string; name: string; value: number | string }[]; label: string }) => {
       const { payload, label } = props
       if (!payload || !payload.length) return null
 

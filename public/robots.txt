@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /add-recipe
+Disallow: /meal-planner
+Disallow: /auth/
+
+Sitemap: https://cuisenio.app/sitemap.xml

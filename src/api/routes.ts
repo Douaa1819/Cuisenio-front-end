@@ -42,6 +42,7 @@ export const routes = {
       moderationStatus: (id: number) => `/v1/admin/recipes/${id}/moderation`,
       moderationReports: "/v1/admin/moderation/reports",
       promotion: (id: number) => `/v1/admin/recipes/${id}/promotion`,
+      restore: (id: number) => `/api/admin/recipes/${id}/restore`,
 
 
     },
@@ -54,6 +55,7 @@ export const routes = {
         stats: '/v1/admin/stats',
         overview: "/v1/admin/overview",
         status: (id: number) => `/v1/admin/users/${id}/status`,
+        role: (id: number) => `/v1/admin/users/${id}/role`,
         archive: (id: number) => `/v1/admin/users/${id}/archive`,
       },
     mealPlanner: {
@@ -67,5 +69,22 @@ export const routes = {
     },
     subscription: {
       upgradePremium: '/v1/subscription/upgrade-premium',
+    },
+    payments: {
+      createCheckoutSession: '/api/payments/create-checkout-session',
+      confirmSession: '/api/payments/confirm-session',
+    },
+    newsletter: {
+      subscribe: '/api/newsletter/subscribe',
+      unsubscribe: '/api/newsletter/unsubscribe',
+      adminList: '/v1/admin/newsletter/subscribers',
+      adminDetail: (id: number) => `/v1/admin/newsletter/subscribers/${id}`,
+      adminUnsubscribe: (id: number) => `/v1/admin/newsletter/subscribers/${id}/unsubscribe`,
+    },
+    notifications: {
+      base: '/api/notifications',
+      unreadCount: '/api/notifications/unread-count',
+      read: (id: number) => `/api/notifications/${id}/read`,
+      readAll: '/api/notifications/read-all',
     },
   };

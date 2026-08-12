@@ -1,21 +1,18 @@
-import { AxiosError } from "axios";
-import { NavigateFunction } from "react-router-dom";
+import { AxiosError } from "axios"
+import type { NavigateFunction } from "react-router-dom"
 
-export const tokenExpired = (error: AxiosError, navigate: NavigateFunction) => {
-    if (error instanceof AxiosError && error.response) { 
-        if (error.response.status === 401) {
-            localStorage.removeItem("token");
-            navigate("/login");
-        }
-    }
-
-    
-    return Promise.reject(error);
+/**
+ * Handles expired / invalid token responses from the API.
+ * Clears both token keys used by the application and redirects to login.
+ *
+ * Note: this helper is kept for components that catch AxiosErrors directly.
+ * The global 401 handler in the Axios client covers every other case.
+ */
+export const tokenExpired = (error: AxiosError, navigate: NavigateFunction): Promise<never> => {
+  if (error.response?.status === 401) {
+    sessionStorage.removeItem("token")
+    sessionStorage.removeItem("auth-storage")
+    navigate("/login", { replace: true })
+  }
+  return Promise.reject(error)
 }
-
-
-
-
-
-
-

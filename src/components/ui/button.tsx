@@ -29,17 +29,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          "inline-flex items-center justify-center rounded-md font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "disabled:pointer-events-none disabled:opacity-50",
           fullWidth && "w-full",
           {
             // Variants
             "bg-primary text-white hover:bg-primary/90 focus-visible:ring-primary": variant === "primary",
-            "bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500": variant === "secondary",
-            "border border-gray-300 bg-transparent text-gray-900 hover:bg-gray-100 focus-visible:ring-gray-500": variant === "outline",
-            "bg-transparent text-gray-900 hover:bg-gray-100 focus-visible:ring-gray-500": variant === "ghost",
-            "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600": variant === "danger",
-            "bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600": variant === "success",
+            "bg-secondary text-secondary-foreground hover:bg-secondary/80": variant === "secondary",
+            "border border-border bg-transparent text-foreground hover:bg-muted": variant === "outline",
+            "bg-transparent text-foreground hover:bg-muted": variant === "ghost",
+            "bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-600": variant === "danger",
+            "bg-emerald-700 text-white hover:bg-emerald-800 focus-visible:ring-emerald-700": variant === "success",
             
             // Sizes
             "h-7 rounded px-2 text-xs": size === "xs",

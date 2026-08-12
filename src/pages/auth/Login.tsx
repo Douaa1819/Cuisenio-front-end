@@ -3,38 +3,35 @@ import { motion } from "framer-motion"
 import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
 import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { z } from "zod"
 
 import { authService } from "../../api/auth.service"
+import { useNotification } from "../../context/NotificationContext"
 import { useAuthStore } from "../../store/auth.store"
 import { emailSchema } from "../../utils/validation"
 import { homePathForRole, normalizeRole } from "../../types/auth.types"
-
-import { Alert, AlertDescription } from "../../components/ui/alert"
 import { Button } from "../../components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
+import { ThemeToggle } from "../../components/theme/ThemeToggle"
+import { usePageMeta } from "../../hooks/usePageMeta"
 
-/** Max failed attempts before a temporary lockout (client-side). */
 const MAX_ATTEMPTS = 5
-const LOCKOUT_MS = 60_000 // 1 minute
+const LOCKOUT_MS = 60_000
 
 const loginSchema = z.object({
   email: emailSchema,
-  /** Password is only checked for presence here — complexity is enforced at registration. */
   password: z.string().min(1, "Le mot de passe est requis").max(72, "Mot de passe trop long"),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
+
+const pageMotion = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.2, ease: "easeOut" as const },
+}
 
 function resolveAuthError(err: unknown, fallback: string): string {
   const axiosLike = err as {
@@ -54,15 +51,22 @@ function resolveAuthError(err: unknown, fallback: string): string {
 }
 
 export default function LoginForm() {
+  usePageMeta({
+    title: "Connexion — Cuisenio",
+    description: "Connectez-vous à votre compte Cuisenio.",
+    path: "/login",
+  })
+
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { success, error: notifyError } = useNotification()
 
-  // Client-side rate limiting
   const failedAttempts = useRef(0)
   const lockedUntil = useRef<number | null>(null)
+  const submitting = useRef(false)
 
   const {
     register,
@@ -74,16 +78,16 @@ export default function LoginForm() {
   })
 
   const onSubmit = async (formData: LoginFormValues) => {
-    if (isLoading) return
+    if (submitting.current || isLoading) return
 
     if (lockedUntil.current && Date.now() < lockedUntil.current) {
       const remaining = Math.ceil((lockedUntil.current - Date.now()) / 1000)
-      setError(`Trop de tentatives. Réessayez dans ${remaining} secondes.`)
+      notifyError("Trop de tentatives", `Réessayez dans ${remaining} secondes.`)
       return
     }
 
+    submitting.current = true
     setIsLoading(true)
-    setError(null)
 
     try {
       const response = await authService.login({
@@ -104,155 +108,140 @@ export default function LoginForm() {
         role,
       })
 
-      navigate(homePathForRole(role), { replace: true })
+      success("Connexion réussie", `Bienvenue${response.username ? `, ${response.username}` : ""}`)
+      const next = searchParams.get("next")
+      const safeNext =
+        next && next.startsWith("/") && !next.startsWith("//") ? next : homePathForRole(role)
+      navigate(safeNext, { replace: true })
     } catch (err: unknown) {
       failedAttempts.current += 1
 
       if (failedAttempts.current >= MAX_ATTEMPTS) {
         lockedUntil.current = Date.now() + LOCKOUT_MS
         failedAttempts.current = 0
-        setError(`Trop de tentatives. Compte temporairement bloqué pendant 1 minute.`)
+        notifyError("Compte temporairement bloqué", "Trop de tentatives. Réessayez dans 1 minute.")
       } else {
-        setError(
-          resolveAuthError(err, "La connexion a échoué. Veuillez vérifier vos identifiants."),
+        notifyError(
+          "Connexion échouée",
+          resolveAuthError(err, "Vérifiez vos identifiants."),
         )
       }
     } finally {
       setIsLoading(false)
+      submitting.current = false
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center p-4 font-poppins">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-md"
-      >
-        <Card className="w-full shadow-lg border border-[#FFE4E1] rounded-xl overflow-hidden">
-          <CardHeader className="space-y-2 text-center pb-6">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className="flex justify-center mb-3"
-            >
-              <div className="bg-[#FFEBEE] p-3 rounded-full">
-                <ChefHat className="h-8 w-8 text-[#E57373]" />
+    <div className="organic-surface relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 font-sans">
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        aria-hidden
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 50% at 70% 0%, color-mix(in srgb, var(--cu-primary) 22%, transparent), transparent 55%)",
+        }}
+      />
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeToggle />
+      </div>
+
+      <motion.div {...pageMotion} className="w-full max-w-md">
+        <div className="group rounded-2xl border border-border bg-card p-6 shadow-card-theme backdrop-blur-sm transition duration-300 hover:shadow-[0_0_40px_-8px_var(--cu-surface-glow)] sm:p-8">
+          <div className="mb-8 text-center">
+            <div className="mb-4 inline-flex rounded-full bg-primary/15 p-3">
+              <ChefHat className="h-8 w-8 text-primary" aria-hidden />
+            </div>
+            <h1 className="font-serif text-2xl tracking-tight text-foreground">Bienvenue</h1>
+            <p className="mt-1 font-sans text-sm text-muted-foreground">Connectez-vous à votre compte</p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  className="border-border bg-background pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  {...register("email")}
+                />
               </div>
-            </motion.div>
-            <CardTitle className="text-2xl font-bold text-gray-800">Bienvenue</CardTitle>
-            <CardDescription className="text-gray-600">Connectez-vous à votre compte</CardDescription>
-          </CardHeader>
+              {errors.email && (
+                <p className="text-xs text-destructive" role="alert">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
 
-          <CardContent className="space-y-5 px-6">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <Alert variant="error" className="bg-red-50 text-red-700 border-red-200">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="block text-sm font-medium text-left text-gray-700">
-                  Email
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                  Mot de passe
                 </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-[#E57373] opacity-80" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="vous@exemple.com"
-                    autoComplete="email"
-                    className="pl-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
-                    {...register("email")}
-                  />
-                </div>
-                {errors.email && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
-                    {errors.email.message}
-                  </motion.p>
-                )}
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-xs text-primary transition hover:opacity-80"
+                >
+                  Mot de passe oublié ?
+                </Link>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    Mot de passe
-                  </Label>
-                  <Link
-                    to="/auth/forgot-password"
-                    className="text-xs text-[#E57373] hover:underline hover:text-[#EF5350] transition-colors"
-                  >
-                    Mot de passe oublié ?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-[#E57373] opacity-80" />
-                  </div>
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    className="pl-10 pr-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
-                    {...register("password")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
-                    {errors.password.message}
-                  </motion.p>
-                )}
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  aria-invalid={Boolean(errors.password)}
+                  className="border-border bg-background pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-destructive" role="alert">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connexion en cours...
-                  </>
-                ) : (
-                  "Se connecter"
-                )}
-              </Button>
-            </form>
-          </CardContent>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full border-0 bg-primary-gradient font-medium text-primary-foreground shadow-md transition hover:brightness-110 disabled:opacity-70"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connexion en cours...
+                </>
+              ) : (
+                "Se connecter"
+              )}
+            </Button>
+          </form>
 
-          <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
-            <p className="text-center text-sm text-gray-600 mt-4">
-              Vous n'avez pas de compte ?{" "}
-              <Link
-                to="/register"
-                className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors"
-              >
-                S'inscrire
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Vous n&apos;avez pas de compte ?{" "}
+            <Link to="/register" className="font-medium text-primary hover:opacity-80">
+              S&apos;inscrire
+            </Link>
+          </p>
+        </div>
       </motion.div>
     </div>
   )

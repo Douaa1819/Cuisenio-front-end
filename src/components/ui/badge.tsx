@@ -10,16 +10,16 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-rose-500 text-white hover:bg-rose-600",
-        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+        default: "bg-primary text-primary-foreground hover:brightness-105",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive: "bg-red-500 text-white hover:bg-red-600",
-        outline: "border border-gray-300 text-gray-700 hover:bg-gray-100",
+        outline: "border border-border text-foreground hover:bg-muted",
         success: "bg-green-100 text-green-800 hover:bg-green-200",
-        warning: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+        warning: "bg-slate-100 text-slate-800 hover:bg-slate-200",
         info: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-        ghost: "bg-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-900",
-        category: "bg-rose-100 text-rose-700 hover:bg-rose-200",
-        trending: "bg-gradient-to-r from-rose-500 to-orange-500 text-white",
+        ghost: "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
+        category: "bg-secondary text-foreground hover:bg-muted",
+        trending: "bg-primary-gradient text-primary-foreground",
       },
       size: {
         xs: "h-5 px-1.5 rounded text-xs",

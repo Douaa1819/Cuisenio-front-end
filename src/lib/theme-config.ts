@@ -1,183 +1,86 @@
 export const themeColors = {
-    primary: {
-      light: "#6366f1", // Indigo
-      DEFAULT: "#4f46e5",
-      dark: "#4338ca",
-      gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+  primary: {
+    light: "#81C784",
+    DEFAULT: "#2E7D32",
+    dark: "#1B5E20",
+    gradient: "linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%)",
+  },
+  secondary: {
+    light: "#F1F5F9",
+    DEFAULT: "#E2E8F0",
+    dark: "#94A3B8",
+    gradient: "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)",
+  },
+  accent: {
+    light: "#A5D6A7",
+    DEFAULT: "#43A047",
+    dark: "#2E7D32",
+    gradient: "linear-gradient(135deg, #E8F5E9 0%, #43A047 100%)",
+  },
+  success: {
+    light: "#81C784",
+    DEFAULT: "#4CAF50",
+    dark: "#388E3C",
+    gradient: "linear-gradient(135deg, #E8F5E9 0%, #4CAF50 100%)",
+  },
+  warning: {
+    light: "#94A3B8",
+    DEFAULT: "#64748B",
+    dark: "#475569",
+    gradient: "linear-gradient(135deg, #F1F5F9 0%, #64748B 100%)",
+  },
+  danger: {
+    light: "#FDA4AF",
+    DEFAULT: "#E11D48",
+    dark: "#BE123C",
+    gradient: "linear-gradient(135deg, #FFF1F2 0%, #E11D48 100%)",
+  },
+  info: {
+    light: "#4DD0E1",
+    DEFAULT: "#26C6DA",
+    dark: "#00ACC1",
+    gradient: "linear-gradient(135deg, #E0F7FA 0%, #26C6DA 100%)",
+  },
+  neutral: {
+    50: "#FAFAFA",
+    100: "#F5F5F5",
+    200: "#EEEEEE",
+    300: "#E0E0E0",
+    400: "#BDBDBD",
+    500: "#9E9E9E",
+    600: "#757575",
+    700: "#616161",
+    800: "#424242",
+    900: "#212121",
+    950: "#0A0A0A",
+  },
+}
+
+export const brandAtmosphere = {
+  /** Soft sage wash — cream light / forest dark */
+  lightSurface: "linear-gradient(160deg, #FDFBF7 0%, #F1F5F9 45%, #E8F5E9 100%)",
+  darkSurface: "linear-gradient(160deg, #0B1310 0%, #121A16 50%, #1B2A23 100%)",
+  heroGlow: "radial-gradient(ellipse at 30% 20%, rgba(46,125,50,0.16), transparent 55%)",
+}
+
+export const animations = {
+  fadeIn: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
+  },
+  slideInUp: {
+    hidden: { y: 24, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 120, damping: 16 },
     },
-    secondary: {
-      light: "#f43f5e", // Rose
-      DEFAULT: "#e11d48",
-      dark: "#be123c",
-      gradient: "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
+  },
+  staggerContainer: {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08, delayChildren: 0.05 },
     },
-    accent: {
-      light: "#8b5cf6", // Violet
-      DEFAULT: "#7c3aed",
-      dark: "#6d28d9",
-      gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-    },
-    success: {
-      light: "#10b981", // Emerald
-      DEFAULT: "#059669",
-      dark: "#047857",
-      gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-    },
-    warning: {
-      light: "#f59e0b", // Amber
-      DEFAULT: "#d97706",
-      dark: "#b45309",
-      gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-    },
-    danger: {
-      light: "#ef4444", // Red
-      DEFAULT: "#dc2626",
-      dark: "#b91c1c",
-      gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-    },
-    info: {
-      light: "#3b82f6", // Blue
-      DEFAULT: "#2563eb",
-      dark: "#1d4ed8",
-      gradient: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-    },
-    neutral: {
-      50: "#fafafa",
-      100: "#f5f5f5",
-      200: "#e5e5e5",
-      300: "#d4d4d4",
-      400: "#a3a3a3",
-      500: "#737373",
-      600: "#525252",
-      700: "#404040",
-      800: "#262626",
-      900: "#171717",
-      950: "#0a0a0a",
-    },
-  };
-  
-  export const animations = {
-    // Enhanced animation variants
-    fadeIn: {
-      hidden: { opacity: 0 },
-      visible: { 
-        opacity: 1, 
-        transition: { 
-          duration: 0.4,
-          ease: "easeOut"
-        } 
-      },
-    },
-    
-    slideInLeft: {
-      hidden: { x: -30, opacity: 0 },
-      visible: { 
-        x: 0, 
-        opacity: 1, 
-        transition: { 
-          type: "spring",
-          stiffness: 100,
-          damping: 15
-        } 
-      },
-    },
-    
-    slideInRight: {
-      hidden: { x: 30, opacity: 0 },
-      visible: { 
-        x: 0, 
-        opacity: 1, 
-        transition: { 
-          type: "spring",
-          stiffness: 100,
-          damping: 15
-        } 
-      },
-    },
-    
-    slideInUp: {
-      hidden: { y: 30, opacity: 0 },
-      visible: { 
-        y: 0, 
-        opacity: 1, 
-        transition: { 
-          type: "spring",
-          stiffness: 100,
-          damping: 15
-        } 
-      },
-    },
-    
-    slideInDown: {
-      hidden: { y: -30, opacity: 0 },
-      visible: { 
-        y: 0, 
-        opacity: 1, 
-        transition: { 
-          type: "spring",
-          stiffness: 100,
-          damping: 15
-        } 
-      },
-    },
-    
-    scale: {
-      hidden: { scale: 0.8, opacity: 0 },
-      visible: { 
-        scale: 1, 
-        opacity: 1, 
-        transition: { 
-          type: "spring",
-          stiffness: 100,
-          damping: 15
-        } 
-      },
-    },
-    
-    staggerContainer: {
-      hidden: { opacity: 0 },
-      visible: {
-        opacity: 1,
-        transition: {
-          staggerChildren: 0.1,
-          delayChildren: 0.1,
-        },
-      },
-    },
-    
-    pulse: {
-      hidden: { scale: 1 },
-      visible: { 
-        scale: [1, 1.05, 1],
-        transition: { 
-          duration: 0.6,
-          repeat: Infinity,
-          repeatType: "reverse"
-        } 
-      },
-    },
-    
-    rotate: {
-      hidden: { rotate: 0 },
-      visible: { 
-        rotate: 360,
-        transition: { 
-          duration: 1.5,
-          ease: "linear",
-          repeat: Infinity
-        } 
-      },
-    },
-    
-    bounce: {
-      hidden: { y: 0 },
-      visible: { 
-        y: [0, -10, 0],
-        transition: { 
-          duration: 0.6,
-          repeat: Infinity
-        } 
-      },
-    },
-  };
-  
+  },
+}

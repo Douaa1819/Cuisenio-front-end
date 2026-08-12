@@ -105,21 +105,21 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
             className={cn(
               "relative flex items-center w-full",
               {
-                "rounded-lg border border-gray-300 bg-white": variant === "default",
-                "rounded-lg bg-gray-100 border-transparent": variant === "minimal",
-                "rounded-full border border-gray-300 bg-white": variant === "pill",
+                "rounded-lg border border-input bg-background": variant === "default",
+                "rounded-lg bg-muted border-transparent": variant === "minimal",
+                "rounded-full border border-input bg-background": variant === "pill",
                 "h-8 text-xs": size === "sm",
                 "h-10 text-sm": size === "md",
                 "h-12 text-base": size === "lg",
               },
-              isFocused && "ring-2 ring-rose-500/20 border-rose-500",
+              isFocused && "ring-2 ring-ring/20 border-ring",
               className,
             )}
           >
             <div className="absolute left-3 flex items-center pointer-events-none">
               <Search
                 className={cn(
-                  "text-gray-400",
+                  "text-muted-foreground",
                   size === "sm" && "h-3.5 w-3.5",
                   size === "md" && "h-4 w-4",
                   size === "lg" && "h-5 w-5",
@@ -158,7 +158,7 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
                 type="button"
                 onClick={handleClear}
                 className={cn(
-                  "absolute flex items-center justify-center rounded-full hover:bg-gray-100",
+                  "absolute flex items-center justify-center rounded-full transition-colors duration-200 hover:bg-muted",
                   size === "sm" && "right-2 h-5 w-5",
                   size === "md" && "right-3 h-6 w-6",
                   size === "lg" && "right-3 h-7 w-7",
@@ -167,7 +167,7 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
               >
                 <X
                   className={cn(
-                    "text-gray-400 hover:text-gray-600",
+                    "text-muted-foreground hover:text-foreground",
                     size === "sm" && "h-3 w-3",
                     size === "md" && "h-3.5 w-3.5",
                     size === "lg" && "h-4 w-4",
@@ -181,7 +181,7 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
                 type="button"
                 onClick={onFilterClick}
                 className={cn(
-                  "absolute right-1 flex items-center justify-center rounded-md hover:bg-gray-100",
+                  "absolute right-1 flex items-center justify-center rounded-md transition-colors duration-200 hover:bg-muted",
                   size === "sm" && "h-6 px-1.5",
                   size === "md" && "h-8 px-2",
                   size === "lg" && "h-10 px-3",
@@ -189,13 +189,13 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
               >
                 <Filter
                   className={cn(
-                    "text-gray-500",
+                    "text-muted-foreground",
                     size === "sm" && "h-3.5 w-3.5",
                     size === "md" && "h-4 w-4",
                     size === "lg" && "h-5 w-5",
                   )}
                 />
-                <span className="ml-1 text-gray-600 text-sm">Filtres</span>
+                <span className="ml-1 text-sm text-muted-foreground">Filtres</span>
               </button>
             )}
           </div>
@@ -208,19 +208,19 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
+              className="absolute z-10 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-lg"
             >
               {recentSearches.length > 0 && (
                 <div className="p-2">
-                  <div className="px-3 py-1 text-xs font-medium text-gray-500">Recherches récentes</div>
+                  <div className="px-3 py-1 text-xs font-medium text-muted-foreground">Recherches récentes</div>
                   <div className="mt-1">
                     {recentSearches.slice(0, 5).map((search, index) => (
                       <button
                         key={`recent-${index}`}
-                        className="flex w-full items-center px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                        className="flex w-full items-center rounded-md px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
                         onClick={() => handleSuggestionClick(search)}
                       >
-                        <Search className="mr-2 h-3.5 w-3.5 text-gray-400" />
+                        <Search className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                         {search}
                       </button>
                     ))}
@@ -229,22 +229,22 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
               )}
 
               {filteredSuggestions.length > 0 && (
-                <div className={cn("p-2", recentSearches.length > 0 && "border-t border-gray-100")}>
+                <div className={cn("p-2", recentSearches.length > 0 && "border-t border-border")}>
                   {recentSearches.length > 0 && (
-                    <div className="px-3 py-1 text-xs font-medium text-gray-500">Suggestions</div>
+                    <div className="px-3 py-1 text-xs font-medium text-muted-foreground">Suggestions</div>
                   )}
                   <div className="mt-1">
                     {filteredSuggestions.slice(0, 8).map((suggestion, index) => (
                       <button
                         key={`suggestion-${index}`}
-                        className="flex w-full items-center justify-between px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                        className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
                         onClick={() => handleSuggestionClick(suggestion)}
                       >
                         <div className="flex items-center">
-                          <Search className="mr-2 h-3.5 w-3.5 text-gray-400" />
+                          <Search className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                           {suggestion}
                         </div>
-                        <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>
                     ))}
                   </div>

@@ -1,28 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { motion } from "framer-motion"
 import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { authService } from "../../api/auth.service"
+import { useNotification } from "../../context/NotificationContext"
 import { useAuthStore } from "../../store/auth.store"
 import { emailSchema, nameSchema, passwordSchema, usernameSchema } from "../../utils/validation"
-
-import { Alert, AlertDescription } from "../../components/ui/alert"
+import { homePathForRole, normalizeRole } from "../../types/auth.types"
 import { Button } from "../../components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card"
 import { Checkbox } from "../../components/ui/checkbox"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
+import { ThemeToggle } from "../../components/theme/ThemeToggle"
+import { usePageMeta } from "../../hooks/usePageMeta"
 
 const registerSchema = z.object({
   username: usernameSchema,
@@ -35,6 +29,12 @@ const registerSchema = z.object({
 })
 
 type RegisterFormValues = z.infer<typeof registerSchema>
+
+const pageMotion = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.2, ease: "easeOut" as const },
+}
 
 function resolveAuthError(err: unknown, fallback: string): string {
   const axiosLike = err as {
@@ -54,27 +54,37 @@ function resolveAuthError(err: unknown, fallback: string): string {
 }
 
 export default function RegisterForm() {
+  usePageMeta({
+    title: "Inscription — Cuisenio",
+    description: "Créez votre compte chef sur Cuisenio.",
+    path: "/register",
+  })
+
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
+  const { success, error: notifyError } = useNotification()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const submitting = useRef(false)
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { username: "", lastName: "", email: "", password: "", termsAccepted: false },
   })
 
+  const termsAccepted = watch("termsAccepted")
+
   const onSubmit = async (data: RegisterFormValues) => {
-    if (isLoading) return
+    if (submitting.current || isLoading) return
+    submitting.current = true
     setIsLoading(true)
-    setError(null)
     try {
-      // Role is intentionally omitted — the backend assigns USER by default.
       const response = await authService.register({
         username: data.username,
         lastName: data.lastName,
@@ -83,210 +93,200 @@ export default function RegisterForm() {
       })
 
       authService.setToken(response.token)
+      const role = normalizeRole(response.role)
       login(response.token, {
         id: response.id,
         username: response.username,
         lastName: response.lastName,
         email: response.email,
         profilePicture: response.profilePicture,
-        role: response.role,
+        role,
       })
 
-      navigate(response.role === "ADMIN" ? "/dashboard" : "/chef", { replace: true })
+      success("Compte créé", "Bienvenue dans la communauté Cuisenio.")
+      navigate(homePathForRole(role), { replace: true })
     } catch (err: unknown) {
-      setError(resolveAuthError(err, "L'inscription a échoué. Veuillez réessayer."))
+      notifyError("Inscription échouée", resolveAuthError(err, "Veuillez réessayer."))
     } finally {
       setIsLoading(false)
+      submitting.current = false
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5] flex items-center justify-center p-4 font-poppins">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-md"
-      >
-        <Card className="w-full shadow-lg border border-[#FFE4E1] rounded-xl overflow-hidden">
-          <CardHeader className="space-y-2 text-center pb-4">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className="flex justify-center mb-2"
-            >
-              <div className="bg-[#FFEBEE] p-3 rounded-full">
-                <ChefHat className="h-8 w-8 text-[#E57373]" />
-              </div>
-            </motion.div>
-            <CardTitle className="text-2xl font-bold text-gray-800">Créer un compte</CardTitle>
-            <CardDescription className="text-gray-600 px-4">
-              Rejoignez notre communauté culinaire et commencez votre aventure
-            </CardDescription>
-          </CardHeader>
+    <div className="organic-surface relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 font-sans">
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        aria-hidden
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 50% at 20% 10%, color-mix(in srgb, var(--cu-primary) 20%, transparent), transparent 55%)",
+        }}
+      />
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeToggle />
+      </div>
 
-          <CardContent className="space-y-5 px-6">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <Alert variant="error" className="bg-red-50 text-red-700 border-red-200">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
+      <motion.div {...pageMotion} className="w-full max-w-md">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-card-theme backdrop-blur-sm transition duration-300 hover:shadow-[0_0_40px_-8px_var(--cu-surface-glow)] sm:p-8">
+          <div className="mb-6 text-center">
+            <div className="mb-3 inline-flex rounded-full bg-primary/15 p-3">
+              <ChefHat className="h-8 w-8 text-primary" aria-hidden />
+            </div>
+            <h1 className="font-serif text-2xl tracking-tight text-foreground">Créer un compte</h1>
+            <p className="mt-1 px-2 font-sans text-sm text-muted-foreground">
+              Rejoignez la communauté et commencez votre aventure culinaire
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-sm font-medium text-foreground">
+                  Prénom
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Jean"
+                  autoComplete="given-name"
+                  aria-invalid={Boolean(errors.username)}
+                  className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  {...register("username")}
+                />
+                {errors.username && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {errors.username.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium text-foreground">
+                  Nom
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Dupont"
+                  autoComplete="family-name"
+                  aria-invalid={Boolean(errors.lastName)}
+                  className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  {...register("lastName")}
+                />
+                {errors.lastName && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {errors.lastName.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  className="border-border bg-background pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  {...register("email")}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-xs text-destructive" role="alert">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                Mot de passe
+              </Label>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(errors.password)}
+                  className="border-border bg-background pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-xs text-destructive" role="alert">
+                  {errors.password.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                8 caractères min · 1 majuscule · 1 chiffre · 1 caractère spécial
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="termsAccepted"
+                checked={termsAccepted}
+                onChange={(e) =>
+                  setValue("termsAccepted", e.target.checked, { shouldValidate: true })
+                }
+                className="mt-0.5 border-border data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+              />
+              <Label htmlFor="termsAccepted" className="text-sm font-normal leading-snug text-muted-foreground">
+                J&apos;accepte les{" "}
+                <Link to="/terms" className="text-primary hover:underline">
+                  conditions d&apos;utilisation
+                </Link>{" "}
+                et la{" "}
+                <Link to="/privacy" className="text-primary hover:underline">
+                  politique de confidentialité
+                </Link>
+              </Label>
+            </div>
+            {errors.termsAccepted && (
+              <p className="-mt-2 text-xs text-destructive" role="alert">
+                {errors.termsAccepted.message}
+              </p>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="block text-sm font-medium text-left text-gray-700">
-                    Prénom
-                  </Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Jean"
-                    autoComplete="given-name"
-                    className="bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
-                    {...register("username")}
-                  />
-                  {errors.username && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
-                      {errors.username.message}
-                    </motion.p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="block text-sm font-medium text-left text-gray-700">
-                    Nom
-                  </Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="Dupont"
-                    autoComplete="family-name"
-                    className="bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
-                    {...register("lastName")}
-                  />
-                  {errors.lastName && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
-                      {errors.lastName.message}
-                    </motion.p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="block text-sm font-medium text-left text-gray-700">
-                  Email
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-[#E57373] opacity-80" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="vous@exemple.com"
-                    autoComplete="email"
-                    className="pl-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
-                    {...register("email")}
-                  />
-                </div>
-                {errors.email && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
-                    {errors.email.message}
-                  </motion.p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="block text-sm font-medium text-left text-gray-700">
-                  Mot de passe
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-[#E57373] opacity-80" />
-                  </div>
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    className="pl-10 pr-10 bg-white border-gray-200 focus:border-[#E57373] focus:ring-[#FFEBEE]"
-                    {...register("password")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs mt-1">
-                    {errors.password.message}
-                  </motion.p>
-                )}
-                <p className="text-xs text-gray-400">
-                  8 caractères min · 1 majuscule · 1 chiffre · 1 caractère spécial
-                </p>
-              </div>
-
-              <div className="flex items-start space-x-2 mb-1">
-                <Checkbox id="termsAccepted" className="mt-1" {...register("termsAccepted")} />
-                <Label htmlFor="termsAccepted" className="text-sm text-gray-600">
-                  J'accepte les{" "}
-                  <Link to="/terms" className="text-[#E57373] hover:underline">
-                    conditions d'utilisation
-                  </Link>{" "}
-                  et la{" "}
-                  <Link to="/privacy" className="text-[#E57373] hover:underline">
-                    politique de confidentialité
-                  </Link>
-                </Label>
-              </div>
-              {errors.termsAccepted && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs -mt-2">
-                  {errors.termsAccepted.message}
-                </motion.p>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full border-0 bg-primary-gradient font-medium text-primary-foreground shadow-md transition hover:brightness-110 disabled:opacity-70"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Création du compte...
+                </>
+              ) : (
+                "Créer un compte"
               )}
+            </Button>
+          </form>
 
-              <Button
-                type="submit"
-                className="w-full bg-[#E57373] hover:bg-[#EF5350] text-white font-medium py-2 transition-all duration-200 shadow-sm hover:shadow"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Création du compte...
-                  </>
-                ) : (
-                  "Créer un compte"
-                )}
-              </Button>
-            </form>
-          </CardContent>
-
-          <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
-            <p className="text-center text-sm text-gray-600 mt-4">
-              Vous avez déjà un compte ?{" "}
-              <Link
-                to="/login"
-                className="text-[#E57373] font-medium hover:underline hover:text-[#EF5350] transition-colors"
-              >
-                Se connecter
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Vous avez déjà un compte ?{" "}
+            <Link to="/login" className="font-medium text-primary hover:opacity-80">
+              Se connecter
+            </Link>
+          </p>
+        </div>
       </motion.div>
     </div>
   )

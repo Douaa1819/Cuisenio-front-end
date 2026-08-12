@@ -107,7 +107,7 @@ const RecipeCard = ({
             type="button"
             variant="ghost"
             size="sm"
-            className={`h-8 px-2 transition-colors ${recipe.isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-foreground"}`}
+            className={`h-8 px-2 transition-colors ${recipe.isFavorite ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
             onClick={(e) => onFavoriteRecipe(recipe.id, e)}
             aria-label="Save recipe"
           >

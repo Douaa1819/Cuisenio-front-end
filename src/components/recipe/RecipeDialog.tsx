@@ -112,7 +112,7 @@ const RecipeDialog = ({
 
         <div className="mt-6">
           <Button 
-            className="w-full bg-rose-500 hover:bg-rose-600 text-white" 
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" 
             onClick={onViewFullRecipe}
           >
             Voir la recette complète

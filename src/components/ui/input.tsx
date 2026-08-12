@@ -8,12 +8,12 @@ import { Eye, EyeOff } from "lucide-react"
 const inputVariants = cva("flex w-full transition-colors", {
   variants: {
     variant: {
-      default: "border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500",
+      default: "border border-input bg-background text-foreground placeholder:text-muted-foreground",
       filled:
-        "border border-transparent bg-gray-100 text-gray-900 placeholder:text-gray-500 focus:bg-white focus:border-gray-300",
+        "border border-transparent bg-muted text-foreground placeholder:text-muted-foreground focus:bg-background focus:border-input",
       flushed:
-        "border-b border-gray-300 rounded-none bg-transparent text-gray-900 placeholder:text-gray-500 focus:border-b-2 focus:border-rose-500 px-0",
-      outline: "border border-gray-300 bg-transparent text-gray-900 placeholder:text-gray-500",
+        "border-b border-input rounded-none bg-transparent text-foreground placeholder:text-muted-foreground focus:border-b-2 focus:border-ring px-0",
+      outline: "border border-input bg-transparent text-foreground placeholder:text-muted-foreground",
     },
     size: {
       sm: "h-8 text-xs px-3 py-1",
@@ -21,11 +21,11 @@ const inputVariants = cva("flex w-full transition-colors", {
       lg: "h-12 text-base px-4 py-3",
     },
     state: {
-      default: "focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20",
+      default: "focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20",
       error:
         "border-red-500 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-red-600 placeholder:text-red-400",
       success: "border-green-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20",
-      disabled: "cursor-not-allowed bg-gray-100 opacity-50",
+      disabled: "cursor-not-allowed bg-muted opacity-50",
     },
     rounded: {
       none: "rounded-none",
@@ -95,7 +95,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <label
             htmlFor={inputId}
             className={cn(
-              "text-sm font-medium text-gray-900 dark:text-gray-100",
+              "text-sm font-medium text-foreground",
               error && "text-red-500",
               labelClassName,
             )}
@@ -104,7 +104,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div className="relative">
-          {startIcon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{startIcon}</div>}
+          {startIcon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{startIcon}</div>}
           <input
             id={inputId}
             type={inputType}
@@ -123,7 +123,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {type === "password" && showPasswordToggle && (
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
@@ -132,11 +132,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
           {endIcon && !showPasswordToggle && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">{endIcon}</div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{endIcon}</div>
           )}
         </div>
         {helperText && !error && (
-          <p id={`${inputId}-description`} className={cn("text-xs text-gray-500", helperTextClassName)}>
+          <p id={`${inputId}-description`} className={cn("text-xs text-muted-foreground", helperTextClassName)}>
             {helperText}
           </p>
         )}

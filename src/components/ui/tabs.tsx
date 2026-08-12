@@ -33,7 +33,7 @@ const tabsListVariants = cva("", {
       pills: "flex items-center space-x-2",
       underline: "flex items-center space-x-2 border-b border-gray-200",
       enclosed: "flex items-center space-x-0 border border-gray-200 rounded-lg overflow-hidden",
-      soft: "flex items-center space-x-2 p-1 bg-gray-100 rounded-lg",
+      soft: "flex items-center space-x-2 p-1 bg-secondary rounded-lg",
     },
     orientation: {
       horizontal: "",
@@ -53,7 +53,7 @@ const tabsListVariants = cva("", {
 })
 
 const tabsTriggerVariants = cva(
-  "relative inline-flex items-center justify-center whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "relative inline-flex items-center justify-center whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
@@ -82,35 +82,35 @@ const tabsTriggerVariants = cva(
         variant: "default",
         orientation: "horizontal",
         state: "active",
-        className: "text-rose-500 border-b-2 border-rose-500 -mb-px",
+        className: "text-primary border-b-2 border-primary -mb-px",
       },
       {
         variant: "default",
         orientation: "vertical",
         state: "active",
-        className: "text-rose-500 border-r-2 border-rose-500 -mr-px",
+        className: "text-primary border-r-2 border-primary -mr-px",
       },
       {
         variant: "pills",
         state: "active",
-        className: "text-white bg-rose-500 rounded-full shadow-sm",
+        className: "text-white bg-primary rounded-full shadow-sm",
       },
       {
         variant: "underline",
         orientation: "horizontal",
         state: "active",
-        className: "text-rose-500 border-b-2 border-rose-500 -mb-px",
+        className: "text-primary border-b-2 border-primary -mb-px",
       },
       {
         variant: "underline",
         orientation: "vertical",
         state: "active",
-        className: "text-rose-500 border-r-2 border-rose-500 -mr-px",
+        className: "text-primary border-r-2 border-primary -mr-px",
       },
       {
         variant: "enclosed",
         state: "active",
-        className: "text-rose-500 bg-white",
+        className: "text-primary bg-white",
       },
       {
         variant: "enclosed",
@@ -120,7 +120,7 @@ const tabsTriggerVariants = cva(
       {
         variant: "soft",
         state: "active",
-        className: "text-rose-700 bg-white rounded-md shadow-sm",
+        className: "text-primary bg-card rounded-md shadow-sm",
       },
     ],
     defaultVariants: {
@@ -276,7 +276,7 @@ export function TabsTrigger({ value, children, className, disabled = false, icon
 
       {isActive && variant === "default" && orientation === "horizontal" && (
         <motion.div
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
           layoutId="activeTabIndicator"
           transition={{ duration: 0.3 }}
         />

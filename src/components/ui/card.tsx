@@ -49,8 +49,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <CardComponent
         ref={ref}
         className={cn(
-          "bg-white dark:bg-gray-900",
-          border && "border dark:border-gray-800",
+          "bg-card text-card-foreground",
+          border && "border border-border",
           {
             "rounded-none": radius === "none",
             "rounded-sm": radius === "sm",
@@ -72,20 +72,20 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
             "p-7": padding === "lg",
             "p-9": padding === "xl",
 
-            "transition-all duration-200": hoverEffect || isHoverable || isClickable,
-            "hover:shadow-md": hoverEffect === true || isHoverable,
-            "hover:scale-[1.02] hover:shadow-md": hoverEffect === "scale",
-            "hover:-translate-y-1 hover:shadow-md": hoverEffect === "lift",
+            "transition-all duration-200 ease-out": hoverEffect || isHoverable || isClickable,
+            "hover:shadow-lg": hoverEffect === true || isHoverable,
+            "hover:scale-[1.01] hover:shadow-lg": hoverEffect === "scale",
+            "hover:-translate-y-1 hover:shadow-lg": hoverEffect === "lift",
             "hover:shadow-[0_0_15px_rgba(229,115,115,0.3)]": hoverEffect === "glow",
-            "hover:border-rose-300": hoverEffect === "border",
+            "hover:border-primary/50": hoverEffect === "border",
 
             "cursor-pointer": isClickable,
-            "ring-2 ring-rose-500 ring-offset-2": isSelected,
+            "ring-2 ring-ring ring-offset-2 ring-offset-background": isSelected,
 
-            "border-gray-200": variant === "default" && border,
-            "border-rose-200 bg-rose-50 dark:bg-rose-900/20 dark:border-rose-800": variant === "primary" && border,
-            "border-gray-200 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700": variant === "secondary" && border,
-            "border-gray-200 bg-transparent": variant === "outline" && border,
+            "border-border": variant === "default" && border,
+            "border-primary/30 bg-primary/5": variant === "primary" && border,
+            "border-border bg-muted/40": variant === "secondary" && border,
+            "border-border bg-transparent": variant === "outline" && border,
             "border-transparent bg-transparent": variant === "ghost",
           },
           className,
@@ -111,13 +111,13 @@ const CardTitle = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement> & { as?: React.ElementType }
 >(({ className, as: Component = "h3", ...props }, ref) => (
-  <Component ref={ref} className={cn("text-lg font-semibold text-gray-900 dark:text-gray-50", className)} {...props} />
+  <Component ref={ref} className={cn("text-lg font-semibold tracking-tight text-foreground", className)} {...props} />
 ))
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
   ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn("text-sm text-gray-500 dark:text-gray-400", className)} {...props} />
+    <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
   ),
 )
 CardDescription.displayName = "CardDescription"

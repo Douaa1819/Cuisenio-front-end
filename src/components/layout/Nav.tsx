@@ -2,18 +2,21 @@ import { AnimatePresence, motion } from "framer-motion"
 import { ChefHat, Compass, Home, LayoutDashboard, LogOut, Menu, UtensilsCrossed, User, X } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { NotificationBell } from "../../context/NotificationContext"
+import { NotificationBell } from "../notifications/NotificationBell"
 import { useAuthStore } from "../../store/auth.store"
 import { env } from "../../lib/env"
 import { ShoppingListButton } from "../kitchen/ShoppingListButton"
-import { ThemeToggle } from "../theme/ThemeToggle"
+import { ThemeAndLanguageBar } from "./ThemeAndLanguageBar"
 import { PremiumBadge } from "../premium/PremiumUpgradeModal"
+import { ConfirmDialog } from "../ui/ConfirmDialog"
+import { Icon } from "../ui/icon"
 import { Role, isPremiumUser, normalizeRole } from "../../types/auth.types"
 
 export function Nav() {
   const { user, isAuthenticated, logout } = useAuthStore()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   const isAdmin = normalizeRole(user?.role) === Role.ADMIN
   const isPremium = isPremiumUser(user?.role, user?.subscriptionTier)
@@ -21,18 +24,23 @@ export function Nav() {
     ? `${env.uploadsUrl}/${user.profilePicture}`
     : null
 
-  const handleLogout = () => {
+  const requestLogout = () => {
     setUserMenuOpen(false)
+    setLogoutConfirmOpen(true)
+  }
+
+  const confirmLogout = () => {
+    setLogoutConfirmOpen(false)
     logout()
   }
 
   const navLinks = isAdmin
-    ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> }]
+    ? [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }]
     : [
-        { to: "/chef", label: "Espace Chef", icon: <ChefHat className="h-4 w-4" /> },
-        { to: "/home", label: "Découvrir", icon: <Home className="h-4 w-4" /> },
-        { to: "/discover", label: "Explorer", icon: <Compass className="h-4 w-4" /> },
-        { to: "/meal-planner", label: "Plans", icon: <UtensilsCrossed className="h-4 w-4" /> },
+        { to: "/chef", label: "Espace Chef", icon: ChefHat },
+        { to: "/home", label: "Découvrir", icon: Home },
+        { to: "/discover", label: "Explorer", icon: Compass },
+        { to: "/meal-planner", label: "Plans", icon: UtensilsCrossed },
       ]
 
   return (
@@ -42,8 +50,8 @@ export function Nav() {
 
           {/* Logo */}
           <Link to={isAuthenticated ? (isAdmin ? "/dashboard" : "/chef") : "/"} className="flex items-center gap-2">
-            <ChefHat className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold text-foreground">Cuisenio</span>
+            <Icon icon={ChefHat} size={24} className="text-primary" />
+            <span className="font-serif text-lg text-foreground">Cuisenio</span>
           </Link>
 
           {/* Desktop links */}
@@ -55,7 +63,7 @@ export function Nav() {
                   to={link.to}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-primary/10 hover:text-primary"
                 >
-                  {link.icon}
+                  <Icon icon={link.icon} />
                   {link.label}
                 </Link>
               ))}
@@ -64,7 +72,7 @@ export function Nav() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <ThemeAndLanguageBar />
             {isAuthenticated ? (
               <>
                 <ShoppingListButton />
@@ -86,7 +94,7 @@ export function Nav() {
                       />
                     ) : (
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20">
-                        <User className="h-4 w-4 text-primary" />
+                        <Icon icon={User} className="text-primary" />
                       </div>
                     )}
                     <div className="hidden sm:block text-left">
@@ -123,15 +131,15 @@ export function Nav() {
                                 onClick={() => setUserMenuOpen(false)}
                                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors duration-200 hover:bg-muted hover:text-primary"
                               >
-                                <User className="h-4 w-4" />
+                                <Icon icon={User} />
                                 Mon profil
                               </Link>
                             )}
                             <button
-                              onClick={handleLogout}
-                              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors duration-200 hover:bg-red-50"
+                              onClick={requestLogout}
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-rose-600 transition-colors duration-200 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                             >
-                              <LogOut className="h-4 w-4" />
+                              <Icon icon={LogOut} />
                               Se déconnecter
                             </button>
                           </div>
@@ -147,7 +155,7 @@ export function Nav() {
                   onClick={() => setMobileOpen((v) => !v)}
                   aria-label="Menu"
                 >
-                  {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  {mobileOpen ? <Icon icon={X} size={20} /> : <Icon icon={Menu} size={20} />}
                 </button>
               </>
             ) : (
@@ -185,7 +193,7 @@ export function Nav() {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-foreground transition-colors duration-200 hover:bg-primary/10 hover:text-primary"
                 >
-                  {link.icon}
+                  <Icon icon={link.icon} />
                   {link.label}
                 </Link>
               ))}
@@ -193,6 +201,16 @@ export function Nav() {
           )}
         </AnimatePresence>
       </div>
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        onOpenChange={setLogoutConfirmOpen}
+        severity="warning"
+        title="Se déconnecter ?"
+        description="Êtes-vous sûr de vouloir vous déconnecter ?"
+        confirmLabel="Se déconnecter"
+        onConfirm={confirmLogout}
+      />
     </header>
   )
 }

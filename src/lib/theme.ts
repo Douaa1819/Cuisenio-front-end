@@ -1,31 +1,38 @@
 /**
- * Product themes for Cuisenio.
- * - dark  → coral / charcoal (default brand)
- * - light → sage green / warm paper
+ * Cuisenio organic identity — aligned with index.css design tokens.
+ * Light: cream #FDFBF7 / sage #2E7D32 · Dark: #0B1310 (never pure black)
  */
 export type ProductTheme = "dark" | "light"
 
 export const THEME_STORAGE_KEY = "cuisenio-theme"
+export const DEFAULT_THEME: ProductTheme = "light"
 
 export const themeTokens = {
   dark: {
-    background: "#0A0A0A",
-    card: "#141414",
-    primaryFrom: "#E8615C",
-    primaryTo: "#C93A3A",
-    foreground: "#FAFAFA",
-    muted: "#A3A3A3",
+    background: "#0B1310",
+    card: "#121A16",
+    primaryFrom: "#34D399",
+    primaryTo: "#2E7D32",
+    accent: "#34D399",
+    foreground: "#F1F5F9",
+    muted: "#94A3B8",
   },
   light: {
-    background: "#FAFAF7",
+    background: "#FDFBF7",
     card: "#FFFFFF",
-    primaryFrom: "#2F7A4D",
-    primaryTo: "#4CAF6D",
-    secondary: "#B8D8A8",
-    foreground: "#1A1A1A",
-    muted: "#5C5C5C",
+    primaryFrom: "#2E7D32",
+    primaryTo: "#047857",
+    accent: "#2E7D32",
+    secondary: "#F1F5F9",
+    foreground: "#0F172A",
+    muted: "#475569",
   },
 } as const
+
+export function resolveSystemTheme(): ProductTheme {
+  if (typeof window === "undefined") return DEFAULT_THEME
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+}
 
 export function applyThemeClass(theme: ProductTheme) {
   const root = document.documentElement
@@ -38,7 +45,7 @@ export function applyThemeClass(theme: ProductTheme) {
   if (meta) {
     meta.setAttribute(
       "content",
-      theme === "dark" ? themeTokens.dark.primaryFrom : themeTokens.light.primaryFrom,
+      theme === "dark" ? themeTokens.dark.background : themeTokens.light.primaryFrom,
     )
   }
 }

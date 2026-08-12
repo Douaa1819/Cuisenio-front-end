@@ -1,1000 +1,482 @@
-import { ingredientService } from "../../api/ingredient.service"
-import type { IngredientResponse, IngredientRequest } from "../../types/ingredient.types"
-import { AxiosError } from "axios"
-import { AnimatePresence, motion } from "framer-motion"
-import { authService } from "../../api/auth.service"
+import { useEffect, useMemo, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { CheckCircle2, XCircle } from "lucide-react"
+import { newsletterService, type NewsletterSubscriberAdmin } from "../../api/newsletter.service"
+import { recipeService } from "../../api/recipe.service"
 import { userService } from "../../api/user.service"
-import type { UserDTO } from "../../types/user.types"
+import { Button } from "../../components/ui/button"
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog"
+import { useNotification } from "../../context/NotificationContext"
+import { useAuthStore } from "../../store/auth.store"
+import { useTheme } from "../../hooks/use-theme"
+import { usePageMeta } from "../../hooks/usePageMeta"
+import { normalizeRole, Role } from "../../types/auth.types"
+import type { ModerationReportItem, RecipeResponse } from "../../types/recipe.types"
+import type { AdminOverviewMetrics, UserDTO, UserStatus } from "../../types/user.types"
+import { AdminDashboardView } from "./admin/AdminDashboardView"
+import { AdminLayout } from "./admin/AdminLayout"
+import { AdminNewsletterView } from "./admin/AdminNewsletterView"
+import { AdminEmpty, AdminPanel, StatusPill } from "./admin/AdminShared"
+import { AdminUsersView } from "./admin/AdminUsersView"
+import type { AdminSection } from "./admin/types"
 
-import {
-  BarChart3,
-  CheckCircle,
-  ChefHat,
-  List,
-  LogOut,
-  Trash2,
-  Unlock,
-  Plus,
-  Lock,
-  Search,
-  Tag,
-  Users,
-  X,
-  AlertCircle,
-  Loader2,
-  PieChart,
-  Settings,
-  UserPlus,
-  ShoppingCart,
-} from "lucide-react"
-import type React from "react"
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { categoryService } from "../../api/category.service"
-import type { CategoryRequest, CategoryResponse } from "../../types/category.types"
-import { tokenExpired } from "../../utils/helpers/token-expired"
+type PendingConfirm =
+  | { type: "logout" }
+  | { type: "archive-user"; user: UserDTO }
+  | { type: "toggle-premium"; user: UserDTO; enable: boolean }
+  | { type: "newsletter-unsub"; id: number; email: string }
+  | { type: "newsletter-archive"; id: number; email: string }
+  | null
 
 export default function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState("overview")
-  const [showAddIngredientModal, setShowAddIngredientModal] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successMessage, setSuccessMessage] = useState("")
-  const [categories, setCategories] = useState<CategoryResponse[]>([])
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState<CategoryRequest>({ name: "" })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const [ingredients, setIngredients] = useState<IngredientResponse[]>([])
-  const [newIngredient, setNewIngredient] = useState<IngredientRequest>({ name: "" })
-  const [ingredientCount, setIngredientCount] = useState<number>(0)
-  const [categoryCount, setCategoryCount] = useState<number>(0)
-  const [usersCount, setUsersCount] = useState<number>(0)
-  const [users, setUsers] = useState<UserDTO[]>([])
-
+  const { logout, user } = useAuthStore()
+  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
+  const { success, error: notifyError } = useNotification()
+
+  const [section, setSection] = useState<AdminSection>("overview")
+  const [isLoading, setIsLoading] = useState(true)
+  const [users, setUsers] = useState<UserDTO[]>([])
+  const [metrics, setMetrics] = useState<AdminOverviewMetrics | null>(null)
+  const [search, setSearch] = useState("")
+  const [moderationQueue, setModerationQueue] = useState<RecipeResponse[]>([])
+  const [reportedItems, setReportedItems] = useState<ModerationReportItem[]>([])
+  const [recipes, setRecipes] = useState<RecipeResponse[]>([])
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriberAdmin[]>([])
+  const [newsletterLoading, setNewsletterLoading] = useState(false)
+  const [pending, setPending] = useState<PendingConfirm>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  usePageMeta({ title: "Admin", path: "/dashboard", description: "Administration Cuisenio" })
+
+  const refreshData = async () => {
+    const [usersRes, overviewRes, moderationRes, reportsRes, publishedRes] = await Promise.all([
+      userService.listUser(),
+      userService.getOverviewMetrics(),
+      recipeService.getModerationQueue(),
+      recipeService.getModerationReports(),
+      recipeService.getAllRecipes(),
+    ])
+    setUsers(usersRes.content ?? [])
+    setMetrics(overviewRes)
+    setModerationQueue(moderationRes.content ?? [])
+    setReportedItems(reportsRes ?? [])
+    setRecipes(publishedRes.content ?? [])
+  }
+
+  const refreshNewsletter = async () => {
+    setNewsletterLoading(true)
+    try {
+      const list = await newsletterService.listSubscribers()
+      setSubscribers(list)
+    } catch {
+      notifyError("Newsletter", "Impossible de charger les abonnés.")
+    } finally {
+      setNewsletterLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
+    const load = async () => {
       setIsLoading(true)
-      setError(null)
       try {
-        await Promise.all([
-          fetchIngredients(),
-          fetchIngredientCount(),
-          fetchCategoryCount(),
-          fetchCategories(),
-          fetchUsersCount(),
-          fetchUsers(),
-        ])
-      } catch (error) {
-        setError("Failed to load dashboard data. Please try again.")
-        console.error("Dashboard data loading error:", error)
+        await refreshData()
+      } catch {
+        notifyError("Erreur", "Impossible de charger le dashboard admin.")
       } finally {
         setIsLoading(false)
       }
     }
-
-    fetchData()
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const fetchUsers = async () => {
-    try {
-      const data = await userService.listUser()
-      setUsers(data.content)
-    } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        tokenExpired(error, navigate)
-      }
-      throw error
+  useEffect(() => {
+    if (section === "newsletter") {
+      void refreshNewsletter()
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section])
 
-  const handleBlockUser = async (userId: number) => {
-    try {
-      await userService.blockUser(userId)
-      setSuccessMessage("User blocked successfully!")
-      setShowSuccessModal(true)
-      fetchUsers()
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to block user:", error)
-      setError("Failed to block user. Please try again.")
-    }
-  }
-
-  const handleUnblockUser = async (userId: number) => {
-    try {
-      await userService.unblockUser(userId)
-      setSuccessMessage("User unblocked successfully!")
-      setShowSuccessModal(true)
-      fetchUsers()
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to unblock user:", error)
-      setError("Failed to unblock user. Please try again.")
-    }
-  }
-
-  const fetchCategories = async () => {
-    try {
-      const data = await categoryService.findAll()
-      setCategories(data.content)
-    } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        tokenExpired(error, navigate)
-      }
-      throw error
-    }
-  }
-
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      await categoryService.create(newCategory)
-      setShowAddCategoryModal(false)
-      setSuccessMessage("Category added successfully!")
-      setShowSuccessModal(true)
-      fetchCategories()
-      setNewCategory({ name: "" })
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to add category:", error)
-      setError("Failed to add category. Please try again.")
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout()
-      setSuccessMessage("Déconnexion réussie !")
-      setShowSuccessModal(true)
-      setTimeout(() => {
-        setShowSuccessModal(false)
-        navigate("/login")
-      }, 2000)
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion :", error)
-      setError("Erreur lors de la déconnexion. Veuillez réessayer.")
-      setTimeout(() => {
-        setError(null)
-      }, 2000)
-    }
-  }
-
-  const handleDeleteUser = async (id: number) => {
-    try {
-      await userService.delete(id)
-      setSuccessMessage("User deleted successfully!")
-      setShowSuccessModal(true)
-      fetchUsers()
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to delete user:", error)
-      setError("Failed to delete user. Please try again.")
-    }
-  }
-
-  const handleDeleteCategory = async (id: number) => {
-    try {
-      await categoryService.delete(id)
-      setSuccessMessage("Category deleted successfully!")
-      setShowSuccessModal(true)
-      fetchCategories()
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to delete category:", error)
-      setError("Failed to delete category. Please try again.")
-    }
-  }
-
-  const fetchIngredientCount = async () => {
-    try {
-      const data = await ingredientService.getCount()
-      setIngredientCount(data.count)
-    } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        tokenExpired(error, navigate)
-      }
-      throw error
-    }
-  }
-
-  const fetchUsersCount = async () => {
-    try {
-      const data = await userService.getCount()
-      setUsersCount(data.count)
-    } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        tokenExpired(error, navigate)
-      }
-      throw error
-    }
-  }
-
-  const fetchCategoryCount = async () => {
-    try {
-      const data = await categoryService.getCount()
-      setCategoryCount(data.count)
-    } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        tokenExpired(error, navigate)
-      }
-      throw error
-    }
-  }
-
-  const fetchIngredients = async () => {
-    try {
-      const data = await ingredientService.findAll()
-      setIngredients(data.content)
-    } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        tokenExpired(error, navigate)
-      }
-      throw error
-    }
-  }
-
-  const handleAddIngredient = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      await ingredientService.create(newIngredient)
-      setShowAddIngredientModal(false)
-      setSuccessMessage("Ingredient added successfully!")
-      setShowSuccessModal(true)
-      fetchIngredients()
-      fetchIngredientCount()
-      setNewIngredient({ name: "" })
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to add ingredient:", error)
-      setError("Failed to add ingredient. Please try again.")
-    }
-  }
-
-  const handleDeleteIngredient = async (id: number) => {
-    try {
-      await ingredientService.delete(id)
-      setSuccessMessage("Ingredient deleted successfully!")
-      setShowSuccessModal(true)
-      fetchIngredients()
-      fetchIngredientCount()
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
-    } catch (error) {
-      console.error("Failed to delete ingredient:", error)
-      setError("Failed to delete ingredient. Please try again.")
-    }
-  }
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 },
-    },
-  }
-
-  const renderCategoriesSection = () => {
-    return (
-      <motion.div
-        className="bg-white rounded-lg shadow-sm p-6 border border-gray-100"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold">Categories</h3>
-          <motion.button
-            onClick={() => setShowAddCategoryModal(true)}
-            className="flex items-center text-sm font-medium border border-[#FFE4E1] text-[#E57373] hover:bg-[#FFF5F5] px-3 py-1 rounded-md transition-colors duration-200"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add
-          </motion.button>
-        </div>
-        <div className="space-y-4">
-          {categories.map((category, index) => (
-            <motion.div
-              key={category.id}
-              className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-              variants={itemVariants}
-              initial="hidden"
-              animate="visible"
-              custom={index}
-              whileHover={{ backgroundColor: "#f9f9f9", x: 5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div>
-                <p className="font-medium">{category.name}</p>
-              </div>
-              <motion.button
-                onClick={() => handleDeleteCategory(category.id)}
-                className="text-sm text-red-500 hover:text-red-700 flex items-center"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Delete
-              </motion.button>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
+  const filteredUsers = useMemo(() => {
+    const q = search.toLowerCase()
+    return users.filter(
+      (u) =>
+        `${u.username} ${u.lastName}`.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q),
     )
-  }
+  }, [users, search])
 
-  const renderUsersSection = () => {
-    return (
-      <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <h3 className="font-medium">User Management</h3>
-            <div className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">{usersCount} users</div>
-          </div>
-        </div>
+  const chefs = useMemo(
+    () => filteredUsers.filter((u) => normalizeRole(u.role) === Role.CHEF || normalizeRole(u.role) === Role.PREMIUM),
+    [filteredUsers],
+  )
+  const admins = useMemo(
+    () => filteredUsers.filter((u) => normalizeRole(u.role) === Role.ADMIN),
+    [filteredUsers],
+  )
 
-        {/* Users Table */}
-        <motion.div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100" variants={itemVariants}>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Username</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Last Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Email</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Registration Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Status</th>
-                  <th className="text-right py-3 px-4 font-medium text-sm text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, index) => (
-                  <motion.tr
-                    key={user.id}
-                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ backgroundColor: "#f9f9f9" }}
-                  >
-                    <td className="py-3 px-4">{user.username}</td>
-                    <td className="py-3 px-4">{user.lastName}</td>
-                    <td className="py-3 px-4">{user.email}</td>
-                    <td className="py-3 px-4">{new Date(user.registrationDate).toLocaleDateString()}</td>
-                    <td className="py-3 px-4">
-                      <motion.span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${user.isblocked ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 200 }}
-                      >
-                        {user.isblocked ? "Blocked" : "Active"}
-                      </motion.span>
-                    </td>
-                    <td className="py-3 px-4 text-right flex items-center justify-end space-x-2">
-                      {user.isblocked ? (
-                        <motion.button
-                          onClick={() => handleUnblockUser(user.id)}
-                          className="flex items-center text-blue-500 hover:text-blue-700 px-3 py-1 rounded-md transition"
-                          whileHover={{ scale: 1.05, backgroundColor: "#EBF5FF" }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Unlock className="h-4 w-4 mr-1" /> Unblock
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          data-cy="block-user"
-                          onClick={() => handleBlockUser(user.id)}
-                          className="flex items-center text-red-500 hover:text-red-700 px-3 py-1 rounded-md transition"
-                          whileHover={{ scale: 1.05, backgroundColor: "#FFF5F5" }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Lock className="h-4 w-4 mr-1" /> Block
-                        </motion.button>
-                      )}
-                      <motion.button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="flex items-center text-gray-500 hover:text-red-600 px-3 py-1 rounded-md transition bg-gray-100 hover:bg-red-100"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" /> Delete
-                      </motion.button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      </motion.div>
-    )
-  }
+  const statusDistribution = useMemo(
+    () => [
+      { name: "Actifs", value: users.filter((u) => u.status === "active").length },
+      { name: "Suspendus", value: users.filter((u) => u.status === "suspended").length },
+      { name: "Archivés", value: users.filter((u) => u.status === "archived").length },
+    ],
+    [users],
+  )
 
-  const renderSection = () => {
-    if (isLoading) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 text-[#E57373] animate-spin mb-4" />
-          <p className="text-gray-500">Loading dashboard data...</p>
-        </div>
-      )
-    }
+  const engagementData = useMemo(
+    () =>
+      metrics
+        ? [
+            { name: "Likes", value: metrics.likes },
+            { name: "Commentaires", value: metrics.comments },
+            { name: "Recettes", value: metrics.activeRecipes },
+          ]
+        : [],
+    [metrics],
+  )
 
-    if (error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 bg-red-50 rounded-lg p-6">
-          <AlertCircle className="h-8 w-8 text-red-500 mb-4" />
-          <p className="text-red-600 font-medium">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )
-    }
+  const searchPlaceholder =
+    section === "newsletter"
+      ? "Rechercher un email newsletter…"
+      : "Rechercher un chef, un email…"
 
-    switch (activeSection) {
-      case "overview":
-        return (
-          <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
-            {/* Statistiques en une seule ligne */}
-            <div className="flex flex-wrap gap-6">
-              <motion.div
-                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 flex-1 min-w-[250px]"
-                variants={itemVariants}
-                whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Ingredients</p>
-                    <motion.h3
-                      className="text-2xl font-semibold"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                    >
-                      {ingredientCount}
-                    </motion.h3>
-                  </div>
-                  <motion.div
-                    className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md"
-                    whileHover={{ rotate: 10, scale: 1.1 }}
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 flex-1 min-w-[250px]"
-                variants={itemVariants}
-                whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Category</p>
-                    <motion.h3
-                      className="text-2xl font-semibold"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
-                    >
-                      {categoryCount}
-                    </motion.h3>
-                  </div>
-                  <motion.div
-                    className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md"
-                    whileHover={{ rotate: 10, scale: 1.1 }}
-                  >
-                    <Tag className="h-5 w-5" />
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 flex-1 min-w-[250px]"
-                variants={itemVariants}
-                whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Users</p>
-                    <motion.h3
-                      className="text-2xl font-semibold"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, delay: 0.4 }}
-                    >
-                      {usersCount}
-                    </motion.h3>
-                  </div>
-                  <motion.div
-                    className="p-2 bg-[#FFF5F5] text-[#E57373] rounded-md"
-                    whileHover={{ rotate: 10, scale: 1.1 }}
-                  >
-                    <UserPlus className="h-5 w-5" />
-                  </motion.div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Liste des ingrédients récents */}
-            <motion.div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100" variants={itemVariants}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Recent Ingredients</h3>
-                <motion.button
-                  onClick={() => setShowAddIngredientModal(true)}
-                  className="flex items-center text-sm font-medium border border-[#FFE4E1] text-[#E57373] hover:bg-[#FFF5F5] px-3 py-1 rounded-md transition-colors duration-200"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add
-                </motion.button>
-              </div>
-              <div className="space-y-4">
-                {ingredients.slice(0, 5).map((ingredient, index) => (
-                  <motion.div
-                    key={ingredient.id}
-                    className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ backgroundColor: "#f9f9f9", x: 5 }}
-                  >
-                    <div>
-                      <p className="font-medium">{ingredient.name}</p>
-                    </div>
-                    <motion.button
-                      onClick={() => handleDeleteIngredient(ingredient.id)}
-                      className="text-sm text-red-500 hover:text-red-700 flex items-center"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" /> Delete
-                    </motion.button>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Affichage des catégories sur le tableau de bord */}
-            {renderCategoriesSection()}
-          </motion.div>
-        )
-
-      case "ingredients":
-        return (
-          <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-medium">Ingredient Management</h3>
-                <div className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">{ingredientCount} ingredients</div>
-              </div>
-              <motion.button
-                onClick={() => setShowAddIngredientModal(true)}
-                className="flex items-center text-sm font-medium bg-[#E57373] hover:bg-[#EF5350] text-white px-3 py-1 rounded-md transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Ingredient
-              </motion.button>
-            </div>
-
-            {/* Tableau des ingrédients */}
-            <motion.div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100" variants={itemVariants}>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-sm text-gray-500">Name</th>
-                      <th className="text-right py-3 px-4 font-medium text-sm text-gray-500">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ingredients.map((ingredient, index) => (
-                      <motion.tr
-                        key={ingredient.id}
-                        className="border-b border-gray-100 last:border-0"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ backgroundColor: "#f9f9f9" }}
-                      >
-                        <td className="py-3 px-4">{ingredient.name}</td>
-                        <td className="py-3 px-4 text-right">
-                          <motion.button
-                            onClick={() => handleDeleteIngredient(ingredient.id)}
-                            className="text-red-500 hover:text-red-700 flex items-center justify-end ml-auto"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" /> Delete
-                          </motion.button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          </motion.div>
-        )
-
-      case "categories":
-        return (
-          <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">Category Management</h3>
-              <motion.button
-                onClick={() => setShowAddCategoryModal(true)}
-                className="flex items-center text-sm font-medium bg-[#E57373] hover:bg-[#EF5350] text-white px-3 py-1 rounded-md transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Category
-              </motion.button>
-            </div>
-            {renderCategoriesSection()}
-          </motion.div>
-        )
-
-      case "users":
-        return renderUsersSection()
-
-      default:
-        return (
-          <motion.div
-            className="bg-white rounded-lg shadow-sm p-12 border border-gray-100 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1, rotate: 360 }}
-              transition={{ type: "spring", stiffness: 100, delay: 0.2 }}
-              className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center"
-            >
-              <Settings className="h-8 w-8 text-gray-400" />
-            </motion.div>
-            <h3 className="text-xl font-medium mb-2">Coming Soon</h3>
-            <p className="text-gray-500">This section is under development</p>
-          </motion.div>
-        )
+  const updateUserStatus = async (userId: number, status: UserStatus) => {
+    try {
+      await userService.updateStatus(userId, status)
+      await refreshData()
+      success("Statut mis à jour", `Utilisateur ${status}.`)
+    } catch {
+      notifyError("Erreur", "Impossible de mettre à jour le statut.")
     }
   }
+
+  const togglePremium = (target: UserDTO, enable: boolean) => {
+    if (normalizeRole(target.role) === Role.ADMIN) return
+    setPending({ type: "toggle-premium", user: target, enable })
+  }
+
+  const moderateRecipe = async (recipeId: number, approve: boolean) => {
+    try {
+      if (approve) {
+        await recipeService.approveRecipe(recipeId)
+      } else {
+        await recipeService.updateModerationStatus(recipeId, "rejected")
+      }
+      await refreshData()
+      success(approve ? "Approuvée" : "Rejetée", "File de modération mise à jour.")
+    } catch {
+      notifyError("Erreur", "Action de modération indisponible sur l'API.")
+    }
+  }
+
+  const runPendingConfirm = async () => {
+    if (!pending) return
+    setConfirmLoading(true)
+    try {
+      switch (pending.type) {
+        case "logout":
+          setPending(null)
+          logout()
+          return
+        case "archive-user":
+          await userService.delete(pending.user.id)
+          await refreshData()
+          success("Compte archivé", "Le compte n'est plus visible (soft delete).")
+          break
+        case "toggle-premium":
+          await userService.updateRole(pending.user.id, pending.enable ? "PREMIUM" : "CHEF")
+          await refreshData()
+          success(
+            pending.enable ? "ROLE_PREMIUM" : "ROLE_USER",
+            pending.enable
+              ? `${pending.user.email} a accès Premium.`
+              : `${pending.user.email} repasse en compte libre.`,
+          )
+          break
+        case "newsletter-unsub":
+          await newsletterService.adminUnsubscribe(pending.id)
+          await refreshNewsletter()
+          success("Désinscrit", "Abonnement désactivé (RGPD).")
+          break
+        case "newsletter-archive":
+          await newsletterService.adminDelete(pending.id)
+          await refreshNewsletter()
+          success("Archivé", "Contact archivé (soft delete, conforme RGPD).")
+          break
+      }
+      setPending(null)
+    } catch {
+      notifyError("Erreur", "Action impossible.")
+    } finally {
+      setConfirmLoading(false)
+    }
+  }
+
+  const confirmDialogProps = (() => {
+    if (!pending) {
+      return {
+        title: "",
+        description: "",
+        severity: "warning" as const,
+        confirmLabel: "Confirmer",
+      }
+    }
+    switch (pending.type) {
+      case "logout":
+        return {
+          title: "Se déconnecter ?",
+          description: "Êtes-vous sûr de vouloir vous déconnecter ?",
+          severity: "warning" as const,
+          confirmLabel: "Se déconnecter",
+        }
+      case "archive-user":
+        return {
+          title: "Archiver ce compte ?",
+          description: `Le compte ${pending.user.email} sera archivé (soft delete) et ne pourra plus se connecter. Aucune suppression physique.`,
+          severity: "danger" as const,
+          confirmLabel: "Archiver",
+        }
+      case "toggle-premium":
+        return {
+          title: pending.enable ? "Passer en ROLE_PREMIUM ?" : "Retirer ROLE_PREMIUM ?",
+          description: pending.enable
+            ? `${pending.user.email} aura accès aux fonctionnalités payantes sans Stripe.`
+            : `${pending.user.email} repassera en compte libre (ROLE_USER).`,
+          severity: "warning" as const,
+          confirmLabel: pending.enable ? "Activer Premium" : "Retirer Premium",
+        }
+      case "newsletter-unsub":
+        return {
+          title: "Désinscrire cet email ?",
+          description: `${pending.email} ne recevra plus la newsletter. Le consentement RGPD reste tracé.`,
+          severity: "warning" as const,
+          confirmLabel: "Désinscrire",
+        }
+      case "newsletter-archive":
+        return {
+          title: "Archiver ce contact ?",
+          description: `${pending.email} sera archivé (soft delete) et retiré des listes actives.`,
+          severity: "danger" as const,
+          confirmLabel: "Archiver",
+        }
+    }
+  })()
 
   return (
-    <div className="h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 fixed h-full">
-        <div className="p-6">
-          <motion.div
-            className="flex items-center mb-8"
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <motion.div whileHover={{ rotate: 10, scale: 1.1 }} transition={{ type: "spring", stiffness: 300 }}>
-              <ChefHat className="text-[#E57373] mr-2 h-6 w-6" />
-            </motion.div>
-            <h1 className="text-xl font-medium">Cuisenio</h1>
-          </motion.div>
-
-          <nav className="space-y-2">
-            {[
-              { name: "Dashboard", icon: <BarChart3 className="h-5 w-5" />, section: "overview" },
-              { name: "Ingredients", icon: <Tag className="h-5 w-5" />, section: "ingredients" },
-              { name: "Categories", icon: <List className="h-5 w-5" />, section: "categories" },
-              { name: "Users", icon: <Users className="h-5 w-5" />, section: "users" },
-              { name: "Analytics", icon: <PieChart className="h-5 w-5" />, section: "analytics" },
-              { name: "Settings", icon: <Settings className="h-5 w-5" />, section: "settings" },
-            ].map((item, index) => (
-              <motion.button
-                key={item.name}
-                onClick={() => setActiveSection(item.section)}
-                className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
-                  activeSection === item.section
-                    ? "bg-[#FFF5F5] text-[#E57373] font-medium"
-                    : "hover:bg-gray-50 text-gray-600"
-                }`}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ x: 5 }}
-              >
-                {item.icon}
-                <span>{item.name}</span>
-                {activeSection === item.section && (
-                  <motion.div
-                    className="w-1 h-5 bg-[#E57373] ml-auto rounded-full"
-                    layoutId="activeSection"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-              </motion.button>
+    <>
+      <AdminLayout
+        section={section}
+        onNavigate={setSection}
+        userEmail={user?.email}
+        pendingCount={moderationQueue.length + reportedItems.length}
+        sidebarOpen={sidebarOpen}
+        onSidebarOpen={() => setSidebarOpen(true)}
+        onSidebarClose={() => setSidebarOpen(false)}
+        onLogout={() => setPending({ type: "logout" })}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder={searchPlaceholder}
+      >
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-28 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-slate-800" />
             ))}
-          </nav>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <motion.button
-            onClick={handleLogout}
-            className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-600 transition-all duration-200"
-            whileHover={{ backgroundColor: "#FFF5F5", color: "#E57373" }}
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </motion.button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="ml-64 flex-1 ">
-        {/* Header */}
-        <motion.header
-          className="bg-white border-b border-gray-200 py-4 px-6 flex justify-between items-center"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              placeholder="Search..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition"
-            />
           </div>
+        ) : (
+          <>
+            {section === "overview" && (
+              <AdminDashboardView
+                metrics={metrics}
+                usersCount={users.length}
+                recipes={recipes}
+                moderationCount={moderationQueue.length}
+                reportsCount={reportedItems.length}
+                engagementData={engagementData}
+                statusDistribution={statusDistribution}
+              />
+            )}
 
-          <div className="flex items-center space-x-4">
-        
-           
-            
-          </div>
-        </motion.header>
+            {section === "users" && (
+              <AdminUsersView
+                rows={filteredUsers}
+                onStatus={updateUserStatus}
+                onDelete={(u) => setPending({ type: "archive-user", user: u })}
+                onTogglePremium={togglePremium}
+                showAdminBadge
+                adminsCount={admins.length}
+              />
+            )}
 
-        {/* Content */}
-        <main className="p-6">
-          <motion.div
-            className="flex justify-between items-center mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-bold">
-              {activeSection === "overview"
-                ? "Dashboard"
-                : activeSection === "ingredients"
-                  ? "Ingredients"
-                  : activeSection === "categories"
-                    ? "Categories"
-                    : activeSection === "recipes"
-                      ? "Recipes"
-                      : activeSection === "users"
-                        ? "Users"
-                        : "Settings"}
-            </h2>
-          </motion.div>
+            {section === "chefs" && (
+              <AdminUsersView
+                title="Chefs & Créateurs"
+                rows={chefs}
+                onStatus={updateUserStatus}
+                onDelete={(u) => setPending({ type: "archive-user", user: u })}
+                onTogglePremium={togglePremium}
+              />
+            )}
 
-          {renderSection()}
-        </main>
-      </div>
+            {section === "newsletter" && (
+              <AdminNewsletterView
+                subscribers={subscribers.filter((s) =>
+                  search ? s.email.toLowerCase().includes(search.toLowerCase()) : true,
+                )}
+                isLoading={newsletterLoading}
+                onUnsubscribe={(id) => {
+                  const sub = subscribers.find((s) => s.id === id)
+                  setPending({ type: "newsletter-unsub", id, email: sub?.email ?? `#${id}` })
+                }}
+                onDelete={(id) => {
+                  const sub = subscribers.find((s) => s.id === id)
+                  setPending({ type: "newsletter-archive", id, email: sub?.email ?? `#${id}` })
+                }}
+              />
+            )}
 
-      {/* Add Ingredient Modal */}
-      <AnimatePresence>
-        {showAddIngredientModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">Add Ingredient</h3>
-                <motion.button
-                  onClick={() => setShowAddIngredientModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                  whileHover={{ rotate: 90, scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <X className="h-5 w-5" />
-                </motion.button>
+            {section === "recipes" && (
+              <div className="space-y-4">
+                <div>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Recettes & Modération</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Valider ou suspendre les publications</p>
+                </div>
+                <AdminPanel title="Recettes publiées">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] text-left text-sm">
+                      <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+                        <tr>
+                          <th className="pb-2 font-medium">Titre</th>
+                          <th className="pb-2 font-medium">Chef</th>
+                          <th className="pb-2 font-medium">Note</th>
+                          <th className="pb-2 font-medium">Statut</th>
+                          <th className="pb-2 font-medium" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {recipes.map((r) => (
+                          <tr key={r.id}>
+                            <td className="py-3 font-medium text-slate-900 dark:text-slate-100">{r.title}</td>
+                            <td className="py-3 text-slate-500 dark:text-slate-400">{r.user?.username}</td>
+                            <td className="py-3">{(r.averageRating ?? 0).toFixed(1)}</td>
+                            <td className="py-3">
+                              <StatusPill ok={r.isApproved !== false}>
+                                {r.isApproved === false ? "Pending" : "Live"}
+                              </StatusPill>
+                            </td>
+                            <td className="py-3 text-right">
+                              <Link to={`/recipe/${r.id}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                                Voir
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {!recipes.length && <AdminEmpty>Aucune recette</AdminEmpty>}
+                  </div>
+                </AdminPanel>
               </div>
-              <form onSubmit={handleAddIngredient} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="ingredient-name" className="text-sm font-medium">
-                    Ingredient Name
-                  </label>
-                  <input
-                    id="ingredient-name"
-                    type="text"
-                    placeholder="E.g., Flour, Sugar, etc."
-                    value={newIngredient.name}
-                    onChange={(e) => setNewIngredient({ name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <motion.button
-                    type="button"
-                    onClick={() => setShowAddIngredientModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    className="px-4 py-2 bg-[#E57373] hover:bg-[#EF5350] text-white rounded-lg transition-colors duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Add
-                  </motion.button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            )}
 
-      {/* Add Category Modal */}
-      <AnimatePresence>
-        {showAddCategoryModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">Add Category</h3>
-                <motion.button
-                  onClick={() => setShowAddCategoryModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                  whileHover={{ rotate: 90, scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <X className="h-5 w-5" />
-                </motion.button>
+            {section === "queue" && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">File d&apos;attente & Audit</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Approbations et signalements</p>
+                </div>
+                <AdminPanel title="File d'approbation">
+                  <ul className="space-y-3">
+                    {moderationQueue.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"
+                      >
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{r.title}</p>
+                          <p className="text-xs text-slate-500">par {r.user?.username}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-500"
+                            onClick={() => void moderateRecipe(r.id, true)}
+                          >
+                            <CheckCircle2 className="mr-1 h-4 w-4" /> Approuver
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => void moderateRecipe(r.id, false)}>
+                            <XCircle className="mr-1 h-4 w-4" /> Rejeter
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                    {!moderationQueue.length && <AdminEmpty>Queue vide — rien à modérer</AdminEmpty>}
+                  </ul>
+                </AdminPanel>
+
+                <AdminPanel title="Signalements (audit)">
+                  <ul className="space-y-3">
+                    {reportedItems.map((item) => (
+                      <li
+                        key={`${item.recipeId}-${item.lastReportedAt}`}
+                        className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"
+                      >
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{item.title}</p>
+                        <p className="text-slate-500 dark:text-slate-400">{item.latestReason}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {item.reportCount} signalement(s) · urgence {item.urgency}
+                        </p>
+                      </li>
+                    ))}
+                    {!reportedItems.length && <AdminEmpty>Aucun signalement</AdminEmpty>}
+                  </ul>
+                </AdminPanel>
               </div>
-              <form onSubmit={handleAddCategory} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="category-name" className="text-sm font-medium">
-                    Category Name
-                  </label>
-                  <input
-                    id="category-name"
-                    type="text"
-                    placeholder="Enter category name"
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory({ name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-[#E57373] focus:ring focus:ring-[#FFE4E1] transition"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <motion.button
-                    type="button"
-                    onClick={() => setShowAddCategoryModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    className="px-4 py-2 bg-[#E57373] hover:bg-[#EF5350] text-white rounded-lg transition-colors duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Add
-                  </motion.button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            )}
 
-      {/* Success Modal */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-4 right-4 z-50"
-          >
-            <motion.div
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 100, opacity: 0 }}
-              className="bg-white rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
-            >
-              <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-              <p className="font-medium">{successMessage}</p>
-            </motion.div>
-          </motion.div>
+            {section === "settings" && (
+              <AdminPanel title="Configuration & Système">
+                <div className="space-y-4 text-sm">
+                  <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                    <div>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">Thème</p>
+                      <p className="text-slate-500 dark:text-slate-400">Dark Mode natif (slate / émeraude)</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    >
+                      {theme === "dark" ? "Clair" : "Sombre"}
+                    </Button>
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => navigate("/profile")}>
+                    Mon profil
+                  </Button>
+                </div>
+              </AdminPanel>
+            )}
+          </>
         )}
-      </AnimatePresence>
+      </AdminLayout>
 
-      {/* Error Modal */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-4 right-4 z-50"
-          >
-            <motion.div
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 100, opacity: 0 }}
-              className="bg-white rounded-lg shadow-lg p-4 flex items-center border-l-4 border-red-500"
-            >
-              <AlertCircle className="h-6 w-6 text-red-500 mr-3" />
-              <p className="font-medium">{error}</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => {
+          if (!open && !confirmLoading) setPending(null)
+        }}
+        title={confirmDialogProps.title}
+        description={confirmDialogProps.description}
+        severity={confirmDialogProps.severity}
+        confirmLabel={confirmDialogProps.confirmLabel}
+        isLoading={confirmLoading}
+        onConfirm={runPendingConfirm}
+      />
+    </>
   )
 }

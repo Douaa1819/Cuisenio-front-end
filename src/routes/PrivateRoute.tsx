@@ -1,10 +1,13 @@
-import { useAuthStore } from "../store/auth.store"
 import { Navigate } from "react-router-dom"
-import { Role } from "../types/auth.types" 
+import { useAuthStore } from "../store/auth.store"
+import { Role } from "../types/auth.types"
+
 interface PrivateRouteProps {
   children: React.ReactElement
+  /** If set, only users with this role can access the route. */
   role?: Role
 }
+
 const PrivateRoute = ({ children, role }: PrivateRouteProps) => {
   const { isAuthenticated, user } = useAuthStore()
 
@@ -13,7 +16,8 @@ const PrivateRoute = ({ children, role }: PrivateRouteProps) => {
   }
 
   if (role && user?.role !== role) {
-    return <Navigate to="/" replace />
+    // Non-admin trying to reach an admin-only route → back to community
+    return <Navigate to="/community" replace />
   }
 
   return children

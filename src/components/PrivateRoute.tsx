@@ -10,17 +10,17 @@ interface PrivateRouteProps {
 
 const AuthBootLoader = () => (
   <div
-    className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"
+    className="flex min-h-screen items-center justify-center bg-background"
     role="status"
     aria-label="Chargement de la session"
   >
     <div className="w-full max-w-lg space-y-3 px-6">
-      <div className="h-8 w-48 animate-pulse rounded bg-white/10" />
-      <div className="h-24 w-full animate-pulse rounded-xl bg-white/8" />
+      <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+      <div className="h-24 w-full animate-pulse rounded-xl bg-muted" />
       <div className="grid grid-cols-3 gap-3">
-        <div className="h-20 animate-pulse rounded-xl bg-white/8" />
-        <div className="h-20 animate-pulse rounded-xl bg-white/8" />
-        <div className="h-20 animate-pulse rounded-xl bg-white/8" />
+        <div className="h-20 animate-pulse rounded-xl bg-muted" />
+        <div className="h-20 animate-pulse rounded-xl bg-muted" />
+        <div className="h-20 animate-pulse rounded-xl bg-muted" />
       </div>
     </div>
   </div>

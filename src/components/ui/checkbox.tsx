@@ -10,10 +10,10 @@ const checkboxVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-gray-300 text-rose-500 focus:ring-rose-500",
+        default: "border-input text-primary focus:ring-ring",
         primary: "border-gray-300 text-blue-600 focus:ring-blue-500",
         success: "border-gray-300 text-green-600 focus:ring-green-500",
-        warning: "border-gray-300 text-amber-600 focus:ring-amber-500",
+        warning: "border-gray-300 text-slate-600 focus:ring-slate-500",
         danger: "border-gray-300 text-red-600 focus:ring-red-500",
       },
       size: {
@@ -70,13 +70,13 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
                 htmlFor={inputId}
                 className={cn(
                   "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-                  error ? "text-red-500" : "text-gray-900",
+                  error ? "text-red-500" : "text-foreground",
                 )}
               >
                 {label}
               </label>
             )}
-            {description && <p className="text-xs text-gray-500">{description}</p>}
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
             {error && <p className="text-xs text-red-500">{error}</p>}
           </div>
         )}

@@ -3,7 +3,7 @@ import "./globals.css"
 
 export default function RootLayout() {
   return (
-    <div className="font-poppins">
+    <div className="font-sans">
       <Outlet />
     </div>
   )
