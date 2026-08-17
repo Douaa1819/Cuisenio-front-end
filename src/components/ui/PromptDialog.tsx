@@ -26,7 +26,7 @@ export type PromptDialogProps = {
 }
 
 /**
- * In-app text prompt (replaces window.prompt).
+ * In-app text field dialog for actions that previously used a native browser prompt.
  */
 export function PromptDialog({
   open,

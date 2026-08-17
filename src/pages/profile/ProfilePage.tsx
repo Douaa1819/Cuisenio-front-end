@@ -10,7 +10,9 @@ import { Label } from "../../components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { AppShell } from "../../components/layout/AppShell"
 import { useI18n } from "../../context/I18nContext"
+import { useNotification } from "../../context/NotificationContext"
 import { useTheme } from "../../hooks/use-theme"
+import { toUserFacingMessage } from "../../lib/user-facing-error"
 import { useAuthStore } from "../../store/auth.store"
 
 type ProfileTab = "overview" | "preferences" | "security"
@@ -19,10 +21,10 @@ export default function ProfilePage() {
   const { t, locale, setLocale } = useI18n()
   const { theme, setTheme } = useTheme()
   const { updateUser } = useAuthStore()
+  const { success, error: notifyError } = useNotification()
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview")
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState("")
   const [profile, setProfile] = useState({
     username: "",
     lastName: "",
@@ -66,40 +68,47 @@ export default function ProfilePage() {
   )
 
   const saveProfile = async () => {
-    const form = new FormData()
-    form.append("username", profile.username)
-    form.append("lastName", profile.lastName)
-    form.append("email", profile.email)
-    await authService.updateProfile(form)
-    updateUser({
-      username: profile.username,
-      lastName: profile.lastName,
-      email: profile.email,
-      role: profile.role as never,
-    })
-    setMessage("Profile saved.")
+    try {
+      const form = new FormData()
+      form.append("username", profile.username)
+      form.append("lastName", profile.lastName)
+      form.append("email", profile.email)
+      await authService.updateProfile(form)
+      updateUser({
+        username: profile.username,
+        lastName: profile.lastName,
+        email: profile.email,
+        role: profile.role as never,
+      })
+      success("Profil enregistré", "Vos informations ont été mises à jour.")
+    } catch (err) {
+      notifyError("Enregistrement impossible", toUserFacingMessage(err, "Le profil n'a pas pu être enregistré."))
+    }
   }
 
   const changePassword = async () => {
-    setMessage("")
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      setMessage("Please fill all password fields.")
+      notifyError("Champs requis", "Renseignez le mot de passe actuel et le nouveau mot de passe.")
       return
     }
     if (passwordForm.currentPassword === passwordForm.newPassword) {
-      setMessage("New password must be different from current password.")
+      notifyError("Mot de passe identique", "Le nouveau mot de passe doit être différent.")
       return
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setMessage("Password confirmation does not match.")
+      notifyError("Confirmation incorrecte", "Les deux nouveaux mots de passe ne correspondent pas.")
       return
     }
-    await authService.updatePassword({
-      currentPassword: passwordForm.currentPassword,
-      newPassword: passwordForm.newPassword,
-    })
-    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
-    setMessage("Password changed successfully.")
+    try {
+      await authService.updatePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      })
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      success("Mot de passe mis à jour", "Votre mot de passe a été modifié.")
+    } catch (err) {
+      notifyError("Modification impossible", toUserFacingMessage(err, "Le mot de passe n'a pas pu être modifié."))
+    }
   }
 
   if (loading) {
@@ -247,7 +256,6 @@ export default function ProfilePage() {
                 </TabsContent>
               </motion.div>
             </Tabs>
-            {message && <p className="mt-4 text-sm text-muted-foreground">{message}</p>}
           </CardContent>
         </Card>
       </main>

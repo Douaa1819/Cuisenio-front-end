@@ -64,6 +64,7 @@
   "demo.listening": "Écoute en cours…",
   "demo.voiceHint": "Essayez « étape suivante » ou « minuteur 10 minutes »",
   "demo.voiceReply": "Compris. Passage à l'étape 2. Minuteur prêt si besoin.",
+  "demo.voiceUnsupported": "La lecture vocale n'est pas disponible sur ce navigateur.",
   "pricing.hookBadge": "Économies courses & gestion du frigo",
   "pricing.hook": "Un plan gratuit vraiment utile au quotidien. Un Pass Pro qui s'amortit dès la première semaine de courses.",
   "pricing.title": "Des abonnements simples, pensés pour cuisiner mieux",

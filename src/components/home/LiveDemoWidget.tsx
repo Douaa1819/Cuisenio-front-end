@@ -1,17 +1,26 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Link2, Mic, Sparkles, Volume2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { ButtonWithAnimatedIcon } from "../ui/ButtonWithAnimatedIcon"
+import { useNotification } from "../../context/NotificationContext"
+import { cancelSpeech, isSpeechSynthesisSupported, localeToSpeechLang, speak } from "../../lib/speech"
 
 export function LiveDemoWidget() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { error: notifyError } = useNotification()
   const [link, setLink] = useState("")
   const [imported, setImported] = useState(false)
-  const [listening, setListening] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const [voiceLine, setVoiceLine] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isSpeechSynthesisSupported()) return
+    window.speechSynthesis.getVoices()
+    return () => cancelSpeech()
+  }, [])
 
   const runImport = () => {
     if (!link.trim()) {
@@ -21,12 +30,24 @@ export function LiveDemoWidget() {
   }
 
   const runVoice = () => {
-    setListening(true)
-    setVoiceLine(null)
-    window.setTimeout(() => {
-      setListening(false)
-      setVoiceLine(t("demo.voiceReply"))
-    }, 1500)
+    const line = t("demo.voiceReply")
+    setVoiceLine(line)
+    setSpeaking(true)
+
+    // Must speak inside the click handler. Chrome blocks speech after a timeout.
+    const started = speak(line, {
+      lang: localeToSpeechLang(i18n.language),
+      onend: () => setSpeaking(false),
+      onerror: () => {
+        setSpeaking(false)
+        notifyError("Voix indisponible", t("demo.voiceUnsupported"))
+      },
+    })
+
+    if (!started) {
+      setSpeaking(false)
+      notifyError("Voix indisponible", t("demo.voiceUnsupported"))
+    }
   }
 
   return (
@@ -93,8 +114,11 @@ export function LiveDemoWidget() {
             <Mic className="h-4 w-4 text-primary" aria-hidden />
             {t("demo.voiceLabel")}
           </div>
-          <div className="flex min-h-[96px] items-center justify-center rounded-2xl border border-dashed border-border bg-card px-4 text-center text-sm text-muted-foreground">
-            {listening ? t("demo.listening") : voiceLine ?? t("demo.voiceHint")}
+          <div
+            className="flex min-h-[96px] items-center justify-center rounded-2xl border border-dashed border-border bg-card px-4 text-center text-sm text-muted-foreground"
+            aria-live="polite"
+          >
+            {voiceLine ?? t("demo.voiceHint")}
           </div>
           <ButtonWithAnimatedIcon
             icon={Volume2}
@@ -102,7 +126,8 @@ export function LiveDemoWidget() {
             variant="outline"
             className="w-full"
             onClick={runVoice}
-            disabled={listening}
+            disabled={speaking}
+            isLoading={speaking}
           >
             {t("demo.voice")}
           </ButtonWithAnimatedIcon>

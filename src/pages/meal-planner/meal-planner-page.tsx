@@ -7,7 +7,6 @@ import {
   Plus,
   Trash2,
   Edit,
-  CheckCircle,
   CalendarDays,
   Utensils,
   ShoppingCart,
@@ -25,6 +24,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../../components/ui/card"
 import { AppShell } from "../../components/layout/AppShell"
+import { useNotification } from "../../context/NotificationContext"
 import { env } from "../../lib/env"
 
 import {
@@ -171,10 +171,8 @@ const Apple = (props: React.SVGProps<SVGSVGElement>) => (
 export default function MealPlannerPage() {
   const { isAuthenticated, user } = useAuthStore()
   const navigate = useNavigate()
+  const { success, error: notifyError } = useNotification()
   const { mealPlans, loading, error: hookError, createMealPlan, updateMealPlan, deleteMealPlan } = useMealPlanner()
-  const [localError, setError] = useState<string | null>(null)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successMessage, setSuccessMessage] = useState("")
   const [addMealDialogOpen, setAddMealDialogOpen] = useState(false)
   const [editMealDialogOpen, setEditMealDialogOpen] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -246,14 +244,13 @@ export default function MealPlannerPage() {
 
   const handleAddMeal = async () => {
     if (!selectedRecipe) {
-      setError("Veuillez sélectionner une recette")
+      notifyError("Recette requise", "Veuillez sélectionner une recette.")
       return
     }
 
     try {
       await createMealPlan(selectedRecipe.id, mealForm)
-      setSuccessMessage("Repas ajouté avec succès!")
-      setShowSuccessModal(true)
+      success("Repas ajouté", "Le repas a été ajouté à votre planning.")
       setAddMealDialogOpen(false)
 
       setMealForm({
@@ -264,13 +261,9 @@ export default function MealPlannerPage() {
         notes: "",
       })
       setSelectedRecipe(null)
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
     } catch (err) {
       console.error("Error adding meal plan:", err)
-      setError("Erreur lors de l'ajout du repas. Veuillez réessayer.")
+      notifyError("Ajout impossible", "Le repas n'a pas pu être ajouté. Veuillez réessayer.")
     }
   }
 
@@ -279,16 +272,11 @@ export default function MealPlannerPage() {
 
     try {
       await updateMealPlan(currentMeal.id, mealForm)
-      setSuccessMessage("Repas mis à jour avec succès!")
-      setShowSuccessModal(true)
+      success("Repas mis à jour", "Les modifications ont été enregistrées.")
       setEditMealDialogOpen(false)
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
     } catch (err) {
       console.error("Error updating meal plan:", err)
-      setError("Erreur lors de la mise à jour du repas. Veuillez réessayer.")
+      notifyError("Modification impossible", "Le repas n'a pas pu être mis à jour. Veuillez réessayer.")
     }
   }
 
@@ -297,15 +285,10 @@ export default function MealPlannerPage() {
 
     try {
       await deleteMealPlan(mealToDelete)
-      setSuccessMessage("Repas supprimé avec succès!")
-      setShowSuccessModal(true)
-
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
+      success("Repas supprimé", "Le repas a été retiré du planning.")
     } catch (err) {
       console.error("Error deleting meal plan:", err)
-      setError("Erreur lors de la suppression du repas. Veuillez réessayer.")
+      notifyError("Suppression impossible", "Le repas n'a pas pu être supprimé. Veuillez réessayer.")
     } finally {
       setConfirmDeleteOpen(false)
       setMealToDelete(null)
@@ -499,22 +482,16 @@ export default function MealPlannerPage() {
   
               const fileName = `planning-repas-${new Date().toISOString().split("T")[0]}.pdf`;
               doc.save(fileName);
-  
-              setSuccessMessage(`Planning exporté avec succès en format PDF!`);
+              success("Export PDF", "Le planning a été exporté.")
           } else {
               throw new Error("Impossible de capturer le contenu pour l'export PDF");
           }
       } catch (error) {
           console.error("Error exporting to PDF:", error);
-          setError("Erreur lors de l'exportation en PDF. Veuillez réessayer.");
+          notifyError("Export impossible", "L'exportation PDF a échoué. Veuillez réessayer.")
       } finally {
           setIsExporting(false);
           setExportDialogOpen(false);
-          setShowSuccessModal(true);
-  
-          setTimeout(() => {
-              setShowSuccessModal(false);
-          }, 2000);
       }
   };
   
@@ -530,24 +507,14 @@ export default function MealPlannerPage() {
               setTimeout(() => {
                   setIsExporting(false);
                   setExportDialogOpen(false);
-                  setSuccessMessage(`Planning exporté avec succès en format CSV!`);
-                  setShowSuccessModal(true);
-  
-                  setTimeout(() => {
-                      setShowSuccessModal(false);
-                  }, 2000);
+                  success("Export CSV", "Le planning a été exporté.")
               }, 1500);
               break;
           case "ical":
               setTimeout(() => {
                   setIsExporting(false);
                   setExportDialogOpen(false);
-                  setSuccessMessage(`Planning exporté avec succès en format iCal!`);
-                  setShowSuccessModal(true);
-  
-                  setTimeout(() => {
-                      setShowSuccessModal(false);
-                  }, 2000);
+                  success("Export iCal", "Le planning a été exporté.")
               }, 1500);
               break;
           default:
@@ -885,7 +852,7 @@ export default function MealPlannerPage() {
               </motion.div>
             </div>
 
-            {(hookError || localError) && (
+            {hookError && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -894,7 +861,7 @@ export default function MealPlannerPage() {
                 <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">Une erreur est survenue</p>
-                  <p className="text-sm">{hookError || localError}</p>
+                  <p className="text-sm">{hookError}</p>
                 </div>
               </motion.div>
             )}
@@ -1817,14 +1784,8 @@ export default function MealPlannerPage() {
 
                   // Save the PDF
                   doc.save(`liste-courses-${new Date().toISOString().split("T")[0]}.pdf`)
-
-                  setSuccessMessage("Liste de courses exportée avec succès!")
-                  setShowSuccessModal(true)
+                  success("Liste exportée", "La liste de courses a été téléchargée.")
                   setShowShoppingList(false)
-
-                  setTimeout(() => {
-                    setShowSuccessModal(false)
-                  }, 2000)
                 }}
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -1931,28 +1892,6 @@ export default function MealPlannerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Success Modal */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-4 right-4 z-50"
-          >
-            <motion.div
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 100, opacity: 0 }}
-              className="bg-card rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
-            >
-              <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-              <p className="font-medium">{successMessage}</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </AppShell>
   )
 }

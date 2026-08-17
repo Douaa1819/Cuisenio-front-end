@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "../../components/ui/dialog"
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog"
+import { PromptDialog } from "../../components/ui/PromptDialog"
 import { AppShell } from "../../components/layout/AppShell"
 import { env } from "../../lib/env"
 import { Label } from "../../components/ui/label"
@@ -101,6 +102,9 @@ export default function CommunityPage() {
   const [activeRecipe, setActiveRecipe] = useState<RecipeResponse | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
+  const [reportTarget, setReportTarget] = useState<
+    null | { kind: "recipe"; recipeId: number } | { kind: "comment"; recipeId: number; commentId: number }
+  >(null)
 
   const [filterCategory, setFilterCategory] = useState("")
   const [sortOption, setSortOption] = useState("")
@@ -354,25 +358,36 @@ export default function CommunityPage() {
     }
   }
 
-  const handleReportRecipe = async (recipeId: number) => {
-    const reason = window.prompt("Raison du signalement")
-    if (!reason?.trim()) return
-    try {
-      const response = await recipeService.reportRecipe(recipeId, reason.trim())
-      notifySuccess("Recette signalee", `${response.reportCount} signalement(s) pour cette recette.`)
-    } catch {
-      notifyError("Erreur", "Impossible de signaler la recette.")
-    }
+  const handleReportRecipe = (recipeId: number) => {
+    setReportTarget({ kind: "recipe", recipeId })
   }
 
-  const handleReportComment = async (recipeId: number, commentId: number) => {
-    const reason = window.prompt("Raison du signalement du commentaire")
-    if (!reason?.trim()) return
+  const handleReportComment = (recipeId: number, commentId: number) => {
+    setReportTarget({ kind: "comment", recipeId, commentId })
+  }
+
+  const submitReport = async (reason: string) => {
+    if (!reportTarget) return
     try {
-      const response = await recipeService.reportComment(recipeId, commentId, reason.trim())
-      notifySuccess("Commentaire signale", `${response.reportCount} signalement(s) pour ce commentaire.`)
+      if (reportTarget.kind === "recipe") {
+        const response = await recipeService.reportRecipe(reportTarget.recipeId, reason.trim())
+        notifySuccess("Recette signalée", `${response.reportCount} signalement(s) pour cette recette.`)
+      } else {
+        const response = await recipeService.reportComment(
+          reportTarget.recipeId,
+          reportTarget.commentId,
+          reason.trim(),
+        )
+        notifySuccess("Commentaire signalé", `${response.reportCount} signalement(s) pour ce commentaire.`)
+      }
+      setReportTarget(null)
     } catch {
-      notifyError("Erreur", "Impossible de signaler le commentaire.")
+      notifyError(
+        "Signalement impossible",
+        reportTarget.kind === "recipe"
+          ? "Impossible de signaler la recette."
+          : "Impossible de signaler le commentaire.",
+      )
     }
   }
 
@@ -1075,6 +1090,18 @@ export default function CommunityPage() {
         description="Cette recette sera archivée et ne sera plus visible sur la plateforme."
         confirmLabel="Archiver"
         onConfirm={handleDeleteRecipe}
+      />
+
+      <PromptDialog
+        open={reportTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setReportTarget(null)
+        }}
+        title={reportTarget?.kind === "comment" ? "Signaler ce commentaire ?" : "Signaler cette recette ?"}
+        description="Indiquez la raison de ce signalement. Elle restera confidentielle."
+        label="Raison du signalement"
+        confirmLabel="Signaler"
+        onConfirm={submitReport}
       />
 
       {recipeId && isPopupOpen && (

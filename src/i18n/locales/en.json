@@ -64,6 +64,7 @@
   "demo.listening": "Listening…",
   "demo.voiceHint": "Try next step or 10 minute timer",
   "demo.voiceReply": "Got it. Moving to step 2. Timer ready if you need it.",
+  "demo.voiceUnsupported": "Voice playback is not available in this browser.",
   "pricing.hookBadge": "Grocery savings & fridge management",
   "pricing.hook": "A free plan you can use every day. A Pro Pass that pays for itself in your first week of shopping.",
   "pricing.title": "Simple plans built for better cooking",

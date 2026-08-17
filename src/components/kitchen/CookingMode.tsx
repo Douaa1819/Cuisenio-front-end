@@ -17,30 +17,17 @@ import { useShoppingListStore } from "../../store/shopping-list.store"
 import { useRecentlyViewedStore } from "../../store/recently-viewed.store"
 import { Button } from "../ui/button"
 import { KitchenTimer } from "./KitchenTimer"
+import {
+  cancelSpeech,
+  getSpeechRecognitionCtor,
+  speak as speakFrench,
+  type SpeechRecognitionLike,
+} from "../../lib/speech"
 
 interface CookingModeProps {
   recipe: RecipeResponse
   open: boolean
   onClose: () => void
-}
-
-type SpeechRecognitionLike = {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  onresult: ((ev: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
-  onerror: (() => void) | null
-  onend: (() => void) | null
-  start: () => void
-  stop: () => void
-}
-
-function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
-  const w = window as Window & {
-    SpeechRecognition?: new () => SpeechRecognitionLike
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike
-  }
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
 /**
@@ -80,17 +67,14 @@ export function CookingMode({ recipe, open, onClose }: CookingModeProps) {
   const progress = steps.length ? ((stepIndex + 1) / steps.length) * 100 : 0
 
   const speak = (text: string) => {
-    if (!("speechSynthesis" in window) || prefersReducedMotion) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = "fr-FR"
-    window.speechSynthesis.speak(u)
+    speakFrench(text, { lang: "fr-FR" })
   }
 
   useEffect(() => {
-    if (!open || !voiceOn || !current || prefersReducedMotion) return
+    if (!open || !voiceOn || !current) return
+    if (prefersReducedMotion) return
     speak(`Étape ${current.stepNumber}. ${current.description}`)
-    return () => window.speechSynthesis?.cancel()
+    return () => cancelSpeech()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, voiceOn, current?.id, prefersReducedMotion])
 
@@ -124,7 +108,7 @@ export function CookingMode({ recipe, open, onClose }: CookingModeProps) {
       recognitionRef.current?.stop()
       return
     }
-    const Ctor = getSpeechRecognition()
+    const Ctor = getSpeechRecognitionCtor()
     if (!Ctor) return
     const recognition = new Ctor()
     recognition.lang = "fr-FR"

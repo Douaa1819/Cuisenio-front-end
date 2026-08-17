@@ -19,9 +19,9 @@ export default function NewsletterUnsubscribePage() {
     }
     void client
       .get<{ message: string }>(`${routes.newsletter.unsubscribe}?token=${encodeURIComponent(token)}`)
-      .then((res) => {
+      .then(() => {
         setOk(true)
-        setMessage(res.data.message)
+        setMessage(t("newsletter.unsubscribe.successHint"))
       })
       .catch(() => {
         setOk(false)

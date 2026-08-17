@@ -8,6 +8,7 @@ import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Checkbox } from "../ui/checkbox"
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion"
+import { isTechnicalMessage } from "../../lib/user-facing-error"
 import { cn } from "../../lib/utils"
 
 export function NewsletterSection() {
@@ -36,19 +37,21 @@ export function NewsletterSection() {
     try {
       const res = await newsletterService.subscribe(email.trim(), true)
       setStatus(res.alreadySubscribed ? "dup" : "ok")
-      setMessage(res.message)
+      setMessage(
+        typeof res.message === "string" && !isTechnicalMessage(res.message)
+          ? res.message
+          : res.alreadySubscribed
+            ? "Vous êtes déjà inscrit(e) à la newsletter."
+            : "Inscription confirmée. Merci !",
+      )
       if (!res.alreadySubscribed) {
         setEmail("")
         setConsent(false)
       }
     } catch (err: unknown) {
       console.error("[newsletter]", err)
-      const detail =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { detail?: string; message?: string } } }).response?.data
-          : null
       setStatus("error")
-      setMessage(detail?.detail || detail?.message || t("newsletter.errorGeneric"))
+      setMessage(t("newsletter.errorGeneric"))
     } finally {
       setLoading(false)
     }

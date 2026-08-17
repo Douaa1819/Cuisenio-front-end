@@ -16,7 +16,7 @@ export default function RecipeEditorPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const { success, error: notifyError } = useNotification()
+  const { success } = useNotification()
   const isEdit = Boolean(id)
 
   const [recipe, setRecipe] = useState<RecipeResponse | null>(null)

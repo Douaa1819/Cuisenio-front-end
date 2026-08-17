@@ -1,9 +1,7 @@
-import { AnimatePresence, motion } from "framer-motion"
 import {
   AlertCircle,
   ArrowLeft,
   BookmarkIcon,
-  CheckCircle,
   ChefHat,
   Clock,
   Edit,
@@ -26,8 +24,10 @@ import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import { Card } from "../../components/ui/card"
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog"
+import { PromptDialog } from "../../components/ui/PromptDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Textarea } from "../../components/ui/textarea"
+import { useNotification } from "../../context/NotificationContext"
 import { useComments } from "../../hooks/useComments"
 import { useAuthStore } from "../../store/auth.store"
 import { useFavoritesStore } from "../../store/favorites.store"
@@ -80,13 +80,16 @@ export default function RecipeDetailPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuthStore()
+  const { success, error: notifyError, warning } = useNotification()
   const [recipe, setRecipe] = useState<RecipeResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null)
+  const [reportTarget, setReportTarget] = useState<
+    null | { kind: "recipe" } | { kind: "comment"; commentId: number }
+  >(null)
   const [commentText, setCommentText] = useState("")
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successMessage, setSuccessMessage] = useState("")
   const [cookOpen, setCookOpen] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(0)
@@ -189,6 +192,7 @@ export default function RecipeDetailPage() {
 
   const requireAuth = (action: string) => {
     if (user) return true
+    warning("Connexion requise", `Connectez-vous pour ${action}.`)
     navigate(
       `/login?next=${encodeURIComponent(recipe ? recipePath(recipe) : `/recipe/${id}`)}`,
       { state: { message: `Connectez-vous pour ${action}.` } },
@@ -205,7 +209,7 @@ export default function RecipeDetailPage() {
       setLiked(res.likedByCurrentUser)
       setLikesCount(res.likesCount)
     } catch {
-      setError("Impossible de mettre à jour le like.")
+      notifyError("Action impossible", "Impossible de mettre à jour le like.")
     } finally {
       setLikeBusy(false)
     }
@@ -220,18 +224,14 @@ export default function RecipeDetailPage() {
         return
       }
       await navigator.clipboard.writeText(url)
-      setSuccessMessage("Lien de la recette copié")
-      setShowSuccessModal(true)
-      setTimeout(() => setShowSuccessModal(false), 1800)
+      success("Lien copié", "Le lien de la recette a été copié.")
     } catch (err) {
       if ((err as { name?: string })?.name === "AbortError") return
       try {
         await navigator.clipboard.writeText(url)
-        setSuccessMessage("Lien de la recette copié")
-        setShowSuccessModal(true)
-        setTimeout(() => setShowSuccessModal(false), 1800)
+        success("Lien copié", "Le lien de la recette a été copié.")
       } catch {
-        setError("Impossible de partager ou copier le lien.")
+        notifyError("Partage impossible", "Impossible de partager ou copier le lien.")
       }
     }
   }
@@ -242,18 +242,18 @@ export default function RecipeDetailPage() {
 
     try {
       const created = await addComment(recipeNumericId, commentText)
-      if (!created) return
+      if (!created) {
+        notifyError("Commentaire impossible", "Impossible d'ajouter le commentaire. Veuillez réessayer.")
+        return
+      }
       setCommentText("")
       setRecipe((prev) =>
         prev ? { ...prev, commentsCount: (prev.commentsCount ?? comments.length) + 1 } : prev,
       )
-      setSuccessMessage("Commentaire ajouté avec succès!")
-      setShowSuccessModal(true)
-      setTimeout(() => {
-        setShowSuccessModal(false)
-      }, 2000)
+      success("Commentaire publié", "Votre commentaire a été ajouté.")
     } catch (error) {
       console.error("Error posting comment:", error)
+      notifyError("Commentaire impossible", "Impossible d'ajouter le commentaire. Veuillez réessayer.")
     }
   }
 
@@ -263,23 +263,26 @@ export default function RecipeDetailPage() {
     if (updated) {
       setEditingCommentId(null)
       setEditCommentText("")
-      setSuccessMessage("Commentaire mis à jour")
-      setShowSuccessModal(true)
-      setTimeout(() => setShowSuccessModal(false), 1500)
+      success("Commentaire mis à jour", "Les modifications ont été enregistrées.")
+    } else {
+      notifyError("Modification impossible", "Le commentaire n'a pas pu être modifié.")
     }
   }
 
-  const handleDeleteComment = async (commentId: number) => {
-    if (!recipeNumericId) return
-    if (!window.confirm("Supprimer ce commentaire ?")) return
-    const ok = await deleteComment(recipeNumericId, commentId)
+  const confirmDeleteComment = async () => {
+    if (!recipeNumericId || commentToDelete == null) return
+    const ok = await deleteComment(recipeNumericId, commentToDelete)
     if (ok) {
       setRecipe((prev) =>
         prev
           ? { ...prev, commentsCount: Math.max(0, (prev.commentsCount ?? 1) - 1) }
           : prev,
       )
+      success("Commentaire supprimé", "Le commentaire a été retiré.")
+    } else {
+      notifyError("Suppression impossible", "Le commentaire n'a pas pu être supprimé.")
     }
+    setCommentToDelete(null)
   }
 
   const handleDeleteRecipe = async () => {
@@ -288,46 +291,45 @@ export default function RecipeDetailPage() {
     try {
       await recipeService.deleteRecipe(recipeNumericId)
       setConfirmDeleteOpen(false)
-      setSuccessMessage("Recette archivée — elle n'est plus visible sur la plateforme.")
-      setShowSuccessModal(true)
-      setTimeout(() => {
-        setShowSuccessModal(false)
-        navigate("/home")
-      }, 2000)
+      success("Recette archivée", "Elle n'est plus visible sur la plateforme.")
+      navigate("/home")
     } catch (error) {
       console.error("Error archiving recipe:", error)
-      setError("Erreur lors de l'archivage de la recette")
+      notifyError("Archivage impossible", "La recette n'a pas pu être archivée.")
       setConfirmDeleteOpen(false)
     }
   }
 
-  const handleReportRecipe = async () => {
+  const openReportRecipe = () => {
     if (!recipeNumericId) return
     if (!requireAuth("signaler cette recette")) return
-    const reason = window.prompt("Raison du signalement")
-    if (!reason?.trim()) return
-    try {
-      const res = await recipeService.reportRecipe(recipeNumericId, reason.trim())
-      setSuccessMessage(`Recette signalée (${res.reportCount} signalement(s)).`)
-      setShowSuccessModal(true)
-      setTimeout(() => setShowSuccessModal(false), 2000)
-    } catch {
-      setError("Impossible de signaler cette recette.")
-    }
+    setReportTarget({ kind: "recipe" })
   }
 
-  const handleReportComment = async (commentId: number) => {
+  const openReportComment = (commentId: number) => {
     if (!recipeNumericId) return
     if (!requireAuth("signaler ce commentaire")) return
-    const reason = window.prompt("Raison du signalement du commentaire")
-    if (!reason?.trim()) return
+    setReportTarget({ kind: "comment", commentId })
+  }
+
+  const submitReport = async (reason: string) => {
+    if (!recipeNumericId || !reportTarget) return
     try {
-      const res = await recipeService.reportComment(recipeNumericId, commentId, reason.trim())
-      setSuccessMessage(`Commentaire signalé (${res.reportCount} signalement(s)).`)
-      setShowSuccessModal(true)
-      setTimeout(() => setShowSuccessModal(false), 2000)
+      if (reportTarget.kind === "recipe") {
+        const res = await recipeService.reportRecipe(recipeNumericId, reason.trim())
+        success("Recette signalée", `${res.reportCount} signalement(s) enregistré(s).`)
+      } else {
+        const res = await recipeService.reportComment(recipeNumericId, reportTarget.commentId, reason.trim())
+        success("Commentaire signalé", `${res.reportCount} signalement(s) enregistré(s).`)
+      }
+      setReportTarget(null)
     } catch {
-      setError("Impossible de signaler ce commentaire.")
+      notifyError(
+        "Signalement impossible",
+        reportTarget.kind === "recipe"
+          ? "Impossible de signaler cette recette."
+          : "Impossible de signaler ce commentaire.",
+      )
     }
   }
 
@@ -440,7 +442,7 @@ export default function RecipeDetailPage() {
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50"
-                  onClick={() => void handleReportRecipe()}
+                  onClick={openReportRecipe}
                 >
                   <Flag className="h-4 w-4" /> Signaler
                 </Button>
@@ -651,9 +653,7 @@ export default function RecipeDetailPage() {
                           recipeTitle: recipe.title,
                         })),
                       )
-                      setSuccessMessage("Ingrédients ajoutés à la liste de courses")
-                      setShowSuccessModal(true)
-                      setTimeout(() => setShowSuccessModal(false), 1800)
+                      success("Liste de courses", "Les ingrédients ont été ajoutés.")
                     }}
                   >
                     Ajouter à la liste
@@ -869,7 +869,7 @@ export default function RecipeDetailPage() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-auto p-0 text-xs text-red-600 hover:text-red-700"
-                                    onClick={() => void handleDeleteComment(comment.id)}
+                                    onClick={() => setCommentToDelete(comment.id)}
                                   >
                                     <Trash2 className="mr-1 h-3.5 w-3.5" />
                                     Supprimer
@@ -881,7 +881,7 @@ export default function RecipeDetailPage() {
                                   variant="ghost"
                                   size="sm"
                                   className="h-auto p-0 text-xs text-slate-600 hover:text-primary"
-                                  onClick={() => void handleReportComment(comment.id)}
+                                  onClick={() => openReportComment(comment.id)}
                                 >
                                   <Flag className="mr-1 h-3.5 w-3.5" />
                                   Signaler ce commentaire
@@ -930,27 +930,29 @@ export default function RecipeDetailPage() {
         onConfirm={handleDeleteRecipe}
       />
 
-      {/* Success Modal */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-4 right-4 z-50"
-          >
-            <motion.div
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 100, opacity: 0 }}
-              className="bg-white rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
-            >
-              <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-              <p className="font-medium">{successMessage}</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ConfirmDialog
+        open={commentToDelete != null}
+        onOpenChange={(open) => {
+          if (!open) setCommentToDelete(null)
+        }}
+        severity="danger"
+        title="Supprimer ce commentaire ?"
+        description="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        onConfirm={confirmDeleteComment}
+      />
+
+      <PromptDialog
+        open={reportTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setReportTarget(null)
+        }}
+        title={reportTarget?.kind === "comment" ? "Signaler ce commentaire ?" : "Signaler cette recette ?"}
+        description="Indiquez la raison de ce signalement. Elle restera confidentielle."
+        label="Raison du signalement"
+        confirmLabel="Signaler"
+        onConfirm={submitReport}
+      />
     </div>
     </AppShell>
   )
