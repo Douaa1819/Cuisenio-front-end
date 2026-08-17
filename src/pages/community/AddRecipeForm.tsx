@@ -1,6 +1,7 @@
-import { Plus, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Camera, Plus, Trash2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
+import type { RecipeImportPreview } from "../../api/recipe-import.service"
 import { categoryService } from "../../api/category.service"
 import { ingredientService } from "../../api/ingredient.service"
 import { Button } from "../../components/ui/button"
@@ -10,9 +11,12 @@ import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 import { Textarea } from "../../components/ui/textarea"
+import { useNotification } from "../../context/NotificationContext"
+import { env } from "../../lib/env"
 import type { CategoryResponse } from "../../types/category.types"
 import type { IngredientResponse } from "../../types/ingredient.types"
-import type { DifficultyLevel, RecipeStepRequest } from "../../types/recipe.types"
+import type { DifficultyLevel, RecipeResponse, RecipeStepRequest } from "../../types/recipe.types"
+import { validateImageFile } from "../../utils/validation"
 import { RecipeFormData, recipeSchema } from "./validation/recipe-validation"
 
 interface IngredientDetail {
@@ -24,12 +28,26 @@ interface IngredientDetail {
 interface AddRecipeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (recipeData: RecipeFormData) => Promise<number>
+  onSubmit: (recipeData: RecipeFormData, image?: File | null) => Promise<number>
+  initialRecipe?: RecipeResponse | null
+  importPreview?: RecipeImportPreview | null
+  asPage?: boolean
 }
 
+function existingImageSrc(imageUrl?: string | null) {
+  if (!imageUrl) return ""
+  return imageUrl.startsWith("http") ? imageUrl : `${env.uploadsUrl}/${imageUrl}`
+}
 
-
-export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRecipeDialogProps) {
+export default function AddRecipeDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  initialRecipe = null,
+  importPreview = null,
+  asPage = false,
+}: AddRecipeDialogProps) {
+  const { error: notifyError } = useNotification()
   const [recipeTitle, setRecipeTitle] = useState("")
   const [recipeDescription, setRecipeDescription] = useState("")
   const [recipeDifficulty, setRecipeDifficulty] = useState<DifficultyLevel | "">("")
@@ -44,12 +62,17 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [ingredientsList, setIngredientsList] = useState<IngredientResponse[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
- 
+  const [recipeImage, setRecipeImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState("")
+  const [existingImage, setExistingImage] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const isEdit = Boolean(initialRecipe)
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await categoryService.findAll()
+        const response = await categoryService.findAll(0, 50)
         setCategories(response.content)
       } catch (error) {
         console.error("Failed to fetch categories:", error)
@@ -71,7 +94,99 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
     }
   }, [open])
 
-  
+  useEffect(() => {
+    if (!open || !initialRecipe) return
+    setRecipeTitle(initialRecipe.title ?? "")
+    setRecipeDescription(initialRecipe.description ?? "")
+    setRecipeDifficulty((initialRecipe.difficultyLevel as DifficultyLevel) || "")
+    setPrepTime(initialRecipe.preparationTime ?? 15)
+    setCookTime(initialRecipe.cookingTime ?? 0)
+    setServings(initialRecipe.servings ?? 4)
+    const categoryId = initialRecipe.categorie?.id ?? initialRecipe.categories?.[0]?.id
+    setSelectedCategory(categoryId ? String(categoryId) : "")
+    const details = (initialRecipe.recipeIngredients ?? [])
+      .map((item) => ({
+        ingredientId: Number(item.ingredient?.id),
+        quantity: String(item.quantity ?? "").replace(/\.0$/, ""),
+        unit: item.unit ?? "",
+      }))
+      .filter((item) => Number.isFinite(item.ingredientId) && item.ingredientId > 0)
+    setIngredientDetails(details)
+    setSelectedIngredients(details.map((item) => item.ingredientId))
+    const loadedSteps = (initialRecipe.steps ?? [])
+      .slice()
+      .sort((a, b) => a.stepNumber - b.stepNumber)
+      .map((step, index) => ({
+        stepNumber: index + 1,
+        description: step.description ?? "",
+      }))
+    setSteps(loadedSteps.length ? loadedSteps : [{ stepNumber: 1, description: "" }])
+    setCurrentStep(1)
+    setExistingImage(existingImageSrc(initialRecipe.imageUrl))
+    setRecipeImage(null)
+    setImagePreview("")
+    setErrors({})
+  }, [open, initialRecipe])
+
+  useEffect(() => {
+    if (!open || initialRecipe || !importPreview || ingredientsList.length === 0) return
+    setRecipeTitle(importPreview.title ?? "")
+    if (importPreview.description) setRecipeDescription(importPreview.description)
+    if (importPreview.prepTimeMinutes != null) setPrepTime(importPreview.prepTimeMinutes)
+    if (importPreview.cookTimeMinutes != null) setCookTime(importPreview.cookTimeMinutes)
+    if (importPreview.steps?.length) {
+      setSteps(importPreview.steps.map((description, index) => ({
+        stepNumber: index + 1,
+        description,
+      })))
+    }
+    if (importPreview.ingredients?.length) {
+      const matched: IngredientDetail[] = []
+      for (const line of importPreview.ingredients) {
+        const name = line.replace(/^\d+([.,]\d+)?\s*/, "").trim().toLowerCase()
+        const found = ingredientsList.find((item) => item.name.toLowerCase() === name)
+          ?? ingredientsList.find((item) => name.includes(item.name.toLowerCase()) || item.name.toLowerCase().includes(name))
+        if (found && !matched.some((row) => row.ingredientId === found.id)) {
+          const qtyMatch = line.match(/^(\d+(?:[.,]\d+)?)/)
+          matched.push({
+            ingredientId: found.id,
+            quantity: qtyMatch?.[1]?.replace(",", ".") ?? "1",
+            unit: "g",
+          })
+        }
+      }
+      if (matched.length) {
+        setIngredientDetails(matched)
+        setSelectedIngredients(matched.map((row) => row.ingredientId))
+      }
+    }
+    if (importPreview.imageUrl) setExistingImage(importPreview.imageUrl)
+  }, [open, initialRecipe, importPreview, ingredientsList])
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [imagePreview])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const validationError = validateImageFile(file)
+    if (validationError) {
+      setErrors((prev) => ({ ...prev, image: validationError }))
+      e.target.value = ""
+      return
+    }
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setRecipeImage(file)
+    setImagePreview(URL.createObjectURL(file))
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.image
+      return next
+    })
+  }
 
   const handleIngredientSelection = (ingredientId: number) => {
     setSelectedIngredients((prevSelectedIngredients) => {
@@ -167,20 +282,25 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
     const { isValid, data } = validateForm()
 
     if (!isValid || !data) {
-      alert("Veuillez corriger les erreurs dans le formulaire")
+      notifyError("Formulaire incomplet", "Veuillez corriger les erreurs dans le formulaire.")
       return
     }
 
     try {
-      console.log("Sending data:", data)
-
-      await onSubmit(data)
-     
-        resetForm()
-        onOpenChange(false)
+      setIsSaving(true)
+      await onSubmit(data, recipeImage)
+      resetForm()
+      onOpenChange(false)
     } catch (error) {
       console.error("Error creating recipe:", error)
-      alert("Échec de la création de la recette. Veuillez réessayer.")
+      notifyError(
+        isEdit ? "Modification impossible" : "Création impossible",
+        isEdit
+          ? "La recette n'a pas pu être enregistrée. Veuillez réessayer."
+          : "La recette n'a pas pu être créée. Veuillez réessayer.",
+      )
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -198,6 +318,10 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
     setIngredientDetails([])
     setSteps([{ stepNumber: 1, description: "" }])
     setCurrentStep(1)
+    setRecipeImage(null)
+    setImagePreview("")
+    setExistingImage("")
+    setErrors({})
 
     onOpenChange(false)
   }
@@ -216,9 +340,18 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]"
+          showCloseButton={!asPage}
+          onPointerDownOutside={(event) => {
+            if (asPage) event.preventDefault()
+          }}
+          onEscapeKeyDown={(event) => {
+            if (asPage) event.preventDefault()
+          }}
+        >
           <DialogHeader>
-            <DialogTitle>Ajouter une nouvelle recette</DialogTitle>
+            <DialogTitle>{isEdit ? "Modifier la recette" : "Ajouter une nouvelle recette"}</DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
@@ -255,6 +388,54 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
                     className={errors.description ? "border-red-500" : ""}
                   />
                   {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+                </div>
+
+                <div>
+                  <Label className="mb-1 block text-sm font-medium">Photo de la recette</Label>
+                  <div
+                    className="cursor-pointer rounded-xl border-2 border-dashed border-border p-4 text-center transition-colors hover:bg-muted/40"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleImageChange}
+                    />
+                    {imagePreview || existingImage ? (
+                      <div className="relative h-44 w-full">
+                        <img
+                          src={imagePreview || existingImage}
+                          alt="Aperçu de la recette"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="absolute right-2 top-2 bg-background/90"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (imagePreview) URL.revokeObjectURL(imagePreview)
+                            setRecipeImage(null)
+                            setImagePreview("")
+                            setExistingImage("")
+                            if (fileInputRef.current) fileInputRef.current.value = ""
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="py-8">
+                        <Camera className="mx-auto mb-2 h-10 w-10 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Cliquez pour importer une image</p>
+                        <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WebP ou GIF — 5 Mo max</p>
+                      </div>
+                    )}
+                  </div>
+                  {errors.image && <p className="mt-1 text-xs text-red-500">{errors.image}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,8 +688,12 @@ export default function AddRecipeDialog({ open, onOpenChange, onSubmit }: AddRec
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSubmitRecipe}>
-              Publier la recette
+            <Button
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={handleSubmitRecipe}
+              disabled={isSaving}
+            >
+              {isSaving ? "Enregistrement…" : isEdit ? "Enregistrer les modifications" : "Publier la recette"}
             </Button>
           </DialogFooter>
         </DialogContent>

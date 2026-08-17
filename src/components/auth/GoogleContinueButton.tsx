@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { env } from "../../lib/env"
+import type { GoogleAuthIssue } from "../../lib/user-facing-error"
 
 declare global {
   interface Window {
@@ -8,7 +9,6 @@ declare global {
         id: {
           initialize: (config: Record<string, unknown>) => void
           renderButton: (parent: HTMLElement, config: Record<string, unknown>) => void
-          prompt: () => void
         }
       }
     }
@@ -17,24 +17,33 @@ declare global {
 
 type GoogleButtonProps = {
   onCredential: (idToken: string) => void | Promise<void>
+  onIssue?: (kind: GoogleAuthIssue) => void
   label?: string
   disabled?: boolean
 }
 
 /**
  * Renders Google Identity Services button when VITE_GOOGLE_CLIENT_ID is configured.
+ * Failures are reported via onIssue — never via native browser dialogs.
  */
-export function GoogleContinueButton({ onCredential, disabled }: GoogleButtonProps) {
+export function GoogleContinueButton({ onCredential, onIssue, disabled }: GoogleButtonProps) {
   const hostRef = useRef<HTMLDivElement>(null)
+  const onCredentialRef = useRef(onCredential)
+  const onIssueRef = useRef(onIssue)
   const [ready, setReady] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+
+  onCredentialRef.current = onCredential
+  onIssueRef.current = onIssue
 
   useEffect(() => {
     if (!env.googleClientId || disabled) return
 
     const handleCredential = async (response: { credential?: string }) => {
-      if (!response.credential) return
-      await onCredential(response.credential)
+      if (!response.credential) {
+        onIssueRef.current?.("cancelled")
+        return
+      }
+      await onCredentialRef.current(response.credential)
     }
 
     const init = () => {
@@ -61,6 +70,7 @@ export function GoogleContinueButton({ onCredential, disabled }: GoogleButtonPro
     if (existing) {
       if (window.google?.accounts?.id) init()
       else existing.addEventListener("load", init)
+      existing.onerror = () => onIssueRef.current?.("failed")
       return
     }
 
@@ -70,18 +80,26 @@ export function GoogleContinueButton({ onCredential, disabled }: GoogleButtonPro
     script.defer = true
     script.dataset.googleGsi = "1"
     script.onload = init
-    script.onerror = () => setError("Impossible de charger Google Sign-In.")
+    script.onerror = () => onIssueRef.current?.("failed")
     document.head.appendChild(script)
-  }, [onCredential, disabled])
+  }, [disabled])
 
   if (!env.googleClientId) {
-    return null
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onIssue?.("config")}
+        className="flex min-h-11 w-full items-center justify-center rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+      >
+        Continuer avec Google
+      </button>
+    )
   }
 
   return (
-    <div className="w-full space-y-2">
-      <div ref={hostRef} className="flex min-h-10 justify-center opacity-100" aria-busy={!ready} />
-      {error && <p className="text-center text-xs text-destructive">{error}</p>}
+    <div className="w-full">
+      <div ref={hostRef} className="flex min-h-10 justify-center" aria-busy={!ready} />
     </div>
   )
 }

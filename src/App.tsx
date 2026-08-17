@@ -17,7 +17,7 @@ const Register         = lazy(() => import("./pages/auth/Register"))
 const ChefDashboard    = lazy(() => import("./pages/dashboard/ChefDashboard"))
 const AdminDashboard   = lazy(() => import("./pages/dashboard/AdminDashboard"))
 const ProfilePage      = lazy(() => import("./pages/profile/ProfilePage"))
-const CreateRecipePage = lazy(() => import("./pages/recipes/create-recipe-page"))
+const RecipeEditorPage = lazy(() => import("./pages/recipes/recipe-editor-page"))
 const HomePage         = lazy(() => import("./pages/home/HomePage"))
 const CommunityPage    = lazy(() => import("./pages/community/community-page"))
 const MealPlannerPage  = lazy(() => import("./pages/meal-planner/meal-planner-page"))
@@ -128,7 +128,15 @@ function App() {
             path="/add-recipe"
             element={
               <PrivateRoute>
-                <CreateRecipePage />
+                <RecipeEditorPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/edit-recipe/:id"
+            element={
+              <PrivateRoute>
+                <RecipeEditorPage />
               </PrivateRoute>
             }
           />

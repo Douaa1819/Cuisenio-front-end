@@ -122,6 +122,11 @@ window.addEventListener("auth:unauthorized", () => {
   const { token, isAuthenticated, logout } = useAuthStore.getState()
   if (loggingOut || !token || !isAuthenticated) return
   loggingOut = true
+  try {
+    sessionStorage.setItem("cuisenio:session-expired", "1")
+  } catch {
+    /* ignore */
+  }
   logout({ redirect: true })
   loggingOut = false
 })

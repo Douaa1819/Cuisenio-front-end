@@ -1,21 +1,7 @@
-import { useState } from "react";
+import { useNotification } from "../context/NotificationContext"
 
-interface Toast {
-  title: string;
-  description: string;
-  variant?: "default" | "destructive";
-}
-
+/** Alias of the global Cuisenio notification system — do not add a second toast stack. */
 export const useToast = () => {
-  const [toast, setToast] = useState<Toast | null>(null);
-
-  const showToast = ({ title, description, variant = "default" }: Toast) => {
-    setToast({ title, description, variant });
-    setTimeout(() => setToast(null), 3000); 
-  };
-
-  return {
-    toast,
-    showToast,
-  };
-};
+  const { showToast, success, error, warning, info, dismiss } = useNotification()
+  return { showToast, success, error, warning, info, dismiss }
+}

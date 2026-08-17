@@ -1055,8 +1055,13 @@ export default function CommunityPage() {
       <AddRecipeDialog
         open={addRecipeDialogOpen}
         onOpenChange={setAddRecipeDialogOpen}
-        onSubmit={async (recipeData) => {
+        onSubmit={async (recipeData, image) => {
           const recipe = await createRecipe(recipeData)
+          if (image && recipe?.id) {
+            const formData = new FormData()
+            formData.append("imageUrl", image)
+            await recipeService.addImageToRecipe(recipe.id, formData)
+          }
           return recipe?.id ?? 0
         }}
       />

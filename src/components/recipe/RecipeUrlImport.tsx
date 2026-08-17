@@ -24,10 +24,11 @@ export function RecipeUrlImport({ onApply }: RecipeUrlImportProps) {
     try {
       const data = await recipeImportService.preview(url.trim())
       setPreview(data)
-      success("Recette extraite", `Parser: ${data.parserUsed}`)
+      success("Recette importée", "La recette a été extraite. Vérifiez-la avant de l'enregistrer.")
     } catch (err: unknown) {
       console.error("[recipe-import]", err)
-      notifyError("Import échoué", mapRecipeImportError(err))
+      const mapped = mapRecipeImportError(err)
+      notifyError(mapped.title, mapped.message)
     } finally {
       setLoading(false)
     }

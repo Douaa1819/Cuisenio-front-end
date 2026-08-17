@@ -12,8 +12,8 @@ import {
 import { PageResponse } from '../types/error-response';
 
 export const ingredientService = {
-  findAll: async (): Promise<PageResponse<IngredientResponse>> => {
-    const response = await client.get(routes.ingredients.base);
+  findAll: async (page = 0, size = 100): Promise<PageResponse<IngredientResponse>> => {
+    const response = await client.get(`${routes.ingredients.base}?page=${page}&size=${size}`);
     return response.data;
   },
 

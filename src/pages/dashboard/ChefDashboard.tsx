@@ -345,7 +345,7 @@ export default function ChefDashboard() {
                                 type="button"
                                 size="xs"
                                 variant="outline"
-                                onClick={() => navigate(recipePath(r))}
+                                onClick={() => navigate(`/edit-recipe/${r.id}`)}
                               >
                                 <Icon icon={Pencil} className="mr-1" size={14} />
                                 Éditer
@@ -394,9 +394,9 @@ export default function ChefDashboard() {
             </DialogDescription>
           </DialogHeader>
           <RecipeUrlImport
-            onApply={() => {
+            onApply={(preview) => {
               setImportOpen(false)
-              navigate("/add-recipe")
+              navigate("/add-recipe", { state: { importPreview: preview } })
             }}
           />
         </DialogContent>

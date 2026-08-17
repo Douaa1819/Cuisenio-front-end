@@ -5,13 +5,15 @@ import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { useI18n } from "../../context/I18nContext"
+import { useNotification } from "../../context/NotificationContext"
+import { mapAuthError } from "../../lib/user-facing-error"
 
 export default function ResetPassword() {
   const { t } = useI18n()
+  const { success, error: notifyError } = useNotification()
   const { token = "" } = useParams()
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
-  const [message, setMessage] = useState("")
   const [validToken, setValidToken] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -30,15 +32,15 @@ export default function ResetPassword() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) {
-      setMessage("Passwords do not match.")
+      notifyError("Mots de passe différents", "Les deux mots de passe doivent être identiques.")
       return
     }
     setLoading(true)
     try {
-      const res = await authService.resetPassword(token, password)
-      setMessage(res.message)
-    } catch {
-      setMessage("Unable to reset password.")
+      await authService.resetPassword(token, password)
+      success("Mot de passe mis à jour", "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.")
+    } catch (err) {
+      notifyError("Réinitialisation impossible", mapAuthError(err, "password"))
     } finally {
       setLoading(false)
     }
@@ -62,7 +64,6 @@ export default function ResetPassword() {
               </Button>
             </form>
           )}
-          {message && <p className="mt-3 text-sm text-muted-foreground">{message}</p>}
           <Link to="/login" className="mt-4 block text-sm text-primary hover:underline">
             {t("backToLogin")}
           </Link>

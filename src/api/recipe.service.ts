@@ -38,10 +38,8 @@ export const recipeService = {
     })
   },
 
-  updateRecipe: async (id: number, recipeData: FormData): Promise<RecipeResponse> => {
-    return apiClient.put<RecipeResponse, FormData>(routes.recipes.detail(id), recipeData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
+  updateRecipe: async (id: number, recipeData: RecipeFormData): Promise<RecipeResponse> => {
+    return apiClient.put<RecipeResponse, RecipeFormData>(routes.recipes.detail(id), recipeData)
   },
 
   deleteRecipe: async (id: number): Promise<void> => {

@@ -5,21 +5,28 @@ import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { useI18n } from "../../context/I18nContext"
+import { useNotification } from "../../context/NotificationContext"
+import { mapAuthError } from "../../lib/user-facing-error"
 
 export default function ForgotPassword() {
   const { t } = useI18n()
+  const { success, error: notifyError } = useNotification()
   const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
+  const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await authService.requestPasswordReset(email)
-      setMessage(res.message)
-    } catch {
-      setMessage("Unable to send reset link.")
+      await authService.requestPasswordReset(email)
+      setSent(true)
+      success(
+        "Lien envoyé",
+        "Si un compte existe pour cet email, un lien de réinitialisation vient d'être envoyé.",
+      )
+    } catch (err) {
+      notifyError("Envoi impossible", mapAuthError(err, "password"))
     } finally {
       setLoading(false)
     }
@@ -38,7 +45,11 @@ export default function ForgotPassword() {
               {t("sendResetLink")}
             </Button>
           </form>
-          {message && <p className="mt-3 text-sm text-muted-foreground">{message}</p>}
+          {sent && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Vérifiez votre boîte de réception. Le lien expire après une courte durée.
+            </p>
+          )}
           <Link to="/login" className="mt-4 block text-sm text-primary hover:underline">
             {t("backToLogin")}
           </Link>

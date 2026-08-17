@@ -48,13 +48,9 @@ client.interceptors.response.use(
     }
 
     if (status === 403) {
-      const detail =
-        error.response?.data?.detail ??
-        error.response?.data?.message ??
-        "Accès refusé."
       window.dispatchEvent(
         new CustomEvent("auth:forbidden", {
-          detail: { message: detail, url },
+          detail: { message: "Accès refusé.", url },
         }),
       )
     }

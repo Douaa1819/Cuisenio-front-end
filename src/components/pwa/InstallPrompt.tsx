@@ -4,7 +4,7 @@ import { Button } from "../ui/button"
 
 /**
  * Lightweight install hint — does NOT call beforeinstallprompt.preventDefault().
- * Intercepting the event without promptly calling prompt() triggers Chromium's
+ * Intercepting the event without showing the native install UI triggers Chromium's
  * "Banner not shown" warning and can feel like the app is hanging.
  *
  * Users can still install via the browser UI (⋮ → Install Cuisenio).

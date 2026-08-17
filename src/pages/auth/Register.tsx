@@ -9,6 +9,7 @@ import { z } from "zod"
 import { authService } from "../../api/auth.service"
 import { GoogleContinueButton } from "../../components/auth/GoogleContinueButton"
 import { useNotification } from "../../context/NotificationContext"
+import { googleAuthToast, mapAuthError, mapGoogleBackendError, type GoogleAuthIssue } from "../../lib/user-facing-error"
 import { useAuthStore } from "../../store/auth.store"
 import { emailSchema, nameSchema, passwordSchema, usernameSchema } from "../../utils/validation"
 import { homePathForRole, normalizeRole } from "../../types/auth.types"
@@ -37,23 +38,6 @@ const pageMotion = {
   transition: { duration: 0.2, ease: "easeOut" as const },
 }
 
-function resolveAuthError(err: unknown, fallback: string): string {
-  const axiosLike = err as {
-    code?: string
-    message?: string
-    response?: { status?: number; data?: { message?: string } }
-  }
-  if (!axiosLike.response) {
-    console.error("[auth/register] network error — is the API running?", axiosLike.code ?? axiosLike.message, err)
-    if (axiosLike.code === "ERR_NETWORK" || axiosLike.message?.includes("Network Error")) {
-      return "Impossible de joindre le serveur. Vérifiez que l'API tourne sur le port configuré."
-    }
-    return "Erreur réseau. Réessayez dans un instant."
-  }
-  console.error("[auth/register] API error", axiosLike.response.status, axiosLike.response.data)
-  return axiosLike.response.data?.message ?? fallback
-}
-
 export default function RegisterForm() {
   usePageMeta({
     title: "Inscription — Cuisenio",
@@ -63,7 +47,7 @@ export default function RegisterForm() {
 
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
-  const { success, error: notifyError } = useNotification()
+  const { success, error: notifyError, warning } = useNotification()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const submitting = useRef(false)
@@ -107,7 +91,7 @@ export default function RegisterForm() {
       success("Compte créé", "Bienvenue dans la communauté Cuisenio.")
       navigate(homePathForRole(role), { replace: true })
     } catch (err: unknown) {
-      notifyError("Inscription échouée", resolveAuthError(err, "Veuillez réessayer."))
+      notifyError("Inscription échouée", mapAuthError(err, "register"))
     } finally {
       setIsLoading(false)
       submitting.current = false
@@ -138,13 +122,26 @@ export default function RegisterForm() {
         success("Compte prêt", "Bienvenue dans la communauté Cuisenio.")
         navigate(homePathForRole(role), { replace: true })
       } catch (err: unknown) {
-        notifyError("Inscription Google échouée", resolveAuthError(err, "Réessayez ou créez un compte email."))
+        const toast = mapGoogleBackendError(err)
+        notifyError(toast.title, toast.message)
       } finally {
         setIsLoading(false)
         submitting.current = false
       }
     },
     [isLoading, login, navigate, notifyError, success, termsAccepted],
+  )
+
+  const handleGoogleIssue = useCallback(
+    (kind: GoogleAuthIssue) => {
+      const toast = googleAuthToast(kind)
+      if (kind === "cancelled") {
+        warning(toast.title, toast.message)
+        return
+      }
+      notifyError(toast.title, toast.message)
+    },
+    [notifyError, warning],
   )
 
   return (
@@ -323,7 +320,11 @@ export default function RegisterForm() {
             </div>
           </div>
 
-          <GoogleContinueButton onCredential={handleGoogleCredential} disabled={isLoading} />
+          <GoogleContinueButton
+            onCredential={handleGoogleCredential}
+            onIssue={handleGoogleIssue}
+            disabled={isLoading}
+          />
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Vous avez déjà un compte ?{" "}
