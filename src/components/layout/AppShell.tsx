@@ -1,17 +1,19 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import Nav from "./Nav"
 import { BottomNav } from "./BottomNav"
 import { SiteFooter } from "./SiteFooter"
 import { AchievementToast } from "../gamification/AchievementToast"
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   return (
     <div className="organic-surface flex min-h-screen flex-col text-foreground antialiased">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-white"
       >
-        Aller au contenu
+        {t("nav.skipToContent")}
       </a>
       <Nav />
       <div id="main-content" className="flex-1 pb-20 md:pb-8">

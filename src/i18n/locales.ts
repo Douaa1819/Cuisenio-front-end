@@ -15,6 +15,13 @@ export const LOCALE_META: Record<
 export const LOCALE_STORAGE_KEY = "ui-locale"
 export const DEFAULT_LOCALE: AppLocale = "fr"
 
+export function dateLocaleTag(locale: string | undefined): string {
+  const code = (locale ?? "fr").slice(0, 2).toLowerCase()
+  if (code === "ar") return "ar"
+  if (code === "en") return "en-GB"
+  return "fr-FR"
+}
+
 export function isAppLocale(value: string | null | undefined): value is AppLocale {
   return APP_LOCALES.includes(value as AppLocale)
 }

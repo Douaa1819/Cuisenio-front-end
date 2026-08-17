@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { env } from "../../lib/env"
 import type { GoogleAuthIssue } from "../../lib/user-facing-error"
 
@@ -27,6 +28,7 @@ type GoogleButtonProps = {
  * Failures are reported via onIssue — never via native browser dialogs.
  */
 export function GoogleContinueButton({ onCredential, onIssue, disabled }: GoogleButtonProps) {
+  const { t, i18n } = useTranslation()
   const hostRef = useRef<HTMLDivElement>(null)
   const onCredentialRef = useRef(onCredential)
   const onIssueRef = useRef(onIssue)
@@ -34,6 +36,8 @@ export function GoogleContinueButton({ onCredential, onIssue, disabled }: Google
 
   onCredentialRef.current = onCredential
   onIssueRef.current = onIssue
+
+  const gisLocale = i18n.language?.startsWith("ar") ? "ar" : i18n.language?.startsWith("en") ? "en" : "fr"
 
   useEffect(() => {
     if (!env.googleClientId || disabled) return
@@ -61,7 +65,7 @@ export function GoogleContinueButton({ onCredential, onIssue, disabled }: Google
         shape: "pill",
         text: "continue_with",
         width: 320,
-        locale: "fr",
+        locale: gisLocale,
       })
       setReady(true)
     }
@@ -82,7 +86,7 @@ export function GoogleContinueButton({ onCredential, onIssue, disabled }: Google
     script.onload = init
     script.onerror = () => onIssueRef.current?.("failed")
     document.head.appendChild(script)
-  }, [disabled])
+  }, [disabled, gisLocale])
 
   if (!env.googleClientId) {
     return (
@@ -92,7 +96,7 @@ export function GoogleContinueButton({ onCredential, onIssue, disabled }: Google
         onClick={() => onIssue?.("config")}
         className="flex min-h-11 w-full items-center justify-center rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
       >
-        Continuer avec Google
+        {t("auth.continueGoogle")}
       </button>
     )
   }

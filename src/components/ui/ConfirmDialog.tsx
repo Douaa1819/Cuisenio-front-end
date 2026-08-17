@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 import { AlertTriangle, Info, Loader2 } from "lucide-react"
 import {
   Dialog,
@@ -56,12 +57,15 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Confirmer",
-  cancelLabel = "Annuler",
+  confirmLabel,
+  cancelLabel,
   severity = "warning",
   isLoading = false,
   onConfirm,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
+  const resolvedConfirm = confirmLabel ?? t("common.confirm")
+  const resolvedCancel = cancelLabel ?? t("common.cancel")
   const titleId = useId()
   const descriptionId = useId()
   const styles = severityStyles[severity]
@@ -79,7 +83,7 @@ export function ConfirmDialog({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
       >
-        <DialogHeader className="sm:text-left">
+        <DialogHeader className="sm:text-start">
           <div className="flex items-start gap-3">
             <span
               className={cn("mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", styles.iconWrap)}
@@ -105,7 +109,7 @@ export function ConfirmDialog({
             disabled={isLoading}
             onClick={() => onOpenChange(false)}
           >
-            {cancelLabel}
+            {resolvedCancel}
           </Button>
           <Button
             type="button"
@@ -114,8 +118,8 @@ export function ConfirmDialog({
             onClick={() => void handleConfirm()}
             autoFocus
           >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : null}
-            {confirmLabel}
+            {isLoading ? <Loader2 className="me-2 h-4 w-4 animate-spin" aria-hidden /> : null}
+            {resolvedConfirm}
           </Button>
         </DialogFooter>
       </DialogContent>

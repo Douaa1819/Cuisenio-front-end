@@ -64,17 +64,17 @@ export function SiteFooter({ variant = "app" }: SiteFooterProps) {
               <>
                 <li>
                   <Link to="/chef" className="hover:text-foreground">
-                    Espace Chef
+                    {t("nav.chef")}
                   </Link>
                 </li>
                 <li>
                   <Link to="/home" className="hover:text-foreground">
-                    Découvrir
+                    {t("nav.discover")}
                   </Link>
                 </li>
                 <li>
                   <Link to="/meal-planner" className="hover:text-foreground">
-                    Plans repas
+                    {t("nav.plans")}
                   </Link>
                 </li>
               </>

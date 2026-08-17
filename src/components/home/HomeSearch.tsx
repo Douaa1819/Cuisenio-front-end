@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Search, X } from "lucide-react"
 import { recipePath, type RecipeResponse } from "../../types/recipe.types"
 import { totalMinutes } from "../../lib/recipe-intelligence"
@@ -9,6 +10,7 @@ interface HomeSearchProps {
 }
 
 export function HomeSearch({ recipes }: HomeSearchProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [query, setQuery] = useState("")
   const [difficulty, setDifficulty] = useState("")
@@ -47,7 +49,7 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
   return (
     <div ref={rootRef} className="relative w-full max-w-2xl">
       <label htmlFor="home-search" className="sr-only">
-        Rechercher une recette, un ingrédient…
+        {t("home.searchLabel")}
       </label>
       <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-primary/40">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -59,7 +61,7 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Tajine, citron, 20 min…"
+          placeholder={t("home.searchPlaceholder")}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           autoComplete="off"
           role="combobox"
@@ -71,7 +73,7 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
           <button
             type="button"
             className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-            aria-label="Effacer"
+            aria-label={t("home.searchClear")}
             onClick={() => setQuery("")}
           >
             <X className="h-4 w-4" />
@@ -81,23 +83,23 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
 
       <div className="mt-2 flex flex-wrap gap-2">
         <select
-          aria-label="Difficulté"
+          aria-label={t("home.searchDifficulty")}
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value)}
           className="rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs"
         >
-          <option value="">Toute difficulté</option>
-          <option value="EASY">Facile</option>
-          <option value="INTERMEDIATE">Intermédiaire</option>
-          <option value="ADVANCED">Avancé</option>
+          <option value="">{t("home.searchAnyDifficulty")}</option>
+          <option value="EASY">{t("home.diffEasy")}</option>
+          <option value="INTERMEDIATE">{t("home.diffIntermediate")}</option>
+          <option value="ADVANCED">{t("home.diffAdvanced")}</option>
         </select>
         <select
-          aria-label="Temps max"
+          aria-label={t("home.searchMaxTime")}
           value={maxTime === "" ? "" : String(maxTime)}
           onChange={(e) => setMaxTime(e.target.value ? Number(e.target.value) : "")}
           className="rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs"
         >
-          <option value="">Temps libre</option>
+          <option value="">{t("home.searchAnyTime")}</option>
           <option value="15">≤ 15 min</option>
           <option value="20">≤ 20 min</option>
           <option value="30">≤ 30 min</option>
@@ -108,7 +110,7 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
           className="rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
           onClick={() => navigate(`/discover?q=${encodeURIComponent(query)}`)}
         >
-          Voir tous les résultats
+          {t("home.searchAllResults")}
         </button>
       </div>
 
@@ -119,13 +121,13 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
           className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-background shadow-lg"
         >
           {suggestions.length === 0 ? (
-            <li className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun résultat</li>
+            <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t("home.searchEmpty")}</li>
           ) : (
             suggestions.map((r) => (
               <li key={r.id} role="option">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-primary/5"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start text-sm hover:bg-primary/5"
                   onClick={() => {
                     setOpen(false)
                     navigate(recipePath(r))

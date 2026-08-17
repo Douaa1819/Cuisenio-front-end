@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { ChefHat, Compass, Home, LayoutDashboard, LogOut, Menu, UtensilsCrossed, User, X } from "lucide-react"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, NavLink } from "react-router-dom"
 import { NotificationBell } from "../notifications/NotificationBell"
 import { useAuthStore } from "../../store/auth.store"
@@ -12,6 +13,7 @@ import { Icon } from "../ui/icon"
 import { Role, normalizeRole } from "../../types/auth.types"
 
 export function Nav() {
+  const { t } = useTranslation()
   const { user, isAuthenticated, logout } = useAuthStore()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -33,12 +35,12 @@ export function Nav() {
   }
 
   const navLinks = isAdmin
-    ? [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }]
+    ? [{ to: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard }]
     : [
-        { to: "/chef", label: "Espace Chef", icon: ChefHat },
-        { to: "/home", label: "Découvrir", icon: Home },
-        { to: "/discover", label: "Explorer", icon: Compass },
-        { to: "/meal-planner", label: "Plans", icon: UtensilsCrossed },
+        { to: "/chef", label: t("nav.chef"), icon: ChefHat },
+        { to: "/home", label: t("nav.discover"), icon: Home },
+        { to: "/discover", label: t("nav.explore"), icon: Compass },
+        { to: "/meal-planner", label: t("nav.plans"), icon: UtensilsCrossed },
       ]
 
   return (
@@ -54,7 +56,7 @@ export function Nav() {
 
           {/* Desktop links */}
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-0.5" aria-label="Principal">
+            <nav className="hidden md:flex items-center gap-0.5" aria-label={t("nav.main")}>
               {navLinks.map((link) => (
                 <NavLink
                   key={link.to}
@@ -102,11 +104,11 @@ export function Nav() {
                         <Icon icon={User} className="text-primary" />
                       </div>
                     )}
-                    <div className="hidden sm:block text-left">
+                    <div className="hidden sm:block text-start">
                       <p className="text-sm font-medium leading-tight text-foreground">
                         {user?.username}
                       </p>
-                      <p className="text-xs text-muted-foreground">{isAdmin ? "Administrateur" : "Chef"}</p>
+                      <p className="text-xs text-muted-foreground">{isAdmin ? t("nav.roleAdmin") : t("nav.roleChef")}</p>
                     </div>
                   </button>
 
@@ -119,7 +121,7 @@ export function Nav() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -6, scale: 0.96 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg"
+                          className="absolute end-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg"
                         >
                           {/* User info header */}
                           <div className="border-b border-border bg-muted/50 px-4 py-3">
@@ -136,7 +138,7 @@ export function Nav() {
                                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors duration-200 hover:bg-muted hover:text-primary"
                               >
                                 <Icon icon={User} />
-                                Mon profil
+                                {t("nav.profile")}
                               </Link>
                             )}
                             <button
@@ -144,7 +146,7 @@ export function Nav() {
                               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-rose-600 transition-colors duration-200 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                             >
                               <Icon icon={LogOut} />
-                              Se déconnecter
+                              {t("nav.logout")}
                             </button>
                           </div>
                         </motion.div>
@@ -157,7 +159,7 @@ export function Nav() {
                 <button
                   className="rounded-lg p-2 transition-colors duration-200 hover:bg-muted md:hidden"
                   onClick={() => setMobileOpen((v) => !v)}
-                  aria-label="Menu"
+                  aria-label={t("nav.menu")}
                 >
                   {mobileOpen ? <Icon icon={X} size={20} /> : <Icon icon={Menu} size={20} />}
                 </button>
@@ -168,13 +170,13 @@ export function Nav() {
                   to="/login"
                   className="px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary"
                 >
-                  Connexion
+                  {t("auth.signIn")}
                 </Link>
                 <Link
                   to="/register"
                     className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary/90 active:scale-[0.98]"
                 >
-                  S'inscrire
+                  {t("auth.signUpLink")}
                 </Link>
               </div>
             )}
@@ -210,9 +212,9 @@ export function Nav() {
         open={logoutConfirmOpen}
         onOpenChange={setLogoutConfirmOpen}
         severity="warning"
-        title="Se déconnecter ?"
-        description="Êtes-vous sûr de vouloir vous déconnecter ?"
-        confirmLabel="Se déconnecter"
+        title={t("nav.logoutTitle")}
+        description={t("nav.logoutBody")}
+        confirmLabel={t("nav.logout")}
         onConfirm={confirmLogout}
       />
     </header>

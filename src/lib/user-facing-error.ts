@@ -1,7 +1,8 @@
 import axios from "axios"
+import i18n from "../i18n"
 
 /**
- * Maps technical failures (Axios, HTTP, Google, JWT) to short French copy.
+ * Maps technical failures (Axios, HTTP, Google, JWT) to short user-facing copy.
  * Raw payloads stay in the console only.
  */
 
@@ -11,6 +12,10 @@ const TECHNICAL_PATTERN =
 export type UserFacingToast = {
   title: string
   message: string
+}
+
+function tx(key: string): string {
+  return i18n.t(key)
 }
 
 export function isTechnicalMessage(value: unknown): boolean {
@@ -30,19 +35,19 @@ export function toUserFacingMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
     if (!err.response) {
       if (err.code === "ECONNABORTED") {
-        return "Le serveur met trop de temps à répondre. Réessayez."
+        return tx("auth.error.timeout")
       }
-      return "Impossible de joindre le serveur. Vérifiez votre connexion."
+      return tx("auth.error.network")
     }
     const status = err.response.status
-    if (status === 400) return "Vérifiez les informations saisies."
+    if (status === 400) return tx("auth.error.checkFields")
     if (status === 401) return fallback
-    if (status === 403) return "Vous n'avez pas l'autorisation d'effectuer cette action."
-    if (status === 404) return "Élément introuvable."
-    if (status === 409) return "Cette action entre en conflit avec une donnée existante."
+    if (status === 403) return tx("auth.error.forbidden")
+    if (status === 404) return tx("auth.error.notFound")
+    if (status === 409) return tx("auth.error.conflict")
     if (status === 422) return fallback
-    if (status === 429) return "Trop de tentatives. Réessayez dans un instant."
-    if (status >= 500) return "Une erreur est survenue. Réessayez plus tard."
+    if (status === 429) return tx("auth.error.tooMany")
+    if (status >= 500) return tx("auth.error.server")
   }
 
   return fallback
@@ -53,21 +58,21 @@ export function mapAuthError(err: unknown, context: "login" | "register" | "pass
 
   if (axios.isAxiosError(err)) {
     if (!err.response) {
-      return toUserFacingMessage(err, "Erreur réseau. Réessayez dans un instant.")
+      return toUserFacingMessage(err, tx("auth.error.generic"))
     }
     const status = err.response.status
     if (context === "login" && status === 401) {
-      return "Email ou mot de passe incorrect."
+      return tx("auth.error.credentials")
     }
     if (context === "register" && (status === 409 || status === 400)) {
-      return "Un compte existe déjà avec cet email, ou les informations sont invalides."
+      return tx("auth.error.exists")
     }
     if (context === "password" && status === 400) {
-      return "Impossible de réinitialiser le mot de passe. Le lien est peut-être expiré."
+      return tx("auth.error.passwordReset")
     }
   }
 
-  return toUserFacingMessage(err, "Une erreur est survenue. Veuillez réessayer.")
+  return toUserFacingMessage(err, tx("auth.error.generic"))
 }
 
 export type GoogleAuthIssue = "config" | "cancelled" | "failed"
@@ -75,19 +80,19 @@ export type GoogleAuthIssue = "config" | "cancelled" | "failed"
 export function googleAuthToast(kind: GoogleAuthIssue): UserFacingToast {
   if (kind === "config") {
     return {
-      title: "Google indisponible",
-      message: "La connexion avec Google n'est pas configurée.",
+      title: tx("auth.google.config.title"),
+      message: tx("auth.google.config.message"),
     }
   }
   if (kind === "cancelled") {
     return {
-      title: "Connexion annulée",
-      message: "Vous avez annulé la connexion avec Google.",
+      title: tx("auth.google.cancelled.title"),
+      message: tx("auth.google.cancelled.message"),
     }
   }
   return {
-    title: "Connexion impossible",
-    message: "Impossible de vous connecter avec Google. Veuillez réessayer.",
+    title: tx("auth.google.failed.title"),
+    message: tx("auth.google.failed.message"),
   }
 }
 
@@ -95,12 +100,12 @@ export function mapGoogleBackendError(err: unknown): UserFacingToast {
   logTechnical("auth/google", err)
   if (axios.isAxiosError(err) && !err.response) {
     return {
-      title: "Connexion impossible",
-      message: "Impossible de joindre le serveur. Réessayez dans un instant.",
+      title: tx("auth.google.failed.title"),
+      message: tx("auth.error.network"),
     }
   }
   return {
-    title: "Connexion impossible",
-    message: "Une erreur est survenue pendant la connexion.",
+    title: tx("auth.google.failed.title"),
+    message: tx("auth.google.backend.message"),
   }
 }

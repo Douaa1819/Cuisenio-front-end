@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Flame, Leaf, Sparkles, Star, Sunrise, Trophy, Users } from "lucide-react"
 import { AppShell } from "../../components/layout/AppShell"
 import { RecipeRail } from "../../components/home/RecipeRail"
@@ -23,14 +24,15 @@ import {
   topChefs,
 } from "../../lib/recipe-intelligence"
 
-function hourGreeting() {
+function hourGreeting(t: (key: string) => string) {
   const h = new Date().getHours()
-  if (h < 11) return "Bonjour"
-  if (h < 18) return "Bon après-midi"
-  return "Bonsoir"
+  if (h < 11) return t("home.greetMorning")
+  if (h < 18) return t("home.greetAfternoon")
+  return t("home.greetEvening")
 }
 
 export default function HomePage() {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const recent = useRecentlyViewedStore((s) => s.items)
   const cooking = useCookingStore((s) => s.active)
@@ -41,8 +43,8 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
 
   usePageMeta({
-    title: "Accueil",
-    description: "Votre fil culinaire personnalisé — continuez, explorez, cuisinez.",
+    title: t("home.metaTitle"),
+    description: t("home.metaDescription"),
     path: "/home",
   })
 
@@ -57,7 +59,7 @@ export default function HomePage() {
           setError(null)
         }
       } catch {
-        if (!cancelled) setError("Impossible de charger le fil. Réessayez.")
+        if (!cancelled) setError(t("home.loadError"))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -65,7 +67,7 @@ export default function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -144,6 +146,7 @@ export default function HomePage() {
   }, [cooking, recipes])
   const chefs = useMemo(() => topChefs(recipes), [recipes])
   const season = getSeasonLabel()
+  const seasonLabel = t(`home.season.${season.key}`)
   const unlocked = useAchievementsStore((s) => s.unlocked)
   const achievements = useMemo(() => achievementsFromUnlocked(unlocked), [unlocked])
 
@@ -154,30 +157,30 @@ export default function HomePage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="font-sans text-sm font-medium text-primary">
-                {hourGreeting()}
+                {hourGreeting(t)}
                 {user?.username ? `, ${user.username}` : ""}
               </p>
               <h1 className="mt-1 max-w-xl font-sans text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                Que cuisine-t-on aujourd&apos;hui&nbsp;?
+                {t("home.headline")}
               </h1>
               <p className="mt-2 max-w-lg font-sans text-sm text-muted-foreground">
-                Un fil vivant selon vos envies — reprise rapide, tendances, et idées de saison ({season.label}).
+                {t("home.subtitle", { season: seasonLabel })}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               {streak > 0 && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 font-sans text-xs font-semibold text-foreground">
-                  <Flame className="h-3.5 w-3.5 text-primary" /> Série {streak} j
+                  <Flame className="h-3.5 w-3.5 text-primary" /> {t("home.streak", { count: streak })}
                 </span>
               )}
               <Link to="/discover">
                 <Button type="button" variant="outline" size="sm">
-                  Explorer
+                  {t("home.explore")}
                 </Button>
               </Link>
               <Link to="/add-recipe">
                 <Button type="button" size="sm">
-                  Nouvelle recette
+                  {t("home.newRecipe")}
                 </Button>
               </Link>
             </div>
@@ -193,7 +196,7 @@ export default function HomePage() {
             {error}
             <div className="mt-3">
               <Button type="button" size="sm" onClick={() => window.location.reload()}>
-                Réessayer
+                {t("home.retry")}
               </Button>
             </div>
           </div>
@@ -205,15 +208,15 @@ export default function HomePage() {
               <section className="mb-8 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">Continuer</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">{t("home.continue")}</p>
                     <p className="text-base font-semibold">{cooking.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      Étape {cooking.stepIndex + 1}/{cooking.totalSteps}
+                      {t("home.stepOf", { current: cooking.stepIndex + 1, total: cooking.totalSteps })}
                     </p>
                   </div>
                   <Link to={`/recipe/${cooking.recipeId}?cook=1`}>
                     <Button type="button">
-                      Reprendre
+                      {t("home.resume")}
                     </Button>
                   </Link>
                 </div>
@@ -221,57 +224,57 @@ export default function HomePage() {
             )}
 
             <RecipeRail
-              title="Continuer la cuisine"
-              subtitle="Reprenez là où vous vous étiez arrêté"
+              title={t("home.continueCooking")}
+              subtitle={t("home.continueSubtitle")}
               recipes={continueRecipes}
-              emptyHint="Lancez le mode cuisine sur une recette pour la retrouver ici."
+              emptyHint={t("home.continueEmpty")}
             />
 
             <RecipeRail
-              title="Pour vous"
+              title={t("home.forYou")}
               subtitle={
                 preferredCats.length
-                  ? `Inspiré de vos envies (${preferredCats.slice(0, 2).join(", ")})`
-                  : "Basé sur la popularité — explorez pour personnaliser"
+                  ? t("home.forYouFrom", { cats: preferredCats.slice(0, 2).join(", ") })
+                  : t("home.forYouDefault")
               }
               recipes={forYou}
             />
 
-            <RecipeRail title="Tendances de la semaine" subtitle="Les mieux notées de la communauté" recipes={trending} />
+            <RecipeRail title={t("home.trending")} subtitle={t("home.trendingSubtitle")} recipes={trending} />
 
             <div className="mb-10 grid gap-4 sm:grid-cols-3">
-              <QuickChip icon={<Sunrise className="h-4 w-4" />} label="Petit-déj / brunch" to="#rail-breakfast" />
-              <QuickChip icon={<Leaf className="h-4 w-4" />} label="Choix plus légers" to="#rail-healthy" />
-              <QuickChip icon={<Sparkles className="h-4 w-4" />} label={`Saison · ${season.label}`} to="#rail-season" />
+              <QuickChip icon={<Sunrise className="h-4 w-4" />} label={t("home.chipBreakfast")} to="#rail-breakfast" />
+              <QuickChip icon={<Leaf className="h-4 w-4" />} label={t("home.chipHealthy")} to="#rail-healthy" />
+              <QuickChip icon={<Sparkles className="h-4 w-4" />} label={t("home.chipSeason", { season: seasonLabel })} to="#rail-season" />
             </div>
 
             <div id="rail-breakfast">
-              <RecipeRail title="Petit-déjeuner & brunch" recipes={breakfast} />
+              <RecipeRail title={t("home.breakfast")} recipes={breakfast} />
             </div>
             <div id="rail-healthy">
-              <RecipeRail title="Choix plus sains" subtitle="Salades, soupes, végétarien…" recipes={healthy} />
+              <RecipeRail title={t("home.healthy")} subtitle={t("home.healthySubtitle")} recipes={healthy} />
             </div>
-            <RecipeRail title="En moins de 20 minutes" recipes={quick} />
+            <RecipeRail title={t("home.quick")} recipes={quick} />
             <div id="rail-season">
-              <RecipeRail title={`Recettes de ${season.label.toLowerCase()}`} recipes={seasonal} />
+              <RecipeRail title={t("home.seasonRecipes", { season: seasonLabel })} recipes={seasonal} />
             </div>
 
             <RecipeRail
-              title="Récemment vues"
+              title={t("home.recent")}
               recipes={recent
                 .map((r) => recipes.find((x) => x.id === r.id))
                 .filter(Boolean) as RecipeResponse[]}
-              emptyHint="Ouvrez une recette pour démarrer votre historique."
+              emptyHint={t("home.recentEmpty")}
             />
 
-            <RecipeRail title="Nouveautés communauté" recipes={newest} />
+            <RecipeRail title={t("home.newest")} recipes={newest} />
 
-            <section className="mb-10" aria-label="Chefs populaires">
+            <section className="mb-10" aria-label={t("home.chefs")}>
               <h2 className="mb-3 flex items-center gap-2 text-foreground">
-                <Users className="h-5 w-5 text-primary" strokeWidth={1.75} /> Chefs de la communauté
+                <Users className="h-5 w-5 text-primary" strokeWidth={1.75} /> {t("home.chefs")}
               </h2>
               {chefs.length === 0 ? (
-                <p className="font-sans text-sm text-muted-foreground">Les créateurs apparaîtront ici.</p>
+                <p className="font-sans text-sm text-muted-foreground">{t("home.chefsEmpty")}</p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {chefs.map((c) => (
@@ -281,7 +284,7 @@ export default function HomePage() {
                     >
                       <p className="font-sans font-semibold text-foreground">{c.user.username}</p>
                       <p className="mt-0.5 inline-flex items-center gap-1 font-sans text-xs text-muted-foreground">
-                        {c.count} recette{c.count > 1 ? "s" : ""} ·
+                        {t("home.recipeCount", { count: c.count })} ·
                         <Star className="h-3 w-3 fill-primary text-primary" strokeWidth={1.75} aria-hidden />
                         {c.avgRating.toFixed(1)}
                       </p>
@@ -291,9 +294,9 @@ export default function HomePage() {
               )}
             </section>
 
-            <section className="mb-12 rounded-2xl border border-border bg-card/80 p-5" aria-label="Succès">
+            <section className="mb-12 rounded-2xl border border-border bg-card/80 p-5" aria-label={t("home.achievements")}>
               <h2 className="mb-3 flex items-center gap-2 text-foreground">
-                <Trophy className="h-5 w-5 text-primary" strokeWidth={1.75} /> Vos succès
+                <Trophy className="h-5 w-5 text-primary" strokeWidth={1.75} /> {t("home.achievements")}
               </h2>
               <div className="grid gap-2 sm:grid-cols-2">
                 {achievements.map((a) => (
@@ -305,8 +308,8 @@ export default function HomePage() {
                         : "border-border opacity-60"
                     }`}
                   >
-                    <p className="font-medium text-foreground">{a.title}</p>
-                    <p className="text-xs text-muted-foreground">{a.description}</p>
+                    <p className="font-medium text-foreground">{t(`home.achievement.${a.id}.title`)}</p>
+                    <p className="text-xs text-muted-foreground">{t(`home.achievement.${a.id}.description`)}</p>
                   </div>
                 ))}
               </div>

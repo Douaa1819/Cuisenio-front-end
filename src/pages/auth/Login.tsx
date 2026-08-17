@@ -1,33 +1,32 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { motion } from "framer-motion"
 import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
+import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { z } from "zod"
 
 import { authService } from "../../api/auth.service"
 import { GoogleContinueButton } from "../../components/auth/GoogleContinueButton"
+import { ThemeAndLanguageBar } from "../../components/layout/ThemeAndLanguageBar"
 import { useNotification } from "../../context/NotificationContext"
 import { googleAuthToast, mapAuthError, mapGoogleBackendError, type GoogleAuthIssue } from "../../lib/user-facing-error"
 import { useAuthStore } from "../../store/auth.store"
-import { emailSchema } from "../../utils/validation"
+import { EMAIL_REGEX } from "../../utils/validation"
 import { homePathForRole, normalizeRole } from "../../types/auth.types"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
-import { ThemeToggle } from "../../components/theme/ThemeToggle"
 import { usePageMeta } from "../../hooks/usePageMeta"
 
 const MAX_ATTEMPTS = 5
 const LOCKOUT_MS = 60_000
 
-const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, "Le mot de passe est requis").max(72, "Mot de passe trop long"),
-})
-
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginFormValues = {
+  email: string
+  password: string
+}
 
 const pageMotion = {
   initial: { opacity: 0, y: 8 },
@@ -36,9 +35,10 @@ const pageMotion = {
 }
 
 export default function LoginForm() {
+  const { t, i18n } = useTranslation()
   usePageMeta({
-    title: "Connexion — Cuisenio",
-    description: "Connectez-vous à votre compte Cuisenio.",
+    title: t("auth.loginMetaTitle"),
+    description: t("auth.loginMetaDescription"),
     path: "/login",
   })
 
@@ -52,6 +52,19 @@ export default function LoginForm() {
   const failedAttempts = useRef(0)
   const lockedUntil = useRef<number | null>(null)
   const submitting = useRef(false)
+
+  const loginSchema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .max(254, t("auth.emailTooLong"))
+          .email(t("auth.emailInvalid"))
+          .regex(EMAIL_REGEX, t("auth.emailInvalid")),
+        password: z.string().min(1, t("auth.passwordRequired")).max(72, t("auth.passwordTooLong")),
+      }),
+    [t, i18n.language],
+  )
 
   const {
     register,
@@ -67,7 +80,7 @@ export default function LoginForm() {
 
     if (lockedUntil.current && Date.now() < lockedUntil.current) {
       const remaining = Math.ceil((lockedUntil.current - Date.now()) / 1000)
-      notifyError("Trop de tentatives", `Réessayez dans ${remaining} secondes.`)
+      notifyError(t("auth.tooManyTitle"), t("auth.tooManyMessage", { seconds: remaining }))
       return
     }
 
@@ -93,7 +106,10 @@ export default function LoginForm() {
         role,
       })
 
-      success("Connexion réussie", `Bienvenue${response.username ? `, ${response.username}` : ""}`)
+      success(
+        t("auth.successTitle"),
+        response.username ? t("auth.welcomeName", { name: response.username }) : t("auth.welcome"),
+      )
       const next = searchParams.get("next")
       const safeNext =
         next && next.startsWith("/") && !next.startsWith("//") ? next : homePathForRole(role)
@@ -104,9 +120,9 @@ export default function LoginForm() {
       if (failedAttempts.current >= MAX_ATTEMPTS) {
         lockedUntil.current = Date.now() + LOCKOUT_MS
         failedAttempts.current = 0
-        notifyError("Compte temporairement bloqué", "Trop de tentatives. Réessayez dans 1 minute.")
+        notifyError(t("auth.lockedTitle"), t("auth.lockedMessage"))
       } else {
-        notifyError("Connexion échouée", mapAuthError(err, "login"))
+        notifyError(t("auth.loginFailed"), mapAuthError(err, "login"))
       }
     } finally {
       setIsLoading(false)
@@ -130,7 +146,10 @@ export default function LoginForm() {
           profilePicture: response.profilePicture,
           role,
         })
-        success("Connexion réussie", `Bienvenue${response.username ? `, ${response.username}` : ""}`)
+        success(
+          t("auth.successTitle"),
+          response.username ? t("auth.welcomeName", { name: response.username }) : t("auth.welcome"),
+        )
         const next = searchParams.get("next")
         const safeNext =
           next && next.startsWith("/") && !next.startsWith("//") ? next : homePathForRole(role)
@@ -143,7 +162,7 @@ export default function LoginForm() {
         submitting.current = false
       }
     },
-    [isLoading, login, navigate, notifyError, searchParams, success],
+    [isLoading, login, navigate, notifyError, searchParams, success, t],
   )
 
   const handleGoogleIssue = useCallback(
@@ -168,8 +187,8 @@ export default function LoginForm() {
             "radial-gradient(ellipse 70% 50% at 70% 0%, color-mix(in srgb, var(--cu-primary) 22%, transparent), transparent 55%)",
         }}
       />
-      <div className="absolute right-4 top-4 z-10">
-        <ThemeToggle />
+      <div className="absolute end-4 top-4 z-10">
+        <ThemeAndLanguageBar compact={false} />
       </div>
 
       <motion.div {...pageMotion} className="w-full max-w-md">
@@ -178,24 +197,24 @@ export default function LoginForm() {
             <div className="mb-4 inline-flex rounded-full bg-primary/15 p-3">
               <ChefHat className="h-8 w-8 text-primary" aria-hidden />
             </div>
-            <h1 className="font-serif text-2xl tracking-tight text-foreground">Bienvenue</h1>
-            <p className="mt-1 font-sans text-sm text-muted-foreground">Connectez-vous à votre compte</p>
+            <h1 className="font-serif text-2xl tracking-tight text-foreground">{t("auth.loginTitle")}</h1>
+            <p className="mt-1 font-sans text-sm text-muted-foreground">{t("auth.loginSubtitle")}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                Email
+                {t("auth.email")}
               </Label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
+                <Mail className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="vous@exemple.com"
+                  placeholder={t("auth.emailPlaceholder")}
                   autoComplete="email"
                   aria-invalid={Boolean(errors.email)}
-                  className="border-border bg-background pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  className="border-border bg-background ps-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
                   {...register("email")}
                 />
               </div>
@@ -209,31 +228,31 @@ export default function LoginForm() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                  Mot de passe
+                  {t("auth.password")}
                 </Label>
                 <Link
                   to="/auth/forgot-password"
                   className="text-xs text-primary transition hover:opacity-80"
                 >
-                  Mot de passe oublié ?
+                  {t("forgotPassword")}
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
+                <Lock className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/80" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   aria-invalid={Boolean(errors.password)}
-                  className="border-border bg-background pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
+                  className="border-border bg-background ps-10 pe-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/25"
                   {...register("password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -245,18 +264,14 @@ export default function LoginForm() {
               )}
             </div>
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full"
-            >
+            <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connexion en cours...
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                  {t("auth.signingIn")}
                 </>
               ) : (
-                "Se connecter"
+                t("auth.signIn")
               )}
             </Button>
           </form>
@@ -266,7 +281,7 @@ export default function LoginForm() {
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">ou</span>
+              <span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span>
             </div>
           </div>
 
@@ -277,9 +292,9 @@ export default function LoginForm() {
           />
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Vous n&apos;avez pas de compte ?{" "}
+            {t("auth.noAccount")}{" "}
             <Link to="/register" className="font-medium text-primary hover:opacity-80">
-              S&apos;inscrire
+              {t("auth.signUpLink")}
             </Link>
           </p>
         </div>

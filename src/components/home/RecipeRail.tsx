@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Clock, Star } from "lucide-react"
 import { recipePath, type RecipeResponse } from "../../types/recipe.types"
 import { env } from "../../lib/env"
@@ -12,6 +13,7 @@ interface RecipeRailProps {
 }
 
 export function RecipeRail({ title, subtitle, recipes, emptyHint }: RecipeRailProps) {
+  const { t } = useTranslation()
   if (!recipes.length) {
     return (
       <section className="mb-10" aria-label={title}>
@@ -20,7 +22,7 @@ export function RecipeRail({ title, subtitle, recipes, emptyHint }: RecipeRailPr
           {subtitle && <p className="font-sans text-sm text-muted-foreground">{subtitle}</p>}
         </header>
         <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center font-sans text-sm text-muted-foreground">
-          {emptyHint ?? "Aucune recette pour le moment — explorez la communauté."}
+          {emptyHint ?? t("home.railEmpty")}
         </div>
       </section>
     )
@@ -57,10 +59,10 @@ export function RecipeRail({ title, subtitle, recipes, emptyHint }: RecipeRailPr
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center font-sans text-xs text-muted-foreground">
-                    Sans photo
+                    {t("home.noPhoto")}
                   </div>
                 )}
-                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-foreground/70 px-2 py-0.5 font-sans text-[11px] text-background backdrop-blur">
+                <span className="absolute bottom-2 start-2 inline-flex items-center gap-1 rounded-full bg-foreground/70 px-2 py-0.5 font-sans text-[11px] text-background backdrop-blur">
                   <Clock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                   {totalMinutes(recipe)} min
                 </span>

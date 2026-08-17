@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   Archive,
   BarChart3,
@@ -30,6 +31,7 @@ import { Icon } from "../../components/ui/icon"
 import { ListSkeleton } from "../../components/ui/list-skeleton"
 import { useNotification } from "../../context/NotificationContext"
 import { usePageMeta } from "../../hooks/usePageMeta"
+import { dateLocaleTag } from "../../i18n/locales"
 import { env } from "../../lib/env"
 import { cn } from "../../lib/utils"
 import { useAuthStore } from "../../store/auth.store"
@@ -44,17 +46,8 @@ function resolveStatus(r: RecipeResponse): RecipeStatus {
   return "published"
 }
 
-function statusLabel(status: RecipeStatus) {
-  switch (status) {
-    case "published":
-      return "Publiée"
-    case "pending":
-      return "En modération"
-    case "draft":
-      return "Brouillon"
-    case "archived":
-      return "Archivée"
-  }
+function statusLabel(status: RecipeStatus, t: (key: string) => string) {
+  return t(`chef.status.${status}`)
 }
 
 function statusClass(status: RecipeStatus) {
@@ -70,10 +63,10 @@ function statusClass(status: RecipeStatus) {
   }
 }
 
-function formatDate(iso?: string) {
+function formatDate(iso?: string, locale?: string) {
   if (!iso) return "—"
   try {
-    return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(iso))
+    return new Intl.DateTimeFormat(dateLocaleTag(locale), { dateStyle: "medium" }).format(new Date(iso))
   } catch {
     return iso
   }
@@ -89,6 +82,8 @@ function estimateViews(r: RecipeResponse) {
 }
 
 export default function ChefDashboard() {
+  const { t, i18n } = useTranslation()
+  const locale = dateLocaleTag(i18n.language)
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const { success, error: notifyError } = useNotification()
@@ -102,8 +97,8 @@ export default function ChefDashboard() {
   const [statsTarget, setStatsTarget] = useState<RecipeResponse | null>(null)
 
   usePageMeta({
-    title: "Espace Chef",
-    description: "Studio de création culinaire Cuisenio",
+    title: t("chef.metaTitle"),
+    description: t("chef.metaDescription"),
     path: "/chef",
   })
 
@@ -121,11 +116,11 @@ export default function ChefDashboard() {
       setRecipes(mine)
       setError(null)
     } catch {
-      setError("Impossible de charger votre espace chef.")
+      setError(t("chef.loadError"))
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, t])
 
   useEffect(() => {
     void loadRecipes()
@@ -145,10 +140,10 @@ export default function ChefDashboard() {
     try {
       await recipeService.deleteRecipe(archiveTarget.id)
       setRecipes((prev) => prev.filter((r) => r.id !== archiveTarget.id))
-      success("Recette archivée", `"${archiveTarget.title}" n'est plus visible sur la plateforme.`)
+      success(t("chef.archiveSuccessTitle"), t("chef.archiveSuccessBody", { title: archiveTarget.title }))
       setArchiveTarget(null)
     } catch {
-      notifyError("Erreur", "Impossible d'archiver cette recette.")
+      notifyError(t("chef.errorTitle"), t("chef.archiveError"))
     } finally {
       setArchiveLoading(false)
     }
@@ -159,12 +154,12 @@ export default function ChefDashboard() {
       <main className="organic-surface min-h-[calc(100vh-4rem)]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <header className="mb-8">
-            <p className="font-sans text-sm font-medium text-primary">Espace Chef</p>
+            <p className="font-sans text-sm font-medium text-primary">{t("chef.kicker")}</p>
             <h1 className="mt-1 font-sans text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Bonjour{user?.username ? `, ${user.username}` : ""}
+              {t("chef.hello", { name: user?.username ? `, ${user.username}` : "" })}
             </h1>
             <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-muted-foreground">
-              Votre studio de création : importer, rédiger, ou composer à partir du frigo.
+              {t("chef.subtitle")}
             </p>
           </header>
 
@@ -174,24 +169,24 @@ export default function ChefDashboard() {
               id="chef-create-heading"
               className="mb-4 font-sans text-base font-semibold tracking-tight text-foreground"
             >
-              Créer une recette
+              {t("chef.createHeading")}
             </h2>
             <div className="grid gap-3 lg:grid-cols-3">
               <article className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-card-theme">
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon icon={Link2} size={20} />
                 </div>
-                <h3 className="font-sans text-sm font-semibold text-foreground">Import rapide par URL</h3>
+                <h3 className="font-sans text-sm font-semibold text-foreground">{t("chef.importTitle")}</h3>
                 <p className="mt-1 flex-1 font-sans text-sm leading-relaxed text-muted-foreground">
-                  Collez un lien TikTok, Instagram ou Marmiton pour extraire la fiche.
+                  {t("chef.importText")}
                 </p>
                 <Button
                   type="button"
                   className="mt-4 w-full bg-primary hover:bg-primary/90"
                   onClick={() => setImportOpen(true)}
                 >
-                  <Icon icon={Sparkles} className="mr-1.5" />
-                  Extraire la fiche recette
+                  <Icon icon={Sparkles} className="me-1.5" />
+                  {t("chef.importCta")}
                 </Button>
               </article>
 
@@ -199,14 +194,14 @@ export default function ChefDashboard() {
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon icon={Pencil} size={20} />
                 </div>
-                <h3 className="font-sans text-sm font-semibold text-foreground">Création manuelle guidée</h3>
+                <h3 className="font-sans text-sm font-semibold text-foreground">{t("chef.manualTitle")}</h3>
                 <p className="mt-1 flex-1 font-sans text-sm leading-relaxed text-muted-foreground">
-                  Formulaire pas-à-pas : ingrédients, temps, étapes et photo.
+                  {t("chef.manualText")}
                 </p>
                 <Link to="/add-recipe" className="mt-4 block">
                   <Button type="button" variant="outline" className="w-full">
-                    <Icon icon={Plus} className="mr-1.5" />
-                    Rédiger une recette
+                    <Icon icon={Plus} className="me-1.5" />
+                    {t("chef.manualCta")}
                   </Button>
                 </Link>
               </article>
@@ -215,14 +210,14 @@ export default function ChefDashboard() {
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon icon={Refrigerator} size={20} />
                 </div>
-                <h3 className="font-sans text-sm font-semibold text-foreground">Garde-manger</h3>
+                <h3 className="font-sans text-sm font-semibold text-foreground">{t("chef.pantryTitle")}</h3>
                 <p className="mt-1 flex-1 font-sans text-sm leading-relaxed text-muted-foreground">
-                  Générez une idée à partir des ingrédients de votre frigo.
+                  {t("chef.pantryText")}
                 </p>
                 <Link to="/meal-planner" className="mt-4 block">
                   <Button type="button" variant="outline" className="w-full">
-                    <Icon icon={Refrigerator} className="mr-1.5" />
-                    Générer avec mon frigo
+                    <Icon icon={Refrigerator} className="me-1.5" />
+                    {t("chef.pantryCta")}
                   </Button>
                 </Link>
               </article>
@@ -239,32 +234,32 @@ export default function ChefDashboard() {
           {!loading && !error && (
             <>
               {/* B. KPI cards */}
-              <section className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicateurs">
+              <section className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("chef.kpis")}>
                 <KpiCard
                   icon={BookOpen}
-                  title="Recettes actives"
+                  title={t("chef.kpiActive")}
                   value={String(published.length)}
-                  badge={`${published.length} publiée${published.length === 1 ? "" : "s"}`}
+                  badge={t("chef.kpiPublished", { count: published.length })}
                 />
                 <KpiCard
                   icon={Clock}
-                  title="En cours de modération"
+                  title={t("chef.kpiPending")}
                   value={String(pending.length)}
-                  badge={`${pending.length} en attente`}
+                  badge={t("chef.kpiWaiting", { count: pending.length })}
                   badgeTone={pending.length ? "warn" : "ok"}
                 />
                 <KpiCard
                   icon={Eye}
-                  title="Vues & engagement"
-                  value={totalViews.toLocaleString("fr-FR")}
-                  badge={`${totalViews.toLocaleString("fr-FR")} consultations`}
+                  title={t("chef.kpiViews")}
+                  value={totalViews.toLocaleString(locale)}
+                  badge={t("chef.kpiViewsBadge", { count: totalViews.toLocaleString(locale) })}
                   trailingIcon={TrendingUp}
                 />
                 <KpiCard
                   icon={Star}
-                  title="Note de la communauté"
+                  title={t("chef.kpiRating")}
                   value={avgRating ? avgRating.toFixed(1) : "—"}
-                  badge={avgRating ? `${avgRating.toFixed(1)} / 5` : "Pas encore de notes"}
+                  badge={avgRating ? t("chef.kpiRatingValue", { rating: avgRating.toFixed(1) }) : t("chef.kpiNoRating")}
                 />
               </section>
 
@@ -276,26 +271,26 @@ export default function ChefDashboard() {
                       id="chef-recipes-heading"
                       className="font-sans text-base font-semibold tracking-tight text-foreground"
                     >
-                      Mes recettes
+                      {t("chef.myRecipes")}
                     </h2>
                     <p className="mt-0.5 font-sans text-sm text-muted-foreground">
-                      Éditer, archiver ou consulter les stats de chaque fiche.
+                      {t("chef.myRecipesHint")}
                     </p>
                   </div>
                   <Link to="/home">
                     <Button type="button" variant="ghost" size="sm">
-                      Fil découverte
+                      {t("chef.feed")}
                     </Button>
                   </Link>
                 </div>
 
                 {recipes.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border bg-card/60 px-4 py-14 text-center">
-                    <p className="text-sm text-muted-foreground">Aucune recette pour l&apos;instant.</p>
+                    <p className="text-sm text-muted-foreground">{t("chef.empty")}</p>
                     <Link to="/add-recipe" className="mt-4 inline-block">
                       <Button type="button" className="bg-primary hover:bg-primary/90">
-                        <Icon icon={Plus} className="mr-1.5" />
-                        Créer ma première recette
+                        <Icon icon={Plus} className="me-1.5" />
+                        {t("chef.firstRecipe")}
                       </Button>
                     </Link>
                   </div>
@@ -326,7 +321,7 @@ export default function ChefDashboard() {
                               <div className="min-w-0">
                                 <p className="truncate font-sans text-sm font-semibold text-foreground">{r.title}</p>
                                 <p className="mt-0.5 font-sans text-xs text-muted-foreground">
-                                  {formatDate(r.creationDate)} · {(r.averageRating ?? 0).toFixed(1)}
+                                  {formatDate(r.creationDate, i18n.language)} · {(r.averageRating ?? 0).toFixed(1)}
                                 </p>
                               </div>
                             </Link>
@@ -337,7 +332,7 @@ export default function ChefDashboard() {
                                 statusClass(status),
                               )}
                             >
-                              {statusLabel(status)}
+                              {statusLabel(status, t)}
                             </span>
 
                             <div className="flex flex-wrap gap-1.5 sm:justify-end">
@@ -347,8 +342,8 @@ export default function ChefDashboard() {
                                 variant="outline"
                                 onClick={() => navigate(`/edit-recipe/${r.id}`)}
                               >
-                                <Icon icon={Pencil} className="mr-1" size={14} />
-                                Éditer
+                                <Icon icon={Pencil} className="me-1" size={14} />
+                                {t("chef.edit")}
                               </Button>
                               <Button
                                 type="button"
@@ -356,8 +351,8 @@ export default function ChefDashboard() {
                                 variant="outline"
                                 onClick={() => setStatsTarget(r)}
                               >
-                                <Icon icon={BarChart3} className="mr-1" size={14} />
-                                Stats
+                                <Icon icon={BarChart3} className="me-1" size={14} />
+                                {t("chef.stats")}
                               </Button>
                               {status !== "archived" && (
                                 <Button
@@ -367,8 +362,8 @@ export default function ChefDashboard() {
                                   className="text-destructive hover:bg-destructive/10"
                                   onClick={() => setArchiveTarget(r)}
                                 >
-                                  <Icon icon={Archive} className="mr-1" size={14} />
-                                  Archiver
+                                  <Icon icon={Archive} className="me-1" size={14} />
+                                  {t("chef.archive")}
                                 </Button>
                               )}
                             </div>
@@ -388,9 +383,9 @@ export default function ChefDashboard() {
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="max-w-lg border-border bg-card dark:bg-card">
           <DialogHeader>
-            <DialogTitle className="font-sans text-lg font-semibold text-foreground">Import par URL</DialogTitle>
+            <DialogTitle className="font-sans text-lg font-semibold text-foreground">{t("chef.importModalTitle")}</DialogTitle>
             <DialogDescription>
-              Extraire automatiquement une fiche à partir d&apos;un lien web.
+              {t("chef.importModalBody")}
             </DialogDescription>
           </DialogHeader>
           <RecipeUrlImport
@@ -407,16 +402,16 @@ export default function ChefDashboard() {
         <DialogContent className="max-w-md border-border bg-card">
           <DialogHeader>
             <DialogTitle className="font-sans text-lg font-semibold text-foreground">
-              Statistiques — {statsTarget?.title}
+              {t("chef.statsTitle", { title: statsTarget?.title ?? "" })}
             </DialogTitle>
-            <DialogDescription>Performance estimée de cette fiche.</DialogDescription>
+            <DialogDescription>{t("chef.statsBody")}</DialogDescription>
           </DialogHeader>
           {statsTarget && (
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <StatTile label="Consultations" value={estimateViews(statsTarget).toLocaleString("fr-FR")} />
-              <StatTile label="Note moyenne" value={(statsTarget.averageRating ?? 0).toFixed(1)} />
-              <StatTile label="Avis" value={String(statsTarget.totalRatings ?? 0)} />
-              <StatTile label="Commentaires" value={String(statsTarget.totalComments ?? 0)} />
+              <StatTile label={t("chef.statViews")} value={estimateViews(statsTarget).toLocaleString(locale)} />
+              <StatTile label={t("chef.statRating")} value={(statsTarget.averageRating ?? 0).toFixed(1)} />
+              <StatTile label={t("chef.statReviews")} value={String(statsTarget.totalRatings ?? 0)} />
+              <StatTile label={t("chef.statComments")} value={String(statsTarget.totalComments ?? 0)} />
             </dl>
           )}
         </DialogContent>
@@ -426,13 +421,13 @@ export default function ChefDashboard() {
         open={!!archiveTarget}
         onOpenChange={(open) => !open && !archiveLoading && setArchiveTarget(null)}
         severity="danger"
-        title="Archiver cette recette ?"
+        title={t("chef.archiveTitle")}
         description={
           archiveTarget
-            ? `Voulez-vous vraiment archiver la recette « ${archiveTarget.title} » ? Elle ne sera plus visible par les utilisateurs.`
+            ? t("chef.archiveBody", { title: archiveTarget.title })
             : ""
         }
-        confirmLabel="Archiver"
+        confirmLabel={t("chef.archive")}
         isLoading={archiveLoading}
         onConfirm={handleArchive}
       />

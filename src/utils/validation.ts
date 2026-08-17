@@ -12,11 +12,11 @@ import { z } from "zod"
 
 // ── Raw regex constants ────────────────────────────────────────────────────────
 
-/** Only letters (incl. accented), digits, hyphens and underscores. No leading/trailing whitespace. */
-export const USERNAME_REGEX = /^[a-zA-ZÀ-ÿ0-9_-]{3,30}$/
+/** Only letters (any language, incl. Arabic), digits, hyphens and underscores. */
+export const USERNAME_REGEX = /^[\p{L}0-9_-]{3,30}$/u
 
-/** Only letters and spaces (names can contain hyphens and apostrophes). */
-export const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s'-]{2,50}$/
+/** Letters and spaces (names can contain hyphens and apostrophes). */
+export const NAME_REGEX = /^[\p{L}\s'-]{2,50}$/u
 
 /**
  * Strong password:
