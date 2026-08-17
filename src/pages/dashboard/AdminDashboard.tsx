@@ -11,7 +11,7 @@ import { useAuthStore } from "../../store/auth.store"
 import { useTheme } from "../../hooks/use-theme"
 import { usePageMeta } from "../../hooks/usePageMeta"
 import { normalizeRole, Role } from "../../types/auth.types"
-import type { ModerationReportItem, RecipeResponse } from "../../types/recipe.types"
+import { recipePath, type ModerationReportItem, type RecipeResponse } from "../../types/recipe.types"
 import type { AdminOverviewMetrics, UserDTO, UserStatus } from "../../types/user.types"
 import { AdminDashboardView } from "./admin/AdminDashboardView"
 import { AdminLayout } from "./admin/AdminLayout"
@@ -23,7 +23,6 @@ import type { AdminSection } from "./admin/types"
 type PendingConfirm =
   | { type: "logout" }
   | { type: "archive-user"; user: UserDTO }
-  | { type: "toggle-premium"; user: UserDTO; enable: boolean }
   | { type: "newsletter-unsub"; id: number; email: string }
   | { type: "newsletter-archive"; id: number; email: string }
   | null
@@ -109,7 +108,7 @@ export default function AdminDashboard() {
   }, [users, search])
 
   const chefs = useMemo(
-    () => filteredUsers.filter((u) => normalizeRole(u.role) === Role.CHEF || normalizeRole(u.role) === Role.PREMIUM),
+    () => filteredUsers.filter((u) => normalizeRole(u.role) === Role.CHEF),
     [filteredUsers],
   )
   const admins = useMemo(
@@ -153,11 +152,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const togglePremium = (target: UserDTO, enable: boolean) => {
-    if (normalizeRole(target.role) === Role.ADMIN) return
-    setPending({ type: "toggle-premium", user: target, enable })
-  }
-
   const moderateRecipe = async (recipeId: number, approve: boolean) => {
     try {
       if (approve) {
@@ -185,16 +179,6 @@ export default function AdminDashboard() {
           await userService.delete(pending.user.id)
           await refreshData()
           success("Compte archivé", "Le compte n'est plus visible (soft delete).")
-          break
-        case "toggle-premium":
-          await userService.updateRole(pending.user.id, pending.enable ? "PREMIUM" : "CHEF")
-          await refreshData()
-          success(
-            pending.enable ? "ROLE_PREMIUM" : "ROLE_USER",
-            pending.enable
-              ? `${pending.user.email} a accès Premium.`
-              : `${pending.user.email} repasse en compte libre.`,
-          )
           break
         case "newsletter-unsub":
           await newsletterService.adminUnsubscribe(pending.id)
@@ -238,15 +222,6 @@ export default function AdminDashboard() {
           description: `Le compte ${pending.user.email} sera archivé (soft delete) et ne pourra plus se connecter. Aucune suppression physique.`,
           severity: "danger" as const,
           confirmLabel: "Archiver",
-        }
-      case "toggle-premium":
-        return {
-          title: pending.enable ? "Passer en ROLE_PREMIUM ?" : "Retirer ROLE_PREMIUM ?",
-          description: pending.enable
-            ? `${pending.user.email} aura accès aux fonctionnalités payantes sans Stripe.`
-            : `${pending.user.email} repassera en compte libre (ROLE_USER).`,
-          severity: "warning" as const,
-          confirmLabel: pending.enable ? "Activer Premium" : "Retirer Premium",
         }
       case "newsletter-unsub":
         return {
@@ -305,7 +280,6 @@ export default function AdminDashboard() {
                 rows={filteredUsers}
                 onStatus={updateUserStatus}
                 onDelete={(u) => setPending({ type: "archive-user", user: u })}
-                onTogglePremium={togglePremium}
                 showAdminBadge
                 adminsCount={admins.length}
               />
@@ -317,7 +291,6 @@ export default function AdminDashboard() {
                 rows={chefs}
                 onStatus={updateUserStatus}
                 onDelete={(u) => setPending({ type: "archive-user", user: u })}
-                onTogglePremium={togglePremium}
               />
             )}
 
@@ -368,7 +341,7 @@ export default function AdminDashboard() {
                               </StatusPill>
                             </td>
                             <td className="py-3 text-right">
-                              <Link to={`/recipe/${r.id}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                              <Link to={recipePath(r)} className="text-emerald-700 hover:underline dark:text-emerald-400">
                                 Voir
                               </Link>
                             </td>

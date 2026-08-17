@@ -29,23 +29,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center rounded-md font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center rounded-xl font-medium tracking-tight",
+          "transition-[transform,background-color,opacity,box-shadow,color] duration-150 ease-out",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "disabled:pointer-events-none disabled:opacity-45",
+          "active:scale-[0.98]",
           fullWidth && "w-full",
           {
-            // Variants
-            "bg-primary text-white hover:bg-primary/90 focus-visible:ring-primary": variant === "primary",
+            "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90": variant === "primary",
             "bg-secondary text-secondary-foreground hover:bg-secondary/80": variant === "secondary",
             "border border-border bg-transparent text-foreground hover:bg-muted": variant === "outline",
             "bg-transparent text-foreground hover:bg-muted": variant === "ghost",
-            "bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-600": variant === "danger",
-            "bg-emerald-700 text-white hover:bg-emerald-800 focus-visible:ring-emerald-700": variant === "success",
-            
-            // Sizes
-            "h-7 rounded px-2 text-xs": size === "xs",
-            "h-9 rounded px-3 text-sm": size === "sm",
-            "h-10 px-4 py-2 text-sm": size === "md",
-            "h-12 px-6 py-3 text-base": size === "lg",
+            "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive": variant === "danger",
+            "bg-primary text-primary-foreground hover:bg-primary/90": variant === "success",
+            "h-8 rounded-lg px-2.5 text-xs": size === "xs",
+            "h-9 px-3 text-sm": size === "sm",
+            "h-10 min-h-10 px-4 text-sm": size === "md",
+            "h-12 min-h-12 px-6 text-base": size === "lg",
           },
           className
         )}
@@ -53,10 +53,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         {...props}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {!isLoading && leftIcon && <span className="mr-2">{leftIcon}</span>}
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
+        {!isLoading && leftIcon && <span className="mr-2 inline-flex shrink-0">{leftIcon}</span>}
         {children}
-        {!isLoading && rightIcon && <span className="ml-2">{rightIcon}</span>}
+        {!isLoading && rightIcon && <span className="ml-2 inline-flex shrink-0">{rightIcon}</span>}
       </button>
     );
   }

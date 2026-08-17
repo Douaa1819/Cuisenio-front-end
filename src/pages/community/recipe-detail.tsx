@@ -10,14 +10,16 @@ import {
   Flag,
   Heart,
   MessageCircle,
+  Pencil,
   Send,
+  Share2,
   Trash2,
   User,
   Users,
   Utensils,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { recipeService } from "../../api/recipe.service"
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge"
@@ -28,7 +30,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { Textarea } from "../../components/ui/textarea"
 import { useComments } from "../../hooks/useComments"
 import { useAuthStore } from "../../store/auth.store"
-import type { RecipeResponse } from "../../types/recipe.types"
+import { useFavoritesStore } from "../../store/favorites.store"
+import {
+  isRecipePublicId,
+  recipePath,
+  type RecipeResponse,
+} from "../../types/recipe.types"
 import { env } from "../../lib/env"
 import { usePageMeta } from "../../hooks/usePageMeta"
 import { useRecentlyViewedStore } from "../../store/recently-viewed.store"
@@ -81,14 +88,27 @@ export default function RecipeDetailPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [cookOpen, setCookOpen] = useState(false)
+  const [liked, setLiked] = useState(false)
+  const [likesCount, setLikesCount] = useState(0)
+  const [likeBusy, setLikeBusy] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
+  const [editCommentText, setEditCommentText] = useState("")
 
+  const recipeNumericId = recipe?.id
   const {
     comments,
     loading: commentsLoading,
     error: commentsError,
     fetchComments,
     addComment,
-  } = useComments({ recipeId: id ? Number.parseInt(id) : undefined })
+    updateComment,
+    deleteComment,
+  } = useComments({ recipeId: recipeNumericId })
+
+  const isFavorite = useFavoritesStore((s) =>
+    recipeNumericId ? s.isFavorite(recipeNumericId) : false,
+  )
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
 
   const isOwner = user && recipe?.user?.id === user.id
 
@@ -107,13 +127,24 @@ export default function RecipeDetailPage() {
 
       try {
         setLoading(true)
-        const recipeData = await recipeService.getRecipeById(Number.parseInt(id))
+        setError(null)
+        const recipeData = isRecipePublicId(id)
+          ? await recipeService.getRecipeByPublicId(id)
+          : await recipeService.getRecipeById(Number.parseInt(id, 10))
         setRecipe(recipeData)
+        setLiked(Boolean(recipeData.likedByCurrentUser))
+        setLikesCount(recipeData.likesCount ?? 0)
         useRecentlyViewedStore.getState().add({
           id: recipeData.id,
           title: recipeData.title,
           imageUrl: recipeData.imageUrl,
         })
+        // Canonicalize numeric URLs to UUID when available
+        if (!isRecipePublicId(id) && recipeData.publicId) {
+          navigate(recipePath(recipeData) + (searchParams.toString() ? `?${searchParams}` : ""), {
+            replace: true,
+          })
+        }
         setLoading(false)
       } catch (err) {
         console.error("Error fetching recipe:", err)
@@ -122,13 +153,14 @@ export default function RecipeDetailPage() {
       }
     }
 
-    fetchRecipe()
+    void fetchRecipe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when route id changes
   }, [id])
 
   usePageMeta({
     title: recipe?.title ?? "Recette",
     description: recipe?.description?.slice(0, 155) ?? "Découvrez cette recette sur Cuisenio.",
-    path: `/recipe/${id ?? ""}`,
+    path: recipe ? recipePath(recipe) : `/recipe/${id ?? ""}`,
     type: "article",
     image: recipe?.imageUrl ? `${env.uploadsUrl}/${recipe.imageUrl}` : undefined,
     jsonLd: recipe
@@ -155,12 +187,66 @@ export default function RecipeDetailPage() {
       : undefined,
   })
 
+  const requireAuth = (action: string) => {
+    if (user) return true
+    navigate(
+      `/login?next=${encodeURIComponent(recipe ? recipePath(recipe) : `/recipe/${id}`)}`,
+      { state: { message: `Connectez-vous pour ${action}.` } },
+    )
+    return false
+  }
+
+  const handleToggleLike = async () => {
+    if (!recipeNumericId || !requireAuth("aimer cette recette")) return
+    if (likeBusy) return
+    setLikeBusy(true)
+    try {
+      const res = await recipeService.toggleLike(recipeNumericId)
+      setLiked(res.likedByCurrentUser)
+      setLikesCount(res.likesCount)
+    } catch {
+      setError("Impossible de mettre à jour le like.")
+    } finally {
+      setLikeBusy(false)
+    }
+  }
+
+  const handleShare = async () => {
+    if (!recipe) return
+    const url = `${window.location.origin}${recipePath(recipe)}`
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title: recipe.title, text: recipe.description?.slice(0, 120), url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setSuccessMessage("Lien de la recette copié")
+      setShowSuccessModal(true)
+      setTimeout(() => setShowSuccessModal(false), 1800)
+    } catch (err) {
+      if ((err as { name?: string })?.name === "AbortError") return
+      try {
+        await navigator.clipboard.writeText(url)
+        setSuccessMessage("Lien de la recette copié")
+        setShowSuccessModal(true)
+        setTimeout(() => setShowSuccessModal(false), 1800)
+      } catch {
+        setError("Impossible de partager ou copier le lien.")
+      }
+    }
+  }
+
   const handleCommentSubmit = async () => {
-    if (!id || !commentText.trim()) return
+    if (!recipeNumericId || !commentText.trim()) return
+    if (!requireAuth("commenter")) return
 
     try {
-      await addComment(Number.parseInt(id), commentText)
+      const created = await addComment(recipeNumericId, commentText)
+      if (!created) return
       setCommentText("")
+      setRecipe((prev) =>
+        prev ? { ...prev, commentsCount: (prev.commentsCount ?? comments.length) + 1 } : prev,
+      )
       setSuccessMessage("Commentaire ajouté avec succès!")
       setShowSuccessModal(true)
       setTimeout(() => {
@@ -171,11 +257,36 @@ export default function RecipeDetailPage() {
     }
   }
 
+  const handleSaveCommentEdit = async () => {
+    if (!recipeNumericId || editingCommentId == null || !editCommentText.trim()) return
+    const updated = await updateComment(recipeNumericId, editingCommentId, editCommentText)
+    if (updated) {
+      setEditingCommentId(null)
+      setEditCommentText("")
+      setSuccessMessage("Commentaire mis à jour")
+      setShowSuccessModal(true)
+      setTimeout(() => setShowSuccessModal(false), 1500)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!recipeNumericId) return
+    if (!window.confirm("Supprimer ce commentaire ?")) return
+    const ok = await deleteComment(recipeNumericId, commentId)
+    if (ok) {
+      setRecipe((prev) =>
+        prev
+          ? { ...prev, commentsCount: Math.max(0, (prev.commentsCount ?? 1) - 1) }
+          : prev,
+      )
+    }
+  }
+
   const handleDeleteRecipe = async () => {
-    if (!id) return
+    if (!recipeNumericId) return
 
     try {
-      await recipeService.deleteRecipe(Number.parseInt(id))
+      await recipeService.deleteRecipe(recipeNumericId)
       setConfirmDeleteOpen(false)
       setSuccessMessage("Recette archivée — elle n'est plus visible sur la plateforme.")
       setShowSuccessModal(true)
@@ -191,12 +302,13 @@ export default function RecipeDetailPage() {
   }
 
   const handleReportRecipe = async () => {
-    if (!id) return
+    if (!recipeNumericId) return
+    if (!requireAuth("signaler cette recette")) return
     const reason = window.prompt("Raison du signalement")
     if (!reason?.trim()) return
     try {
-      const res = await recipeService.reportRecipe(Number.parseInt(id), reason.trim())
-      setSuccessMessage(`Recette signalee (${res.reportCount} signalement(s)).`)
+      const res = await recipeService.reportRecipe(recipeNumericId, reason.trim())
+      setSuccessMessage(`Recette signalée (${res.reportCount} signalement(s)).`)
       setShowSuccessModal(true)
       setTimeout(() => setShowSuccessModal(false), 2000)
     } catch {
@@ -205,12 +317,13 @@ export default function RecipeDetailPage() {
   }
 
   const handleReportComment = async (commentId: number) => {
-    if (!id) return
+    if (!recipeNumericId) return
+    if (!requireAuth("signaler ce commentaire")) return
     const reason = window.prompt("Raison du signalement du commentaire")
     if (!reason?.trim()) return
     try {
-      const res = await recipeService.reportComment(Number.parseInt(id), commentId, reason.trim())
-      setSuccessMessage(`Commentaire signale (${res.reportCount} signalement(s)).`)
+      const res = await recipeService.reportComment(recipeNumericId, commentId, reason.trim())
+      setSuccessMessage(`Commentaire signalé (${res.reportCount} signalement(s)).`)
       setShowSuccessModal(true)
       setTimeout(() => setShowSuccessModal(false), 2000)
     } catch {
@@ -231,7 +344,7 @@ export default function RecipeDetailPage() {
     )
   }
 
-  if (error || !recipe) {
+  if (error && !recipe) {
     return (
       <AppShell>
         <div className="flex min-h-[50vh] items-center justify-center px-4">
@@ -246,6 +359,10 @@ export default function RecipeDetailPage() {
         </div>
       </AppShell>
     )
+  }
+
+  if (!recipe) {
+    return null
   }
 
   return (
@@ -265,6 +382,21 @@ export default function RecipeDetailPage() {
       {/* Main Content */}
       <main className="px-4 pb-16 pt-8">
         <div className="container mx-auto max-w-5xl">
+          {error && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="flex-1">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  className="mt-1 text-xs font-medium underline"
+                  onClick={() => setError(null)}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          )}
           <div className="mb-6">
             <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 text-muted-foreground hover:text-primary">
               <ArrowLeft className="mr-2 h-4 w-4" /> Retour
@@ -334,13 +466,45 @@ export default function RecipeDetailPage() {
               )}
 
               <div className="absolute top-4 right-4 flex space-x-2">
-                <button className="p-2 bg-white/90 hover:bg-white rounded-full transition-colors shadow-sm">
-                  <Heart className="h-5 w-5 text-gray-600 hover:text-primary" />
+                <button
+                  type="button"
+                  aria-pressed={liked}
+                  aria-label={liked ? "Retirer le like" : "Aimer la recette"}
+                  disabled={likeBusy}
+                  onClick={() => void handleToggleLike()}
+                  className="flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-2 shadow-sm transition-colors hover:bg-white disabled:opacity-60"
+                >
+                  <Heart
+                    className={`h-5 w-5 ${liked ? "fill-primary text-primary" : "text-gray-600 hover:text-primary"}`}
+                  />
+                  <span className="text-xs font-medium text-gray-700 tabular-nums">{likesCount}</span>
                 </button>
-                <button className="p-2 bg-white/90 hover:bg-white rounded-full transition-colors shadow-sm">
-                  <BookmarkIcon className="h-5 w-5 text-gray-600 hover:text-primary" />
+                <button
+                  type="button"
+                  aria-pressed={isFavorite}
+                  aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  onClick={() => {
+                    if (!recipeNumericId) return
+                    if (!user) {
+                      requireAuth("enregistrer en favori")
+                      return
+                    }
+                    toggleFavorite(recipeNumericId)
+                  }}
+                  className="rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-white"
+                >
+                  <BookmarkIcon
+                    className={`h-5 w-5 ${isFavorite ? "fill-primary text-primary" : "text-gray-600 hover:text-primary"}`}
+                  />
                 </button>
-          
+                <button
+                  type="button"
+                  aria-label="Partager la recette"
+                  onClick={() => void handleShare()}
+                  className="rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-white"
+                >
+                  <Share2 className="h-5 w-5 text-gray-600 hover:text-primary" />
+                </button>
               </div>
             </div>
 
@@ -360,7 +524,6 @@ export default function RecipeDetailPage() {
                       : "Difficile"}
                 </Badge>
                 {recipe.isFeatured && <Badge className="bg-primary/10 text-primary">Featured</Badge>}
-                {recipe.isPremium && <Badge className="bg-violet-100 text-violet-700">Premium</Badge>}
               </div>
 
               <div className="flex items-center mb-6">
@@ -432,27 +595,25 @@ export default function RecipeDetailPage() {
                   </div>
                 )}
                 <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm">
-                  <p className="font-semibold text-foreground">Partager</p>
+                  <p className="font-semibold text-foreground">Interactions</p>
+                  <div className="mt-2 flex flex-wrap gap-3 text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Heart className={`h-3.5 w-3.5 ${liked ? "fill-primary text-primary" : ""}`} />
+                      {likesCount} like{likesCount === 1 ? "" : "s"}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      {recipe.commentsCount ?? comments.length} commentaire
+                      {(recipe.commentsCount ?? comments.length) === 1 ? "" : "s"}
+                    </span>
+                  </div>
                   <button
                     type="button"
-                    className="mt-1 text-primary hover:underline"
-                    onClick={async () => {
-                      const url = window.location.href
-                      try {
-                        if (navigator.share) {
-                          await navigator.share({ title: recipe.title, url })
-                        } else {
-                          await navigator.clipboard.writeText(url)
-                          setSuccessMessage("Lien copié")
-                          setShowSuccessModal(true)
-                          setTimeout(() => setShowSuccessModal(false), 1500)
-                        }
-                      } catch {
-                        /* user cancelled share */
-                      }
-                    }}
+                    className="mt-2 inline-flex items-center gap-1.5 text-primary hover:underline"
+                    onClick={() => void handleShare()}
                   >
-                    Lien / partage natif
+                    <Share2 className="h-3.5 w-3.5" />
+                    Partager
                   </button>
                 </div>
               </div>
@@ -535,11 +696,6 @@ export default function RecipeDetailPage() {
             <TabsContent value="steps" className="space-y-6">
               <Card className="p-6">
                 <h3 className="text-xl font-bold mb-4">Instructions</h3>
-                {recipe.premiumLocked ? (
-                  <div className="rounded-md border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
-                    Cette recette est reservee aux membres Pro. Passez en Pro pour voir les instructions detaillees et la video.
-                  </div>
-                ) : null}
 
                 <ol className="space-y-6">
                   {recipe.steps &&
@@ -554,7 +710,7 @@ export default function RecipeDetailPage() {
                       </li>
                     ))}
                 </ol>
-                {!recipe.premiumLocked && recipe.videoUrl ? (
+                {recipe.videoUrl ? (
                   <div className="mt-6 rounded-md border border-border bg-muted/30 p-4 text-sm">
                     <p className="font-medium mb-2">Video</p>
                     <a className="text-primary underline" href={recipe.videoUrl} target="_blank" rel="noreferrer">
@@ -567,99 +723,174 @@ export default function RecipeDetailPage() {
 
             <TabsContent value="comments" className="space-y-6">
               <Card className="p-6">
-                <h3 className="text-xl font-bold mb-4">Commentaires</h3>
+                <h3 className="mb-1 text-xl font-bold">
+                  Commentaires
+                  <span className="ml-2 text-base font-normal text-muted-foreground">
+                    ({recipe.commentsCount ?? comments.length})
+                  </span>
+                </h3>
 
                 <div className="mb-6">
-                  <div className="flex gap-3 mb-6">
-                  <Avatar className="h-8 w-8 border">
-                 {user?.profilePicture ? (
-                   <AvatarImage
-                     src={user.profilePicture}
-                     alt={user.username || "Utilisateur"}
-                   />
-                 ) : (
-                   <AvatarFallback>
-                     <User className="text-primary text-2xl" />
-                   </AvatarFallback>
-                 )}
-               </Avatar>
-                    <div className="flex-1 relative">
-                      <Textarea
-                        placeholder="Partagez votre avis sur cette recette..."
-                        className="resize-none pr-12 text-sm"
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                      />
-                      <Button
-                        className={`absolute bottom-3 right-3 p-2 rounded-full ${
-                          commentText.trim() ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-gray-100 text-gray-400"
-                        }`}
-                        size="sm"
-                        disabled={!commentText.trim()}
-                        onClick={handleCommentSubmit}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                  {user ? (
+                    <div className="mb-6 flex gap-3">
+                      <Avatar className="h-8 w-8 border">
+                        {user.profilePicture ? (
+                          <AvatarImage
+                            src={user.profilePicture}
+                            alt={user.username || "Utilisateur"}
+                          />
+                        ) : (
+                          <AvatarFallback>
+                            <User className="text-2xl text-primary" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="relative flex-1">
+                        <Textarea
+                          placeholder="Partagez votre avis sur cette recette..."
+                          className="resize-none pr-12 text-sm"
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                        />
+                        <Button
+                          className={`absolute bottom-3 right-3 rounded-full p-2 ${
+                            commentText.trim()
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-gray-100 text-gray-400"
+                          }`}
+                          size="sm"
+                          disabled={!commentText.trim()}
+                          onClick={() => void handleCommentSubmit()}
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="mb-6 rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+                      <Link to={`/login?next=${encodeURIComponent(recipePath(recipe))}`} className="font-medium text-primary hover:underline">
+                        Connectez-vous
+                      </Link>{" "}
+                      pour laisser un commentaire.
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     {commentsLoading ? (
                       <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                        <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-primary"></div>
                       </div>
                     ) : commentsError ? (
-                      <div className="text-center py-8">
-                        <p className="text-red-500 mb-2">Impossible de charger les commentaires</p>
-                        <Button variant="outline" size="sm" onClick={() => id && fetchComments(Number.parseInt(id))}>
+                      <div className="py-8 text-center">
+                        <p className="mb-2 text-red-500">{commentsError}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => recipeNumericId && void fetchComments(recipeNumericId)}
+                        >
                           Réessayer
                         </Button>
                       </div>
                     ) : comments.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <MessageCircle className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                      <div className="py-8 text-center text-gray-500">
+                        <MessageCircle className="mx-auto mb-2 h-12 w-12 text-gray-300" />
                         <p>Aucun commentaire pour cette recette</p>
-                        <p className="text-sm mt-1">Soyez le premier à donner votre avis !</p>
+                        <p className="mt-1 text-sm">Soyez le premier à donner votre avis !</p>
                       </div>
                     ) : (
-                      comments.map((comment) => (
-                        <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <Avatar className="h-8 w-8 mr-2 border">
-                              <Image
-                                src="/placeholder.svg?height=40&width=40"
-                                alt={comment.user.username}
-                                width={40}
-                                height={40}
-                              />
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-sm">{comment.user.username}</p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
+                      comments.map((comment) => {
+                        const isCommentOwner = user?.id === comment.user?.id
+                        const isEditing = editingCommentId === comment.id
+                        return (
+                          <div key={comment.id} className="rounded-lg bg-gray-50 p-4">
+                            <div className="mb-2 flex items-center">
+                              <Avatar className="mr-2 h-8 w-8 border">
+                                <AvatarFallback>
+                                  {(comment.user?.username ?? "?").slice(0, 1).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {comment.user?.username ?? "Utilisateur"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            {isEditing ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editCommentText}
+                                  onChange={(e) => setEditCommentText(e.target.value)}
+                                  className="text-sm"
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={() => void handleSaveCommentEdit()}>
+                                    Enregistrer
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setEditingCommentId(null)
+                                      setEditCommentText("")
+                                    }}
+                                  >
+                                    Annuler
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-700">{comment.content}</p>
+                            )}
+                            <div className="mt-2 flex flex-wrap gap-3">
+                              {isCommentOwner && !isEditing && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0 text-xs text-slate-600 hover:text-primary"
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id)
+                                      setEditCommentText(comment.content)
+                                    }}
+                                  >
+                                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                                    Modifier
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0 text-xs text-red-600 hover:text-red-700"
+                                    onClick={() => void handleDeleteComment(comment.id)}
+                                  >
+                                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                    Supprimer
+                                  </Button>
+                                </>
+                              )}
+                              {!isCommentOwner && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs text-slate-600 hover:text-primary"
+                                  onClick={() => void handleReportComment(comment.id)}
+                                >
+                                  <Flag className="mr-1 h-3.5 w-3.5" />
+                                  Signaler ce commentaire
+                                </Button>
+                              )}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-700">{comment.content}</p>
-                          <div className="mt-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 text-xs text-slate-600 hover:text-primary"
-                              onClick={() => void handleReportComment(comment.id)}
-                            >
-                              <Flag className="mr-1 h-3.5 w-3.5" />
-                              Signaler ce commentaire
-                            </Button>
-                          </div>
-                        </div>
-                      ))
+                        )
+                      })
                     )}
                   </div>
                 </div>

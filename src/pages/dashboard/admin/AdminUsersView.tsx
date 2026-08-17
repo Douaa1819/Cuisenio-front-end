@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Crown, Shield, Trash2, UserRound } from "lucide-react"
+import { Shield, Trash2, UserRound } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { normalizeRole, Role } from "../../../types/auth.types"
 import type { UserDTO, UserStatus } from "../../../types/user.types"
@@ -13,12 +13,10 @@ function RoleBadge({ role }: { role?: string }) {
   const label = roleAuthorityLabel(role)
   const styles =
     label === "ROLE_ADMIN"
-      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-      : label === "ROLE_PREMIUM"
-        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200"
-        : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+      ? "bg-foreground text-background"
+      : "bg-muted text-muted-foreground"
 
-  const Icon = label === "ROLE_ADMIN" ? Shield : label === "ROLE_PREMIUM" ? Crown : UserRound
+  const Icon = label === "ROLE_ADMIN" ? Shield : UserRound
 
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", styles)}>
@@ -33,7 +31,6 @@ type AdminUsersViewProps = {
   rows: UserDTO[]
   onStatus: (id: number, status: UserStatus) => void
   onDelete: (u: UserDTO) => void
-  onTogglePremium: (u: UserDTO, enable: boolean) => void
   showAdminBadge?: boolean
   adminsCount?: number
 }
@@ -43,7 +40,6 @@ export function AdminUsersView({
   rows,
   onStatus,
   onDelete,
-  onTogglePremium,
   showAdminBadge,
   adminsCount,
 }: AdminUsersViewProps) {
@@ -59,72 +55,40 @@ export function AdminUsersView({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{title}</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+        <p className="text-sm text-muted-foreground">
           {rows.length} compte(s)
           {showAdminBadge ? ` · ${adminsCount ?? 0} admin` : ""}
-          {" · "}bascule Premium sans Stripe
+          {" · "}toutes les fonctionnalités sont gratuites
         </p>
       </div>
 
       <AdminPanel title="Liste paginée">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px] text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="pb-2 font-medium">Nom</th>
                 <th className="pb-2 font-medium">Email</th>
                 <th className="pb-2 font-medium">Rôle actuel</th>
                 <th className="pb-2 font-medium">Statut</th>
-                <th className="pb-2 font-medium">Premium</th>
                 <th className="pb-2 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {pageRows.map((u) => {
                 const role = normalizeRole(u.role)
                 const isAdmin = role === Role.ADMIN
-                const isPremium = role === Role.PREMIUM
                 return (
-                  <tr key={u.id} className="text-slate-800 dark:text-slate-100">
+                  <tr key={u.id} className="text-foreground">
                     <td className="py-3 font-medium">
                       {u.username} {u.lastName}
                     </td>
-                    <td className="py-3 text-slate-500 dark:text-slate-400">{u.email}</td>
+                    <td className="py-3 text-muted-foreground">{u.email}</td>
                     <td className="py-3">
                       <RoleBadge role={u.role} />
                     </td>
-                    <td className="py-3 capitalize text-slate-600 dark:text-slate-300">{u.status}</td>
-                    <td className="py-3">
-                      <label
-                        className={cn(
-                          "inline-flex cursor-pointer items-center gap-2",
-                          isAdmin && "cursor-not-allowed opacity-50",
-                        )}
-                      >
-                        <span className="sr-only">Basculer ROLE_PREMIUM</span>
-                        <input
-                          type="checkbox"
-                          className="peer sr-only"
-                          checked={isPremium || isAdmin}
-                          disabled={isAdmin}
-                          onChange={(e) => onTogglePremium(u, e.target.checked)}
-                        />
-                        <span
-                          className={cn(
-                            "relative h-6 w-11 rounded-full transition",
-                            isPremium || isAdmin ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition",
-                              (isPremium || isAdmin) && "translate-x-5",
-                            )}
-                          />
-                        </span>
-                      </label>
-                    </td>
+                    <td className="py-3 capitalize text-muted-foreground">{u.status}</td>
                     <td className="py-3 text-right">
                       <div className="flex justify-end gap-1">
                         {u.status !== "active" && (
@@ -142,7 +106,7 @@ export function AdminUsersView({
                             type="button"
                             size="xs"
                             variant="ghost"
-                            className="text-red-600"
+                            className="text-destructive"
                             onClick={() => onDelete(u)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -160,7 +124,7 @@ export function AdminUsersView({
 
         {rows.length > PAGE_SIZE && (
           <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-muted-foreground">
               Page {safePage + 1} / {pageCount}
             </p>
             <div className="flex gap-2">

@@ -7,11 +7,11 @@ const labelVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-gray-900 dark:text-gray-100",
-        secondary: "text-gray-500 dark:text-gray-400",
-        destructive: "text-red-500 dark:text-red-400",
-        success: "text-green-600 dark:text-green-400",
-        warning: "text-slate-600 dark:text-slate-400",
+        default: "text-foreground",
+        secondary: "text-muted-foreground",
+        destructive: "text-destructive",
+        success: "text-primary",
+        warning: "text-muted-foreground",
       },
       size: {
         sm: "text-xs",
@@ -45,13 +45,13 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
           htmlFor={props.htmlFor || id}
         >
           {children}
-          {optional && <span className="ml-1 text-xs text-gray-500">(optional)</span>}
-          {required && <span className="ml-1 text-xs text-red-500">*</span>}
+          {optional && <span className="ml-1 text-xs text-muted-foreground">(optional)</span>}
+          {required && <span className="ml-1 text-xs text-destructive">*</span>}
         </label>
 
         {tooltip && (
           <div className="group relative">
-            <div className="cursor-help rounded-full border border-gray-200 p-0.5 text-gray-400 hover:text-gray-600">
+            <div className="cursor-help rounded-full border border-border p-0.5 text-muted-foreground hover:text-foreground">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"
@@ -68,7 +68,7 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
             </div>
-            <div className="absolute left-full top-1/2 z-10 ml-2 -translate-y-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="absolute left-full top-1/2 z-10 ml-2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-foreground px-2 py-1 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
               {tooltip}
             </div>
           </div>

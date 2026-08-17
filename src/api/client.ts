@@ -51,10 +51,10 @@ client.interceptors.response.use(
       const detail =
         error.response?.data?.detail ??
         error.response?.data?.message ??
-        "Accès refusé — fonctionnalité Premium."
+        "Accès refusé."
       window.dispatchEvent(
         new CustomEvent("auth:forbidden", {
-          detail: { message: detail, url, upgradeHint: Boolean(error.response?.data?.upgradeHint) },
+          detail: { message: detail, url },
         }),
       )
     }

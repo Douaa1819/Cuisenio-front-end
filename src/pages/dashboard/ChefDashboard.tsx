@@ -33,7 +33,7 @@ import { usePageMeta } from "../../hooks/usePageMeta"
 import { env } from "../../lib/env"
 import { cn } from "../../lib/utils"
 import { useAuthStore } from "../../store/auth.store"
-import type { RecipeResponse } from "../../types/recipe.types"
+import { recipePath, type RecipeResponse } from "../../types/recipe.types"
 
 type RecipeStatus = "published" | "pending" | "draft" | "archived"
 
@@ -311,7 +311,7 @@ export default function ChefDashboard() {
                             className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
                           >
                             <Link
-                              to={`/recipe/${r.id}`}
+                              to={recipePath(r)}
                               className="flex min-w-0 flex-1 items-center gap-3"
                             >
                               <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -345,7 +345,7 @@ export default function ChefDashboard() {
                                 type="button"
                                 size="xs"
                                 variant="outline"
-                                onClick={() => navigate(`/recipe/${r.id}`)}
+                                onClick={() => navigate(recipePath(r))}
                               >
                                 <Icon icon={Pencil} className="mr-1" size={14} />
                                 Éditer

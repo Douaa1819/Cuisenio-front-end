@@ -37,7 +37,7 @@ const Select = React.forwardRef<React.ElementRef<typeof SelectPrimitive.Trigger>
           {label && (
             <label
               htmlFor={id}
-              className={cn("text-sm font-medium text-foreground", error && "text-red-500")}
+              className={cn("text-sm font-medium text-foreground", error && "text-destructive")}
             >
               {label}
             </label>
@@ -46,7 +46,7 @@ const Select = React.forwardRef<React.ElementRef<typeof SelectPrimitive.Trigger>
             {children}
           </SelectPrimitive.Trigger>
           {helperText && !error && <p className="text-xs text-muted-foreground">{helperText}</p>}
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
       </SelectPrimitive.Root>
     )
@@ -70,7 +70,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex items-center justify-between rounded-md border bg-background text-foreground ring-offset-background transition-colors duration-200 ease-out",
+      "flex items-center justify-between rounded-xl border bg-background text-foreground ring-offset-background transition-colors duration-150 ease-out",
       "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
       {
         // Size variants
@@ -87,7 +87,7 @@ const SelectTrigger = React.forwardRef<
           variant === "ghost" && !error,
 
         // Error state
-        "border-red-500 focus:border-red-500 focus:ring-red-500/20 text-red-600 placeholder:text-red-400": error,
+        "border-destructive focus:border-destructive focus:ring-destructive/20 text-destructive placeholder:text-destructive/60": error,
       },
       className,
     )}

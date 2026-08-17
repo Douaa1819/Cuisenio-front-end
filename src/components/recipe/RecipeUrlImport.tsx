@@ -1,10 +1,7 @@
 import { Link2, Loader2, Sparkles } from "lucide-react"
 import { useState } from "react"
-import { recipeImportService, type RecipeImportPreview } from "../../api/recipe-import.service"
+import { recipeImportService, mapRecipeImportError, type RecipeImportPreview } from "../../api/recipe-import.service"
 import { useNotification } from "../../context/NotificationContext"
-import { useAuthStore } from "../../store/auth.store"
-import { isPremiumUser } from "../../types/auth.types"
-import { PremiumUpgradeModal } from "../premium/PremiumUpgradeModal"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
@@ -14,20 +11,13 @@ interface RecipeUrlImportProps {
 }
 
 export function RecipeUrlImport({ onApply }: RecipeUrlImportProps) {
-  const user = useAuthStore((s) => s.user)
-  const premium = isPremiumUser(user?.role, user?.subscriptionTier)
   const { error: notifyError, success } = useNotification()
 
   const [url, setUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<RecipeImportPreview | null>(null)
-  const [showUpgrade, setShowUpgrade] = useState(false)
 
   const handleImport = async () => {
-    if (!premium) {
-      setShowUpgrade(true)
-      return
-    }
     if (!url.trim()) return
     setLoading(true)
     setPreview(null)
@@ -36,16 +26,8 @@ export function RecipeUrlImport({ onApply }: RecipeUrlImportProps) {
       setPreview(data)
       success("Recette extraite", `Parser: ${data.parserUsed}`)
     } catch (err: unknown) {
-      const axiosLike = err as { response?: { status?: number; data?: { detail?: string; message?: string } } }
-      if (axiosLike.response?.status === 403) {
-        setShowUpgrade(true)
-        return
-      }
       console.error("[recipe-import]", err)
-      notifyError(
-        "Import échoué",
-        axiosLike.response?.data?.detail ?? axiosLike.response?.data?.message ?? "URL non supportée",
-      )
+      notifyError("Import échoué", mapRecipeImportError(err))
     } finally {
       setLoading(false)
     }
@@ -55,15 +37,10 @@ export function RecipeUrlImport({ onApply }: RecipeUrlImportProps) {
     <section className="rounded-2xl border border-border bg-card p-5 shadow-card-theme">
       <div className="mb-4 flex items-center gap-2">
         <Link2 className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">Importer par lien</h2>
-        {!premium && (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
-            Premium
-          </span>
-        )}
+        <h2 className="text-lg font-semibold text-foreground">Import rapide par URL</h2>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Collez l&apos;URL d&apos;une recette web. Cuisenio extrait titre, ingrédients et étapes (JSON-LD puis fallback HTML).
+        Collez un lien TikTok, Instagram ou Marmiton pour extraire la fiche. Les sites de recettes avec Schema.org sont aussi pris en charge.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1 space-y-1.5">
@@ -71,7 +48,7 @@ export function RecipeUrlImport({ onApply }: RecipeUrlImportProps) {
           <Input
             id="import-url"
             type="url"
-            placeholder="https://…"
+            placeholder="https://www.marmiton.org/…"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
@@ -131,12 +108,6 @@ export function RecipeUrlImport({ onApply }: RecipeUrlImportProps) {
           )}
         </div>
       )}
-
-      <PremiumUpgradeModal
-        open={showUpgrade}
-        onClose={() => setShowUpgrade(false)}
-        featureLabel="Import par URL"
-      />
     </section>
   )
 }

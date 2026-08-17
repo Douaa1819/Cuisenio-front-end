@@ -82,7 +82,7 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
       if (!payload || !payload.length) return null
 
       return (
-        <div className="bg-white dark:bg-gray-800 p-2 rounded-md shadow-md border border-gray-200 dark:border-gray-700">
+        <div className="rounded-xl border border-border bg-card p-2 shadow-card-theme">
           <p className="text-sm font-medium mb-1">{label}</p>
           <div className="space-y-1">
             {payload.map((entry: { color: string; name: string; value: number | string }, index: number) => (
@@ -91,7 +91,7 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
                   className="w-3 h-3 rounded-full" 
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-xs text-gray-600 dark:text-gray-400">{entry.name}:</span>
+                <span className="text-xs text-muted-foreground">{entry.name}:</span>
                 <span className="text-xs font-medium">{entry.value}</span>
               </div>
             ))}

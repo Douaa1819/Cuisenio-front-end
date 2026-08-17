@@ -9,7 +9,6 @@ export interface User {
   email?: string
   profilePicture?: string
   role?: Role
-  subscriptionTier?: "FREE" | "PRO"
   isShadowBanned?: boolean
 }
 

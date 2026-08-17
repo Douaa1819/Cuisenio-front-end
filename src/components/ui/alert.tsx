@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { AlertCircle, CheckCircle, Info, X, AlertTriangle } from "lucide-react";
@@ -42,12 +41,12 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       <div
         ref={ref}
         className={cn(
-          "relative flex w-full rounded-md border p-4",
+          "relative flex w-full rounded-xl border p-4",
           {
-            "bg-blue-50 border-blue-200 text-blue-800": variant === "info",
-            "bg-green-50 border-green-200 text-green-800": variant === "success",
-            "bg-slate-50 border-slate-200 text-slate-800": variant === "warning",
-            "bg-rose-50 border-rose-200 text-rose-800": variant === "error",
+            "border-border bg-muted/60 text-foreground": variant === "info",
+            "border-primary/20 bg-primary/5 text-foreground": variant === "success",
+            "border-border bg-secondary text-foreground": variant === "warning",
+            "border-destructive/25 bg-destructive/10 text-destructive": variant === "error",
           },
           className
         )}
@@ -69,15 +68,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         {dismissible && (
           <button
             type="button"
-            className={cn(
-              "absolute right-4 top-4 inline-flex items-center justify-center rounded-md p-1 transition-colors",
-              {
-                "text-blue-500 hover:bg-blue-100": variant === "info",
-                "text-green-500 hover:bg-green-100": variant === "success",
-                "text-slate-500 hover:bg-slate-100": variant === "warning",
-                "text-rose-500 hover:bg-rose-100": variant === "error",
-              }
-            )}
+            className="absolute right-3 top-3 inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={handleDismiss}
             aria-label="Dismiss"
           >

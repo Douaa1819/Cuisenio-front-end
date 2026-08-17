@@ -32,18 +32,18 @@ const severityStyles: Record<
 > = {
   info: {
     Icon: Info,
-    iconWrap: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    confirm: "bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:ring-emerald-600",
+    iconWrap: "bg-muted text-foreground",
+    confirm: "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary",
   },
   warning: {
     Icon: AlertTriangle,
-    iconWrap: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    confirm: "bg-slate-700 text-white hover:bg-slate-600 focus-visible:ring-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500",
+    iconWrap: "bg-muted text-foreground",
+    confirm: "bg-foreground text-background hover:opacity-90 focus-visible:ring-ring",
   },
   danger: {
     Icon: AlertTriangle,
-    iconWrap: "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
-    confirm: "bg-rose-600 text-white hover:bg-rose-500 focus-visible:ring-rose-600",
+    iconWrap: "bg-destructive/10 text-destructive",
+    confirm: "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive",
   },
 }
 
@@ -74,7 +74,7 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={(next) => !isLoading && onOpenChange(next)}>
       <DialogContent
-        className="max-w-md border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+        className="max-w-md border-border bg-card"
         showCloseButton={!isLoading}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
@@ -88,10 +88,10 @@ export function ConfirmDialog({
               <Icon className="h-5 w-5" />
             </span>
             <div className="min-w-0 space-y-1.5">
-              <DialogTitle id={titleId} className="text-slate-900 dark:text-slate-100">
+              <DialogTitle id={titleId} className="text-foreground">
                 {title}
               </DialogTitle>
-              <DialogDescription id={descriptionId} className="text-slate-500 dark:text-slate-400">
+              <DialogDescription id={descriptionId} className="text-muted-foreground">
                 {description}
               </DialogDescription>
             </div>

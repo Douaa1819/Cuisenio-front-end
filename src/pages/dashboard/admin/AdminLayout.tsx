@@ -34,7 +34,7 @@ export function AdminLayout({
   children,
 }: AdminLayoutProps) {
   return (
-    <div className="organic-surface flex min-h-screen text-foreground antialiased dark:bg-slate-950 dark:text-slate-100">
+    <div className="organic-surface flex min-h-screen text-foreground antialiased">
       <AdminSidebar
         section={section}
         onNavigate={onNavigate}
@@ -46,10 +46,10 @@ export function AdminLayout({
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-xl">
           <button
             type="button"
-            className="rounded-lg p-2 hover:bg-secondary lg:hidden dark:hover:bg-slate-900"
+            className="rounded-lg p-2 hover:bg-muted lg:hidden"
             onClick={onSidebarOpen}
             aria-label="Ouvrir le menu"
           >
@@ -61,7 +61,7 @@ export function AdminLayout({
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full rounded-xl border border-border bg-[color:var(--cu-paper)] py-2 pl-9 pr-3 font-sans text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 font-sans text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="ml-auto flex items-center gap-2">

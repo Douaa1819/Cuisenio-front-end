@@ -150,7 +150,7 @@ export default function HomePage() {
   return (
     <AppShell>
       <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        <section className="mb-8 rounded-3xl border border-border bg-card p-5 shadow-card-theme sm:p-8">
+        <section className="mb-8 rounded-2xl border border-border bg-card/80 p-5 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="font-sans text-sm font-medium text-primary">
@@ -176,7 +176,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link to="/add-recipe">
-                <Button type="button" size="sm" className="bg-primary hover:bg-primary/90">
+                <Button type="button" size="sm">
                   Nouvelle recette
                 </Button>
               </Link>
@@ -189,7 +189,7 @@ export default function HomePage() {
 
         {loading && <ListSkeleton />}
         {error && (
-          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm text-red-700">
+          <div className="mb-8 rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-6 text-center text-sm text-destructive">
             {error}
             <div className="mt-3">
               <Button type="button" size="sm" onClick={() => window.location.reload()}>
@@ -212,7 +212,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <Link to={`/recipe/${cooking.recipeId}?cook=1`}>
-                    <Button type="button" className="bg-primary hover:bg-primary/90">
+                    <Button type="button">
                       Reprendre
                     </Button>
                   </Link>
@@ -277,7 +277,7 @@ export default function HomePage() {
                   {chefs.map((c) => (
                     <div
                       key={c.user.id}
-                      className="rounded-2xl border border-border bg-card px-4 py-3 shadow-card-theme"
+                      className="rounded-xl border border-border bg-card px-4 py-3"
                     >
                       <p className="font-sans font-semibold text-foreground">{c.user.username}</p>
                       <p className="mt-0.5 inline-flex items-center gap-1 font-sans text-xs text-muted-foreground">
@@ -291,7 +291,7 @@ export default function HomePage() {
               )}
             </section>
 
-            <section className="mb-12 rounded-2xl border border-border bg-card p-5 shadow-card-theme" aria-label="Succès">
+            <section className="mb-12 rounded-2xl border border-border bg-card/80 p-5" aria-label="Succès">
               <h2 className="mb-3 flex items-center gap-2 text-foreground">
                 <Trophy className="h-5 w-5 text-primary" strokeWidth={1.75} /> Vos succès
               </h2>
@@ -330,7 +330,7 @@ function QuickChip({
   return (
     <a
       href={to}
-      className="flex min-h-12 items-center gap-2 rounded-2xl border border-border bg-background/80 px-4 text-sm font-medium transition hover:border-primary/40 hover:bg-primary/5"
+      className="flex min-h-12 items-center gap-2 rounded-xl border border-border bg-card/70 px-4 text-sm font-medium transition-colors duration-150 hover:bg-muted"
     >
       <span className="text-primary">{icon}</span>
       {label}

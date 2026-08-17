@@ -50,18 +50,18 @@ const iconVariants: Record<IconMotion, Variants> = {
 
 const variantClass = {
   primary:
-    "border-0 bg-primary-gradient text-primary-foreground shadow-[0_10px_28px_-12px_rgba(46,125,50,0.45)] hover:brightness-[1.04]",
+    "border-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
   /** @deprecated Alias of primary — terracotta removed from the design system */
   warm:
-    "border-0 bg-primary-gradient text-primary-foreground shadow-[0_10px_28px_-12px_rgba(46,125,50,0.45)] hover:brightness-[1.04]",
+    "border-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
   outline:
     "border border-border bg-card/80 text-foreground shadow-sm backdrop-blur hover:border-primary/35 hover:bg-secondary/80",
   ghost: "border-transparent bg-transparent text-foreground hover:bg-muted",
 } as const
 
 const sizeClass = {
-  md: "h-11 rounded-2xl px-5 text-sm",
-  lg: "min-h-12 rounded-[1.15rem] px-6 text-base",
+  md: "h-11 rounded-xl px-5 text-sm",
+  lg: "min-h-12 rounded-xl px-6 text-base",
 } as const
 
 function IconSlot({

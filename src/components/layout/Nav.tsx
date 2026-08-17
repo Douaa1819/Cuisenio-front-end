@@ -1,16 +1,15 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { ChefHat, Compass, Home, LayoutDashboard, LogOut, Menu, UtensilsCrossed, User, X } from "lucide-react"
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, NavLink } from "react-router-dom"
 import { NotificationBell } from "../notifications/NotificationBell"
 import { useAuthStore } from "../../store/auth.store"
 import { env } from "../../lib/env"
 import { ShoppingListButton } from "../kitchen/ShoppingListButton"
 import { ThemeAndLanguageBar } from "./ThemeAndLanguageBar"
-import { PremiumBadge } from "../premium/PremiumUpgradeModal"
 import { ConfirmDialog } from "../ui/ConfirmDialog"
 import { Icon } from "../ui/icon"
-import { Role, isPremiumUser, normalizeRole } from "../../types/auth.types"
+import { Role, normalizeRole } from "../../types/auth.types"
 
 export function Nav() {
   const { user, isAuthenticated, logout } = useAuthStore()
@@ -19,7 +18,6 @@ export function Nav() {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   const isAdmin = normalizeRole(user?.role) === Role.ADMIN
-  const isPremium = isPremiumUser(user?.role, user?.subscriptionTier)
   const avatarUrl = user?.profilePicture
     ? `${env.uploadsUrl}/${user.profilePicture}`
     : null
@@ -44,7 +42,7 @@ export function Nav() {
       ]
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85">
+    <header className="sticky top-0 z-30 border-b border-border/80 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
@@ -56,16 +54,23 @@ export function Nav() {
 
           {/* Desktop links */}
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-0.5" aria-label="Principal">
               {navLinks.map((link) => (
-                <Link
+                <NavLink
                   key={link.to}
                   to={link.to}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-primary/10 hover:text-primary"
+                  className={({ isActive }) =>
+                    [
+                      "flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ].join(" ")
+                  }
                 >
                   <Icon icon={link.icon} />
                   {link.label}
-                </Link>
+                </NavLink>
               ))}
             </nav>
           )}
@@ -82,7 +87,7 @@ export function Nav() {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen((v) => !v)}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-primary/10"
+                    className="flex min-h-10 items-center gap-2 rounded-xl px-2 py-1.5 transition-colors duration-150 hover:bg-muted"
                     aria-expanded={userMenuOpen}
                     aria-haspopup="true"
                   >
@@ -98,11 +103,10 @@ export function Nav() {
                       </div>
                     )}
                     <div className="hidden sm:block text-left">
-                      <p className="flex items-center gap-1.5 text-sm font-medium leading-tight text-foreground">
+                      <p className="text-sm font-medium leading-tight text-foreground">
                         {user?.username}
-                        {isPremium && !isAdmin && <PremiumBadge />}
                       </p>
-                      <p className="text-xs text-muted-foreground">{isAdmin ? "Administrateur" : isPremium ? "Chef Premium" : "Chef"}</p>
+                      <p className="text-xs text-muted-foreground">{isAdmin ? "Administrateur" : "Chef"}</p>
                     </div>
                   </button>
 
@@ -168,7 +172,7 @@ export function Nav() {
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-primary/90"
+                    className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary/90 active:scale-[0.98]"
                 >
                   S'inscrire
                 </Link>
@@ -191,7 +195,7 @@ export function Nav() {
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-foreground transition-colors duration-200 hover:bg-primary/10 hover:text-primary"
+                  className="flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-foreground transition-colors duration-150 hover:bg-muted"
                 >
                   <Icon icon={link.icon} />
                   {link.label}

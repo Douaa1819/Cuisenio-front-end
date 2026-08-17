@@ -20,7 +20,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
   (
     {
       className,
-      shadow = "md",
+      shadow = "sm",
       border = true,
       padding = "md",
       radius = "md",
@@ -73,10 +73,10 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
             "p-9": padding === "xl",
 
             "transition-all duration-200 ease-out": hoverEffect || isHoverable || isClickable,
-            "hover:shadow-lg": hoverEffect === true || isHoverable,
-            "hover:scale-[1.01] hover:shadow-lg": hoverEffect === "scale",
-            "hover:-translate-y-1 hover:shadow-lg": hoverEffect === "lift",
-            "hover:shadow-[0_0_15px_rgba(229,115,115,0.3)]": hoverEffect === "glow",
+            "hover:shadow-md": hoverEffect === true || isHoverable,
+            "hover:scale-[1.01] hover:shadow-md": hoverEffect === "scale",
+            "hover:-translate-y-0.5 hover:shadow-md": hoverEffect === "lift",
+            "hover:shadow-[0_0_20px_var(--cu-surface-glow)]": hoverEffect === "glow",
             "hover:border-primary/50": hoverEffect === "border",
 
             "cursor-pointer": isClickable,

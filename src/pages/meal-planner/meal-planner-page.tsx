@@ -587,7 +587,7 @@ export default function MealPlannerPage() {
 
   if (loading && mealPlans.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -609,7 +609,7 @@ export default function MealPlannerPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="mt-4 text-gray-600 font-medium"
+            className="mt-4 text-muted-foreground font-medium"
           >
             Chargement de votre planificateur de repas...
           </motion.p>
@@ -619,7 +619,7 @@ export default function MealPlannerPage() {
             transition={{ delay: 0.8, duration: 0.5 }}
             className="mt-8 flex flex-col items-center"
           >
-            <div className="w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-1 w-48 overflow-hidden rounded-full bg-muted">
               <motion.div
                 className="h-full bg-primary"
                 initial={{ width: 0 }}
@@ -627,7 +627,7 @@ export default function MealPlannerPage() {
                 transition={{ duration: 2, ease: "easeInOut" }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-2">Préparation de vos recettes...</p>
+            <p className="text-xs text-muted-foreground mt-2">Préparation de vos recettes...</p>
           </motion.div>
         </motion.div>
       </div>
@@ -670,7 +670,7 @@ export default function MealPlannerPage() {
                       <div className="space-y-2">
                         <Label>Rechercher</Label>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Rechercher une recette..."
                             className="pl-9"
@@ -1188,7 +1188,7 @@ export default function MealPlannerPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                               placeholder="Rechercher..."
                               className="w-[200px] h-9 pl-9"
@@ -1264,9 +1264,9 @@ export default function MealPlannerPage() {
                     <CardContent className="p-0" ref={listViewRef}>
                       {filteredMealPlans.length === 0 ? (
                         <div className="text-center py-16 px-6">
-                          <Utensils className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-xl font-medium text-gray-700 mb-2">Aucun repas trouvé</h3>
-                          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                          <Utensils className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
+                          <h3 className="text-xl font-medium text-foreground mb-2">Aucun repas trouvé</h3>
+                          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                             {searchQuery || filterMealType
                               ? "Aucun repas ne correspond à vos critères de recherche."
                               : "Commencez à planifier vos repas pour la semaine."}
@@ -1300,7 +1300,7 @@ export default function MealPlannerPage() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ duration: 0.2, delay: index * 0.03 }}
-                                className="hover:bg-gray-50"
+                                className="hover:bg-muted"
                                 whileHover={{ backgroundColor: "rgba(249, 250, 251, 1)" }}
                               >
                                 <div className="flex items-center p-4 md:px-6">
@@ -1318,10 +1318,10 @@ export default function MealPlannerPage() {
                                     {meal.recipe && (
                                       <button
                                         className={cn(
-                                          "absolute top-1 right-1 p-1 rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200",
+                                          "absolute top-1 right-1 p-1 rounded-full bg-card/80 backdrop-blur-sm transition-all duration-200",
                                           favoriteRecipes.includes(meal.recipe.id)
                                             ? "text-primary"
-                                            : "text-gray-400 opacity-0 hover:opacity-100",
+                                            : "text-muted-foreground opacity-0 hover:opacity-100",
                                         )}
                                         onClick={(e) => {
                                           e.stopPropagation()
@@ -1350,7 +1350,7 @@ export default function MealPlannerPage() {
                                         <Badge variant="outline" className="mr-2">
                                           {getDayLabel(meal.dayOfWeek)}
                                         </Badge>
-                                        <div className="flex items-center text-sm text-gray-500">
+                                        <div className="flex items-center text-sm text-muted-foreground">
                                           <Clock className="h-3.5 w-3.5 mr-1" />
                                           <span>
                                             {(meal.recipe?.preparationTime || 0) + (meal.recipe?.cookingTime || 0)} min
@@ -1359,7 +1359,7 @@ export default function MealPlannerPage() {
                                       </div>
                                     </div>
                                     <div className="flex items-center justify-between mt-2">
-                                      <div className="flex items-center text-sm text-gray-500">
+                                      <div className="flex items-center text-sm text-muted-foreground">
                                         <span>
                                           {meal.servings} {meal.servings > 1 ? "portions" : "portion"}
                                         </span>
@@ -1374,7 +1374,7 @@ export default function MealPlannerPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-8 px-2 text-gray-500 hover:text-primary hover:bg-primary/5"
+                                          className="h-8 px-2 text-muted-foreground hover:text-primary hover:bg-primary/5"
                                           onClick={() => openEditDialog(meal)}
                                         >
                                           <Edit className="h-3.5 w-3.5 mr-1" />
@@ -1383,7 +1383,7 @@ export default function MealPlannerPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-8 px-2 text-gray-500 hover:text-red-500 hover:bg-red-50"
+                                          className="h-8 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50"
                                           onClick={() => confirmDelete(meal.id)}
                                         >
                                           <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -1400,7 +1400,7 @@ export default function MealPlannerPage() {
                       )}
                     </CardContent>
                     <CardFooter className="border-t p-4 flex justify-between">
-                      <div className="text-sm text-gray-500">{filteredMealPlans.length} repas au total</div>
+                      <div className="text-sm text-muted-foreground">{filteredMealPlans.length} repas au total</div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -1430,7 +1430,7 @@ export default function MealPlannerPage() {
             <div className="space-y-2">
               <Label htmlFor="recipe">Recette</Label>
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Rechercher une recette..."
                   className="pl-9 mb-2"
@@ -1442,11 +1442,11 @@ export default function MealPlannerPage() {
                 {loadingRecipes ? (
                   <div className="col-span-full text-center py-4">
                     <Loader2 className="h-6 w-6 text-primary animate-spin mx-auto" />
-                    <p className="text-sm text-gray-500 mt-2">Chargement des recettes...</p>
+                    <p className="text-sm text-muted-foreground mt-2">Chargement des recettes...</p>
                   </div>
                 ) : recipes.length === 0 ? (
                   <div className="col-span-full text-center py-4">
-                    <p className="text-gray-500">Aucune recette disponible</p>
+                    <p className="text-muted-foreground">Aucune recette disponible</p>
                     <Link to="/home" className="text-primary text-sm hover:underline mt-1 inline-block">
                       Ajouter une recette
                     </Link>
@@ -1463,7 +1463,7 @@ export default function MealPlannerPage() {
                         className={`p-2 rounded-lg border cursor-pointer flex items-center gap-3 transition-all duration-200 ${
                           selectedRecipe?.id === recipe.id
                             ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                            : "border-border hover:bg-muted hover:border-border"
                         }`}
                         onClick={() => setSelectedRecipe(recipe)}
                       >
@@ -1481,7 +1481,7 @@ export default function MealPlannerPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{recipe.title}</p>
-                          <div className="flex items-center text-xs text-gray-500">
+                          <div className="flex items-center text-xs text-muted-foreground">
                             <Clock className="h-3 w-3 mr-1" />
                             <span>{recipe.preparationTime + (recipe.cookingTime || 0)} min</span>
                           </div>
@@ -1593,7 +1593,7 @@ export default function MealPlannerPage() {
 
           <div className="py-4 space-y-4">
             {currentMeal && currentMeal.recipe && (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
                   <Image
                     src={
@@ -1608,7 +1608,7 @@ export default function MealPlannerPage() {
                 </div>
                 <div>
                   <h4 className="font-medium">{currentMeal.recipe.title}</h4>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     {currentMeal.recipe.preparationTime + (currentMeal.recipe.cookingTime || 0)} min
                   </p>
                 </div>
@@ -1617,7 +1617,7 @@ export default function MealPlannerPage() {
 
             {/* If recipe is null, show a placeholder */}
             {currentMeal && !currentMeal.recipe && (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
                   <Image
                     src="/placeholder.svg?height=64&width=64"
@@ -1628,7 +1628,7 @@ export default function MealPlannerPage() {
                 </div>
                 <div>
                   <h4 className="font-medium">Recipe not found</h4>
-                  <p className="text-sm text-gray-500">The recipe for this meal plan is missing</p>
+                  <p className="text-sm text-muted-foreground">The recipe for this meal plan is missing</p>
                 </div>
               </div>
             )}
@@ -1723,7 +1723,7 @@ export default function MealPlannerPage() {
             <DialogTitle>Confirmer la suppression</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-gray-700">
+            <p className="text-foreground">
               Êtes-vous sûr de vouloir supprimer ce repas du planning ? Cette action est irréversible.
             </p>
           </div>
@@ -1749,7 +1749,7 @@ export default function MealPlannerPage() {
             {shoppingListItems.length > 0 ? (
               <div className="space-y-2">
                 {shoppingListItems.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
+                  <div key={item.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md">
                     <Checkbox
                       id={`item-${item.id}`}
                       checked={item.checked}
@@ -1763,7 +1763,7 @@ export default function MealPlannerPage() {
                       htmlFor={`item-${item.id}`}
                       className={cn(
                         "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1",
-                        item.checked && "line-through text-gray-400",
+                        item.checked && "line-through text-muted-foreground",
                       )}
                     >
                       {item.name}
@@ -1773,14 +1773,14 @@ export default function MealPlannerPage() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Liste de courses vide</h3>
-                <p className="text-gray-500">Ajoutez des repas à votre planning pour générer une liste de courses</p>
+                <ShoppingCart className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Liste de courses vide</h3>
+                <p className="text-muted-foreground">Ajoutez des repas à votre planning pour générer une liste de courses</p>
               </div>
             )}
           </div>
           <DialogFooter className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               {shoppingListItems.filter((item) => item.checked).length} / {shoppingListItems.length} items cochés
             </div>
             <div className="flex gap-2">
@@ -1843,7 +1843,7 @@ export default function MealPlannerPage() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher une recette..."
                 className="pl-9"
@@ -1857,16 +1857,16 @@ export default function MealPlannerPage() {
               {loadingRecipes ? (
                 <div className="text-center py-8">
                   <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto" />
-                  <p className="text-sm text-gray-500 mt-2">Chargement des recettes...</p>
+                  <p className="text-sm text-muted-foreground mt-2">Chargement des recettes...</p>
                 </div>
               ) : recipes.filter(
                   (recipe) =>
                     !recipeSearchQuery || recipe.title.toLowerCase().includes(recipeSearchQuery.toLowerCase()),
                 ).length === 0 ? (
                 <div className="text-center py-8">
-                  <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-700 mb-2">Aucune recette trouvée</h3>
-                  <p className="text-gray-500">Essayez avec d'autres termes de recherche</p>
+                  <Search className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">Aucune recette trouvée</h3>
+                  <p className="text-muted-foreground">Essayez avec d'autres termes de recherche</p>
                 </div>
               ) : (
                 recipes
@@ -1905,7 +1905,7 @@ export default function MealPlannerPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium">{recipe.title}</h4>
-                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                        <div className="flex items-center text-sm text-muted-foreground mt-1">
                           <Clock className="h-3.5 w-3.5 mr-1" />
                           <span>{recipe.preparationTime + (recipe.cookingTime || 0)} min</span>
                           {recipe.difficultyLevel && (
@@ -1945,7 +1945,7 @@ export default function MealPlannerPage() {
               initial={{ x: 100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 100, opacity: 0 }}
-              className="bg-white rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
+              className="bg-card rounded-lg shadow-lg p-4 flex items-center border-l-4 border-green-500"
             >
               <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
               <p className="font-medium">{successMessage}</p>

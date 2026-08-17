@@ -43,12 +43,36 @@ export function useComments({ recipeId }: UseCommentsProps = {}) {
     }
   }, [])
 
-  // Auto-fetch when recipeId is provided at mount time
+  const updateComment = useCallback(async (id: number, commentId: number, content: string) => {
+    const trimmed = content.trim()
+    if (!id || !commentId || !trimmed) return null
+    try {
+      const response = await CommentService.updateComment(id, commentId, { content: trimmed })
+      setComments((prev) => prev.map((c) => (c.id === commentId ? response.data : c)))
+      return response.data
+    } catch {
+      setError("Impossible de modifier le commentaire.")
+      return null
+    }
+  }, [])
+
+  const deleteComment = useCallback(async (id: number, commentId: number) => {
+    if (!id || !commentId) return false
+    try {
+      await CommentService.deleteComment(id, commentId)
+      setComments((prev) => prev.filter((c) => c.id !== commentId))
+      return true
+    } catch {
+      setError("Impossible de supprimer le commentaire.")
+      return false
+    }
+  }, [])
+
   useEffect(() => {
     if (recipeId) {
       fetchComments(recipeId)
     }
   }, [recipeId, fetchComments])
 
-  return { comments, loading, error, fetchComments, addComment }
+  return { comments, loading, error, fetchComments, addComment, updateComment, deleteComment }
 }

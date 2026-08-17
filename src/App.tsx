@@ -25,8 +25,6 @@ const NotFoundPage     = lazy(() => import("./pages/not-found-page"))
 const RecipeDetailPage = lazy(() => import("./pages/community/recipe-detail"))
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPassword"))
 const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPassword"))
-const PaymentSuccessPage = lazy(() => import("./pages/payment/PaymentSuccessPage"))
-const PaymentCancelPage = lazy(() => import("./pages/payment/PaymentCancelPage"))
 const PrivacyPolicyPage = lazy(() => import("./pages/legal/PrivacyPolicyPage"))
 const TermsPage = lazy(() => import("./pages/legal/TermsPage"))
 const CookiesPolicyPage = lazy(() => import("./pages/legal/CookiesPolicyPage"))
@@ -84,9 +82,6 @@ function App() {
           />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
-
-          <Route path="/payment/success" element={<PaymentSuccessPage />} />
-          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
           {/* ── Protected pages: any authenticated user ──────────────── */}
           <Route

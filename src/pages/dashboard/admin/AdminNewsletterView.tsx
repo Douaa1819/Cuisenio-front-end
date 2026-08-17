@@ -67,15 +67,15 @@ export function AdminNewsletterView({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Newsletter & Contacts</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <h1 className="text-2xl font-semibold text-foreground">Newsletter & Contacts</h1>
+          <p className="text-sm text-muted-foreground">
             {activeCount} abonné(s) actif(s) · opt-in RGPD
           </p>
         </div>
         <Button
           type="button"
           size="sm"
-          className="bg-emerald-600 hover:bg-emerald-500"
+          className="bg-primary hover:bg-primary/90"
           onClick={() => exportCsv(filtered)}
           disabled={!filtered.length}
         >
@@ -87,12 +87,12 @@ export function AdminNewsletterView({
         title="Abonnés"
         action={
           <div className="relative w-full max-w-xs sm:w-64">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filtrer par email…"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-2 text-sm outline-none focus:border-emerald-600 dark:border-slate-700 dark:bg-slate-950"
+              className="w-full rounded-lg border border-border bg-background py-1.5 pl-8 pr-2 text-sm outline-none focus:border-primary"
             />
           </div>
         }
@@ -100,13 +100,13 @@ export function AdminNewsletterView({
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+              <thead className="text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="pb-2 font-medium">Email</th>
                   <th className="pb-2 font-medium">Inscription</th>
@@ -116,15 +116,15 @@ export function AdminNewsletterView({
                   <th className="pb-2 text-right font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border">
                 {filtered.map((s) => (
-                  <tr key={s.id} className="text-slate-800 dark:text-slate-100">
+                  <tr key={s.id} className="text-foreground">
                     <td className="py-3 font-medium">{s.email}</td>
-                    <td className="py-3 text-slate-500 dark:text-slate-400">{formatDate(s.subscribedAt)}</td>
+                    <td className="py-3 text-muted-foreground">{formatDate(s.subscribedAt)}</td>
                     <td className="py-3">
                       <StatusPill ok={s.active}>{s.active ? "Actif" : "Désinscrit"}</StatusPill>
                     </td>
-                    <td className="py-3 text-slate-500 dark:text-slate-400">{s.origin ?? "Home Page"}</td>
+                    <td className="py-3 text-muted-foreground">{s.origin ?? "Home Page"}</td>
                     <td className="py-3">
                       <StatusPill ok={!!s.consentGiven}>{s.consentGiven ? "Opt-in" : "Non"}</StatusPill>
                     </td>

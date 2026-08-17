@@ -29,15 +29,15 @@ const tabsVariants = cva("w-full", {
 const tabsListVariants = cva("", {
   variants: {
     variant: {
-      default: "flex items-center space-x-2 border-b border-gray-200",
+      default: "flex items-center space-x-2 border-b border-border",
       pills: "flex items-center space-x-2",
-      underline: "flex items-center space-x-2 border-b border-gray-200",
-      enclosed: "flex items-center space-x-0 border border-gray-200 rounded-lg overflow-hidden",
-      soft: "flex items-center space-x-2 p-1 bg-secondary rounded-lg",
+      underline: "flex items-center space-x-2 border-b border-border",
+      enclosed: "flex items-center space-x-0 border border-border rounded-xl overflow-hidden",
+      soft: "flex items-center space-x-2 p-1 bg-secondary rounded-xl",
     },
     orientation: {
       horizontal: "",
-      vertical: "flex-col space-y-2 space-x-0 border-r border-gray-200 pr-4",
+      vertical: "flex-col space-y-2 space-x-0 border-r border-border pr-4",
     },
     size: {
       sm: "",
@@ -57,11 +57,11 @@ const tabsTriggerVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-gray-500 hover:text-gray-900",
-        pills: "text-gray-500 hover:text-gray-900",
-        underline: "text-gray-500 hover:text-gray-900",
-        enclosed: "text-gray-500 hover:text-gray-900 border-r border-gray-200 last:border-r-0",
-        soft: "text-gray-500 hover:text-gray-900",
+        default: "text-muted-foreground hover:text-foreground",
+        pills: "text-muted-foreground hover:text-foreground",
+        underline: "text-muted-foreground hover:text-foreground",
+        enclosed: "text-muted-foreground hover:text-foreground border-r border-border last:border-r-0",
+        soft: "text-muted-foreground hover:text-foreground",
       },
       orientation: {
         horizontal: "",
@@ -93,7 +93,7 @@ const tabsTriggerVariants = cva(
       {
         variant: "pills",
         state: "active",
-        className: "text-white bg-primary rounded-full shadow-sm",
+        className: "text-primary-foreground bg-primary rounded-full shadow-sm",
       },
       {
         variant: "underline",
@@ -110,12 +110,12 @@ const tabsTriggerVariants = cva(
       {
         variant: "enclosed",
         state: "active",
-        className: "text-primary bg-white",
+        className: "text-primary bg-card",
       },
       {
         variant: "enclosed",
         state: "inactive",
-        className: "bg-gray-50",
+        className: "bg-muted",
       },
       {
         variant: "soft",
@@ -138,7 +138,7 @@ const tabsContentVariants = cva("focus-visible:outline-none", {
       default: "mt-4",
       pills: "mt-4",
       underline: "mt-4",
-      enclosed: "p-4 border border-gray-200 border-t-0 rounded-b-lg",
+      enclosed: "p-4 border border-border border-t-0 rounded-b-xl",
       soft: "mt-4",
     },
   },

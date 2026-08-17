@@ -17,6 +17,12 @@ export const authService = {
     return response.data
   },
 
+  async loginWithGoogle(idToken: string) {
+    const response = await client.post(routes.auth.google, { idToken })
+    this.setToken(response.data.token)
+    return response.data
+  },
+
   async getProfile(): Promise<UserProfile> {
     const response = await client.get<UserProfile>(routes.profile)
     return response.data

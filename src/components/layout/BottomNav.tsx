@@ -20,7 +20,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       aria-label="Navigation principale"
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5">
@@ -31,13 +31,20 @@ export function BottomNav() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition",
+                  "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors duration-150",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )
               }
             >
-              <Icon icon={icon} size={20} />
-              {label}
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <span className="absolute top-0 h-0.5 w-6 rounded-full bg-primary" aria-hidden />
+                  )}
+                  <Icon icon={icon} size={20} />
+                  {label}
+                </>
+              )}
             </NavLink>
           </li>
         ))}

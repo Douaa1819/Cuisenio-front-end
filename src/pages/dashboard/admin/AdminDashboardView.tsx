@@ -39,13 +39,13 @@ type KpiProps = {
 
 function KpiCard({ title, value, icon: Icon, delta, deltaPositive = true }: KpiProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-card-theme">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-100">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">{value}</p>
         </div>
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Icon className="h-5 w-5" />
         </span>
       </div>
@@ -53,8 +53,8 @@ function KpiCard({ title, value, icon: Icon, delta, deltaPositive = true }: KpiP
         <p
           className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
             deltaPositive
-              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
-              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              ? "bg-primary/10 text-primary"
+              : "bg-muted text-muted-foreground"
           }`}
         >
           <TrendingUp className="h-3 w-3" />
@@ -87,8 +87,8 @@ export function AdminDashboardView({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Vue d&apos;ensemble</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Santé plateforme & activité récente</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Vue d&apos;ensemble</h1>
+        <p className="text-sm text-muted-foreground">Santé plateforme & activité récente</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -165,8 +165,8 @@ export function AdminDashboardView({
           <ul className="space-y-2">
             {recipes.slice(0, 5).map((r) => (
               <li key={r.id} className="flex items-center justify-between text-sm">
-                <span className="truncate font-medium text-slate-800 dark:text-slate-100">{r.title}</span>
-                <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                <span className="truncate font-medium text-foreground">{r.title}</span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
                   {(r.averageRating ?? 0).toFixed(1)}
                 </span>
               </li>
@@ -176,12 +176,12 @@ export function AdminDashboardView({
         </AdminPanel>
 
         <AdminPanel title="Activité système">
-          <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+          <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-emerald-500" /> API reachable
+              <Activity className="h-4 w-4 text-primary" /> API reachable
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Auth JWT OK
+              <CheckCircle2 className="h-4 w-4 text-primary" /> Auth JWT OK
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" style={{ color: SAGE }} /> Uploads mounted

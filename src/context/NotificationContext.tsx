@@ -72,16 +72,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     <NotificationContext.Provider value={{ notify, dismiss, success, error, info }}>
       {children}
 
-      <div className="pointer-events-none fixed right-4 bottom-4 z-[100] flex flex-col gap-2">
+      <div className="pointer-events-none fixed inset-x-4 bottom-20 z-[100] flex flex-col gap-2 md:inset-x-auto md:right-4 md:bottom-6">
         <AnimatePresence mode="popLayout">
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
               layout
-              initial={{ opacity: 0, x: 80, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 80, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               className="pointer-events-auto"
             >
               <ToastItem notif={toast} onDismiss={dismiss} />
@@ -94,28 +94,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 }
 
 const ICONS: Record<NotifType, React.ReactNode> = {
-  success: <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />,
-  error: <AlertCircle className="h-5 w-5 shrink-0 text-rose-500" />,
-  info: <Info className="h-5 w-5 shrink-0 text-slate-500" />,
-  warning: <AlertCircle className="h-5 w-5 shrink-0 text-slate-500" />,
+  success: <CheckCircle className="h-5 w-5 shrink-0 text-primary" />,
+  error: <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />,
+  info: <Info className="h-5 w-5 shrink-0 text-muted-foreground" />,
+  warning: <AlertCircle className="h-5 w-5 shrink-0 text-muted-foreground" />,
 }
 
 const BORDERS: Record<NotifType, string> = {
-  success: "border-l-emerald-500",
-  error: "border-l-rose-500",
-  info: "border-l-slate-400",
-  warning: "border-l-slate-500",
+  success: "border-l-primary",
+  error: "border-l-destructive",
+  info: "border-l-border",
+  warning: "border-l-muted-foreground",
 }
 
 function ToastItem({ notif, onDismiss }: { notif: ToastNotification; onDismiss: (id: string) => void }) {
   return (
     <div
-      className={`flex min-w-[280px] max-w-sm items-start gap-3 rounded-xl border border-slate-100 border-l-4 bg-white px-4 py-3 shadow-lg dark:border-slate-800 dark:bg-slate-900 ${BORDERS[notif.type]}`}
+      className={`flex min-w-[280px] max-w-sm items-start gap-3 rounded-2xl border border-border border-l-4 bg-card px-4 py-3 shadow-card-theme ${BORDERS[notif.type]}`}
     >
       {ICONS[notif.type]}
       <div className="min-w-0 flex-1">
-        <p className="text-sm leading-tight font-semibold text-slate-800 dark:text-slate-100">{notif.title}</p>
-        {notif.message && <p className="mt-0.5 text-xs leading-snug text-slate-500 dark:text-slate-400">{notif.message}</p>}
+        <p className="text-sm leading-tight font-semibold text-foreground">{notif.title}</p>
+        {notif.message && <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{notif.message}</p>}
         {notif.action && (
           <button
             type="button"
@@ -129,7 +129,7 @@ function ToastItem({ notif, onDismiss }: { notif: ToastNotification; onDismiss: 
       <button
         type="button"
         onClick={() => onDismiss(notif.id)}
-        className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
+        className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label="Fermer"
       >
         <X className="h-4 w-4" />

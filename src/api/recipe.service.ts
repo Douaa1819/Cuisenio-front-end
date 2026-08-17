@@ -16,6 +16,18 @@ export const recipeService = {
     return apiClient.get<RecipeResponse>(routes.recipes.detail(id))
   },
 
+  getRecipeByPublicId: async (publicId: string): Promise<RecipeResponse> => {
+    return apiClient.get<RecipeResponse>(routes.recipes.byPublicId(publicId))
+  },
+
+  toggleLike: async (recipeId: number): Promise<{ likesCount: number; likedByCurrentUser: boolean }> => {
+    return apiClient.post<{ likesCount: number; likedByCurrentUser: boolean }>(routes.recipes.likes(recipeId))
+  },
+
+  getLikes: async (recipeId: number): Promise<{ likesCount: number; likedByCurrentUser: boolean }> => {
+    return apiClient.get<{ likesCount: number; likedByCurrentUser: boolean }>(routes.recipes.likes(recipeId))
+  },
+
   createRecipe: async (recipeFormData: RecipeFormData): Promise<RecipeResponse> => {
     return apiClient.post<RecipeResponse, RecipeFormData>(routes.recipes.base, recipeFormData)
   },
@@ -88,7 +100,7 @@ export const recipeService = {
   },
 
   rateRecipe: async (recipeId: number, rating: number): Promise<void> => {
-    await apiClient.post<void, { rating: number }>(`${routes.recipes.base}/${recipeId}/rate`, { rating })
+    await apiClient.post<void, { score: number }>(`${routes.recipes.base}/${recipeId}/ratings`, { score: rating })
   },
 
   submitForReview: async (recipeId: number): Promise<RecipeResponse> => {
@@ -136,11 +148,11 @@ export const recipeService = {
 
   updatePromotionSettings: async (
     recipeId: number,
-    payload: { isFeatured?: boolean; isPremium?: boolean; kitchenTools?: Array<{ name: string; affiliateUrl?: string }> },
+    payload: { isFeatured?: boolean; kitchenTools?: Array<{ name: string; affiliateUrl?: string }> },
   ): Promise<RecipeResponse> => {
     return apiClient.patch<
       RecipeResponse,
-      { isFeatured?: boolean; isPremium?: boolean; kitchenTools?: Array<{ name: string; affiliateUrl?: string }> }
+      { isFeatured?: boolean; kitchenTools?: Array<{ name: string; affiliateUrl?: string }> }
     >(
       routes.recipes.promotion(recipeId),
       payload,

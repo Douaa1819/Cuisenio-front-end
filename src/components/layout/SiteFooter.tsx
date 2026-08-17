@@ -59,11 +59,6 @@ export function SiteFooter({ variant = "app" }: SiteFooterProps) {
                     {t("nav.features")}
                   </a>
                 </li>
-                <li>
-                  <a href="#pricing" className="hover:text-foreground">
-                    {t("nav.pricing")}
-                  </a>
-                </li>
               </>
             ) : (
               <>

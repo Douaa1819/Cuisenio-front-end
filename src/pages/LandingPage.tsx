@@ -20,7 +20,6 @@ import { useTranslation } from "react-i18next"
 import { ThemeAndLanguageBar } from "../components/layout/ThemeAndLanguageBar"
 import { ButtonWithAnimatedIcon } from "../components/ui/ButtonWithAnimatedIcon"
 import { LiveDemoWidget } from "../components/home/LiveDemoWidget"
-import { PricingSection } from "../components/home/PricingSection"
 import { NewsletterSection } from "../components/home/NewsletterSection"
 import { MarketingFooter } from "../components/home/MarketingFooter"
 import { usePageMeta } from "../hooks/usePageMeta"
@@ -90,9 +89,6 @@ export default function LandingPage() {
             <a href="#recipes" className="transition hover:text-foreground">
               {t("nav.recipes")}
             </a>
-            <a href="#pricing" className="transition hover:text-foreground">
-              {t("nav.pricing")}
-            </a>
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
@@ -134,7 +130,6 @@ export default function LandingPage() {
                 ["#concept", "nav.concept"],
                 ["#features", "nav.features"],
                 ["#recipes", "nav.recipes"],
-                ["#pricing", "nav.pricing"],
               ].map(([href, key]) => (
                 <a key={href} href={href} onClick={() => setMenuOpen(false)} className="py-2 text-muted-foreground">
                   {t(key)}
@@ -277,16 +272,6 @@ export default function LandingPage() {
             <motion.div {...fadeUp}>
               <LiveDemoWidget />
             </motion.div>
-          </div>
-        </section>
-
-        <section
-          id="pricing"
-          aria-labelledby="pricing-heading"
-          className="bg-slate-50 px-4 py-20 text-slate-900 transition-colors duration-300 dark:bg-[#0B1310] dark:text-slate-100 sm:px-6"
-        >
-          <div className="mx-auto max-w-6xl">
-            <PricingSection />
           </div>
         </section>
 

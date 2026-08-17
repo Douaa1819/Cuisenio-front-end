@@ -93,7 +93,7 @@ export function NotificationBell() {
     <div className="relative">
       <button
         type="button"
-        className="relative rounded-full p-2 text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:text-slate-300"
+        className="relative min-h-10 min-w-10 rounded-xl p-2 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
         aria-label={label}
         aria-expanded={open}
         aria-controls={panelId}
@@ -108,7 +108,7 @@ export function NotificationBell() {
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.6, opacity: 0 }}
-              className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#2E7D32] px-1 text-[9px] font-bold text-white"
+              className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
             >
               {unread > 9 ? "9+" : unread}
             </motion.span>
@@ -133,15 +133,15 @@ export function NotificationBell() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-              className="absolute right-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
+              className="absolute right-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-card-theme"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                <h2 className="font-serif text-base text-slate-900 dark:text-slate-100">Notifications</h2>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h2 className="text-base font-semibold text-foreground">Notifications</h2>
                 <button
                   type="button"
                   onClick={() => void handleMarkAll()}
                   disabled={unread === 0}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#2E7D32] transition hover:underline disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary transition hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Icon icon={Check} size={14} />
                   Tout marquer comme lu

@@ -54,7 +54,7 @@ export function CookieBanner() {
         animate={{ opacity: 1, y: 0 }}
         exit={reduced ? undefined : { opacity: 0, y: 16 }}
         transition={{ duration: reduced ? 0 : 0.35 }}
-        className="fixed inset-x-4 bottom-4 z-[80] mx-auto max-w-3xl rounded-[1.5rem] border border-border bg-card/95 p-5 shadow-card-theme backdrop-blur-md sm:inset-x-6 sm:p-6"
+        className="fixed inset-x-4 bottom-20 z-[80] mx-auto max-w-3xl rounded-2xl border border-border bg-card/95 p-5 shadow-card-theme backdrop-blur-md sm:inset-x-6 sm:bottom-6 sm:p-6"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary">

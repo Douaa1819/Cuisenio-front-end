@@ -3,6 +3,7 @@ export const routes = {
       base: "/v1/auth",
       login: "/v1/auth/login",
       register: "/v1/auth/register",
+      google: "/v1/auth/google",
       verify: "/v1/auth/verify-token",
       forgotPassword: "/v1/auth/forgot-password",
       resetPassword: "/v1/auth/reset-password",
@@ -28,8 +29,10 @@ export const routes = {
     recipes: {
       base: '/api/recipes',
       homepageHero: "/api/homepage/hero",
-      detail: (id: number) => `/api/recipes/${id}`,
+      detail: (id: number | string) => `/api/recipes/${id}`,
+      byPublicId: (publicId: string) => `/api/recipes/public/${publicId}`,
       comments: (id: number) => `/api/recipes/${id}/comments`,
+      likes: (id: number) => `/api/recipes/${id}/likes`,
       report: (id: number) => `/api/recipes/${id}/report`,
       reportComment: (recipeId: number, commentId: number) => `/api/recipes/${recipeId}/comments/${commentId}/report`,
       unsave: (id: number) => `/api/recipes/${id}/unsave`,
@@ -66,13 +69,6 @@ export const routes = {
     },
     recipeImport: {
       preview: '/v1/recipes/import/preview',
-    },
-    subscription: {
-      upgradePremium: '/v1/subscription/upgrade-premium',
-    },
-    payments: {
-      createCheckoutSession: '/api/payments/create-checkout-session',
-      confirmSession: '/api/payments/confirm-session',
     },
     newsletter: {
       subscribe: '/api/newsletter/subscribe',

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { Clock, Star } from "lucide-react"
-import type { RecipeResponse } from "../../types/recipe.types"
+import { recipePath, type RecipeResponse } from "../../types/recipe.types"
 import { env } from "../../lib/env"
 import { totalMinutes } from "../../lib/recipe-intelligence"
 
@@ -44,8 +44,8 @@ export function RecipeRail({ title, subtitle, recipes, emptyHint }: RecipeRailPr
           return (
             <Link
               key={recipe.id}
-              to={`/recipe/${recipe.id}`}
-              className="group w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-card shadow-card-theme transition hover:-translate-y-0.5 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              to={recipePath(recipe)}
+              className="group w-[220px] shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card shadow-card-theme transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="relative h-32 bg-gradient-to-br from-primary/10 to-muted">
                 {img ? (
@@ -53,14 +53,14 @@ export function RecipeRail({ title, subtitle, recipes, emptyHint }: RecipeRailPr
                     src={img}
                     alt=""
                     loading="lazy"
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center font-sans text-xs text-muted-foreground">
                     Sans photo
                   </div>
                 )}
-                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-slate-900/60 px-2 py-0.5 font-sans text-[11px] text-white backdrop-blur">
+                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-foreground/70 px-2 py-0.5 font-sans text-[11px] text-background backdrop-blur">
                   <Clock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                   {totalMinutes(recipe)} min
                 </span>

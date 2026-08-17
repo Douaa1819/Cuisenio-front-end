@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { motion } from "framer-motion"
 import { ChefHat, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
-import { useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
 
 import { authService } from "../../api/auth.service"
+import { GoogleContinueButton } from "../../components/auth/GoogleContinueButton"
 import { useNotification } from "../../context/NotificationContext"
 import { useAuthStore } from "../../store/auth.store"
 import { emailSchema, nameSchema, passwordSchema, usernameSchema } from "../../utils/validation"
@@ -113,6 +114,39 @@ export default function RegisterForm() {
     }
   }
 
+  const handleGoogleCredential = useCallback(
+    async (idToken: string) => {
+      if (submitting.current || isLoading) return
+      if (!termsAccepted) {
+        notifyError("Conditions requises", "Acceptez les conditions avant de continuer avec Google.")
+        return
+      }
+      submitting.current = true
+      setIsLoading(true)
+      try {
+        const response = await authService.loginWithGoogle(idToken)
+        authService.setToken(response.token)
+        const role = normalizeRole(response.role)
+        login(response.token, {
+          id: response.id,
+          username: response.username,
+          lastName: response.lastName,
+          email: response.email,
+          profilePicture: response.profilePicture,
+          role,
+        })
+        success("Compte prêt", "Bienvenue dans la communauté Cuisenio.")
+        navigate(homePathForRole(role), { replace: true })
+      } catch (err: unknown) {
+        notifyError("Inscription Google échouée", resolveAuthError(err, "Réessayez ou créez un compte email."))
+      } finally {
+        setIsLoading(false)
+        submitting.current = false
+      }
+    },
+    [isLoading, login, navigate, notifyError, success, termsAccepted],
+  )
+
   return (
     <div className="organic-surface relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 font-sans">
       <div
@@ -128,7 +162,7 @@ export default function RegisterForm() {
       </div>
 
       <motion.div {...pageMotion} className="w-full max-w-md">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-card-theme backdrop-blur-sm transition duration-300 hover:shadow-[0_0_40px_-8px_var(--cu-surface-glow)] sm:p-8">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-card-theme sm:p-8">
           <div className="mb-6 text-center">
             <div className="mb-3 inline-flex rounded-full bg-primary/15 p-3">
               <ChefHat className="h-8 w-8 text-primary" aria-hidden />
@@ -267,7 +301,7 @@ export default function RegisterForm() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full border-0 bg-primary-gradient font-medium text-primary-foreground shadow-md transition hover:brightness-110 disabled:opacity-70"
+              className="w-full"
             >
               {isLoading ? (
                 <>
@@ -279,6 +313,17 @@ export default function RegisterForm() {
               )}
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">ou</span>
+            </div>
+          </div>
+
+          <GoogleContinueButton onCredential={handleGoogleCredential} disabled={isLoading} />
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Vous avez déjà un compte ?{" "}

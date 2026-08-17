@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search, X } from "lucide-react"
-import type { RecipeResponse } from "../../types/recipe.types"
+import { recipePath, type RecipeResponse } from "../../types/recipe.types"
 import { totalMinutes } from "../../lib/recipe-intelligence"
 
 interface HomeSearchProps {
@@ -128,7 +128,7 @@ export function HomeSearch({ recipes }: HomeSearchProps) {
                   className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-primary/5"
                   onClick={() => {
                     setOpen(false)
-                    navigate(`/recipe/${r.id}`)
+                    navigate(recipePath(r))
                   }}
                 >
                   <span className="font-medium text-foreground">{r.title}</span>

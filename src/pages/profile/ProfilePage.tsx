@@ -103,7 +103,13 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading settings...</div>
+    return (
+      <AppShell>
+        <main className="mx-auto max-w-4xl p-4 md:p-6">
+          <p className="text-sm text-muted-foreground">Chargement des paramètres…</p>
+        </main>
+      </AppShell>
+    )
   }
 
   return (

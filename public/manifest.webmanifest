@@ -2,8 +2,8 @@
   "name": "Cuisenio",
   "short_name": "Cuisenio",
   "description": "Découvrez, partagez et planifiez vos recettes avec Cuisenio.",
-  "theme_color": "#E57373",
-  "background_color": "#FFF5F5",
+  "theme_color": "#2E7D32",
+  "background_color": "#E8F5E9",
   "display": "standalone",
   "orientation": "portrait-primary",
   "scope": "/",
@@ -11,6 +11,12 @@
   "lang": "fr",
   "categories": ["food", "lifestyle"],
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/pwa-192.png",
       "sizes": "192x192",

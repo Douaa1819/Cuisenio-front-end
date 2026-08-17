@@ -86,7 +86,6 @@ export function HeroScene() {
               <Leaf className="h-3 w-3 text-primary" />
               {t("hero.sceneChip")}
             </span>
-            <span className="rounded-lg bg-muted px-2.5 py-1 text-xs text-muted-foreground">PRO</span>
           </div>
         </div>
 

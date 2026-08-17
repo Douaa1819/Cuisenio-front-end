@@ -5,7 +5,9 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 import { Eye, EyeOff } from "lucide-react"
 
-const inputVariants = cva("flex w-full transition-colors", {
+const inputVariants = cva(
+  "flex w-full transition-[border-color,box-shadow,background-color] duration-150 ease-out",
+  {
   variants: {
     variant: {
       default: "border border-input bg-background text-foreground placeholder:text-muted-foreground",
@@ -16,22 +18,22 @@ const inputVariants = cva("flex w-full transition-colors", {
       outline: "border border-input bg-transparent text-foreground placeholder:text-muted-foreground",
     },
     size: {
-      sm: "h-8 text-xs px-3 py-1",
-      md: "h-10 text-sm px-3 py-2",
+      sm: "h-9 text-sm px-3 py-1",
+      md: "h-11 text-base sm:text-sm px-3.5 py-2",
       lg: "h-12 text-base px-4 py-3",
     },
     state: {
-      default: "focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20",
+      default: "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25",
       error:
-        "border-red-500 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-red-600 placeholder:text-red-400",
-      success: "border-green-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20",
+        "border-destructive focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/20 text-destructive placeholder:text-destructive/60",
+      success: "border-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20",
       disabled: "cursor-not-allowed bg-muted opacity-50",
     },
     rounded: {
       none: "rounded-none",
       sm: "rounded-sm",
-      md: "rounded-md",
-      lg: "rounded-lg",
+      md: "rounded-xl",
+      lg: "rounded-2xl",
       full: "rounded-full",
     },
   },
@@ -96,7 +98,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             htmlFor={inputId}
             className={cn(
               "text-sm font-medium text-foreground",
-              error && "text-red-500",
+              error && "text-destructive",
               labelClassName,
             )}
           >
@@ -123,7 +125,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {type === "password" && showPasswordToggle && (
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+              className="absolute right-3 top-1/2 min-h-11 min-w-11 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
@@ -141,7 +143,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {error && (
-          <p id={`${inputId}-error`} className={cn("text-xs text-red-500", errorClassName)} role="alert">
+          <p id={`${inputId}-error`} className={cn("text-xs text-destructive", errorClassName)} role="alert">
             {error}
           </p>
         )}

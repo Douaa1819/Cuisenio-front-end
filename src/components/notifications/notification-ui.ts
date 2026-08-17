@@ -9,11 +9,11 @@ export function typeIcon(type: NotificationType): { icon: LucideIcon; className:
     case "LIKE":
       return { icon: Heart, className: "text-[#2E7D32] bg-[#2E7D32]/10" }
     case "COMMENT":
-      return { icon: MessageSquare, className: "text-slate-600 bg-slate-100 dark:text-slate-300 dark:bg-slate-800" }
+      return { icon: MessageSquare, className: "text-muted-foreground bg-muted" }
     case "RECIPE_APPROVED":
-      return { icon: CheckCircle2, className: "text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/50" }
+      return { icon: CheckCircle2, className: "text-primary bg-primary/10" }
     default:
-      return { icon: Sparkles, className: "text-slate-500 bg-slate-100 dark:bg-slate-800" }
+      return { icon: Sparkles, className: "text-muted-foreground bg-muted" }
   }
 }
 

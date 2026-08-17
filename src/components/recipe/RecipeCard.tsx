@@ -30,7 +30,7 @@ const RecipeCard = ({
 
   return (
     <Card
-      className="group cursor-pointer overflow-hidden border-border bg-card text-card-foreground shadow-card-theme transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg rounded-recipe"
+      className="group cursor-pointer overflow-hidden border-border bg-card text-card-foreground shadow-card-theme transition-transform duration-200 ease-out hover:-translate-y-0.5 rounded-recipe"
       onClick={() => onViewRecipe(recipe)}
     >
       <div className="relative h-48 w-full overflow-hidden bg-muted/40">
@@ -43,7 +43,7 @@ const RecipeCard = ({
           height={400}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         />
         <div className="recipe-title-overlay absolute inset-x-0 bottom-0 flex items-end p-3 pt-12">
           <h3 className="line-clamp-2 text-base font-semibold tracking-tight text-white drop-shadow sm:text-lg">
@@ -51,16 +51,16 @@ const RecipeCard = ({
           </h3>
         </div>
       </div>
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="space-y-3.5 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
-          <p className="line-clamp-2 flex-1 text-sm text-muted-foreground">{recipe.description}</p>
+          <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">{recipe.description}</p>
           <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground sm:text-sm">
             <Clock className="h-4 w-4" />
             <span>{recipe.preparationTime + recipe.cookingTime} min</span>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {recipe.categories.map((category) => (
             <Badge key={category} variant="category" size="sm" className="text-xs">
               {category}
@@ -84,9 +84,10 @@ const RecipeCard = ({
               type="button"
               variant="ghost"
               size="sm"
-              className={`h-8 px-2 text-sm transition-colors ${recipe.isLiked ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              className={`h-9 min-w-9 px-2 text-sm transition-colors ${recipe.isLiked ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
               onClick={(e) => onLikeRecipe(recipe.id, e)}
               aria-label="Like recipe"
+              aria-pressed={recipe.isLiked}
             >
               <Heart className="h-4 w-4" fill={recipe.isLiked ? "currentColor" : "none"} />
               {recipe.likes}
@@ -95,7 +96,7 @@ const RecipeCard = ({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="h-9 min-w-9 px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
               onClick={(e) => onViewComments(recipe.id, e)}
               aria-label="View comments"
             >
@@ -107,9 +108,10 @@ const RecipeCard = ({
             type="button"
             variant="ghost"
             size="sm"
-            className={`h-8 px-2 transition-colors ${recipe.isFavorite ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            className={`h-9 min-w-9 px-2 transition-colors ${recipe.isFavorite ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
             onClick={(e) => onFavoriteRecipe(recipe.id, e)}
             aria-label="Save recipe"
+            aria-pressed={recipe.isFavorite}
           >
             <Bookmark className="h-4 w-4" fill={recipe.isFavorite ? "currentColor" : "none"} />
           </Button>

@@ -91,6 +91,7 @@ export interface RecipeRequest {
 
 export interface RecipeResponse {
   id: number
+  publicId?: string
   title: string
   description: string
   difficultyLevel: DifficultyLevel
@@ -102,10 +103,11 @@ export interface RecipeResponse {
   updateDate: string
   isApproved: boolean
   isFeatured?: boolean
-  isPremium?: boolean
   status?: RecipeWorkflowStatus
   videoUrl?: string
-  premiumLocked?: boolean
+  likesCount?: number
+  commentsCount?: number
+  likedByCurrentUser?: boolean
   user: {
     id: number
     username: string 
@@ -126,6 +128,7 @@ export interface RecipeResponse {
   averageRating: number
   totalRatings: number
   totalComments: number
+  categorie?: { id: number; name: string }
 }
 
 
@@ -167,8 +170,8 @@ export interface RecipeCommentResponse {
   id: number;
   content: string;
   createdAt: string;
-  approved: boolean;
-  user: {
+  approved?: boolean;
+  user?: {
     id: number;
     username: string;
     lastName: string;
@@ -182,4 +185,16 @@ export interface ModerationReportItem {
   latestReason: string
   lastReportedAt: string
   urgency: number
+}
+
+/** Prefer UUID publicId for URLs; fall back to numeric id during migration. */
+export function recipePath(recipe: { publicId?: string | null; id: number | string }): string {
+  return `/recipe/${recipe.publicId || recipe.id}`
+}
+
+const RECIPE_PUBLIC_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function isRecipePublicId(value: string | undefined | null): boolean {
+  return Boolean(value && RECIPE_PUBLIC_ID_RE.test(value))
 }

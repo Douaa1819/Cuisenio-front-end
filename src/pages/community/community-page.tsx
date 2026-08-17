@@ -42,7 +42,7 @@ import { useOptimisticMutation } from "../../hooks/useOptimisticMutation"
 import { cn } from "../../lib/utils"
 import { useAuthStore } from "../../store/auth.store"
 import { useNotification } from "../../context/NotificationContext"
-import type { RecipeResponse } from "../../types/recipe.types"
+import { recipePath, type RecipeResponse } from "../../types/recipe.types"
 
 import { recipeService } from "../../api/recipe.service"
 import AddRecipeDialog from "./AddRecipeForm"
@@ -391,8 +391,8 @@ export default function CommunityPage() {
         <div className="container mx-auto max-w-6xl">
           {/* Community Header */}
           <div className="mb-10 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Explorer</h1>
-            <p className="text-gray-600 max-w-2xl mx-auto mb-6">
+            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Explorer</h1>
+            <p className="mx-auto mb-6 max-w-2xl text-muted-foreground">
               Recherche avancée, filtres et fil communautaire — pour trouver exactement ce que vous allez cuisiner.
             </p>
             {isAuthenticated && (
@@ -414,11 +414,11 @@ export default function CommunityPage() {
                 {recentRecipes.map((r) => (
                   <Link
                     key={r.id}
-                    to={`/recipe/${r.id}`}
-                    className="min-w-[180px] rounded-xl border border-gray-100 bg-white px-3 py-2 text-left shadow-sm transition hover:border-primary/30 hover:shadow"
+                    to={recipePath(r)}
+                    className="min-w-[180px] rounded-xl border border-border bg-card px-3 py-2 text-left transition-colors duration-150 hover:bg-muted"
                   >
-                    <p className="truncate text-sm font-medium text-gray-900">{r.title}</p>
-                    <p className="text-[11px] text-gray-400">Reprendre la lecture</p>
+                    <p className="truncate text-sm font-medium text-foreground">{r.title}</p>
+                    <p className="text-[11px] text-muted-foreground">Reprendre la lecture</p>
                   </Link>
                 ))}
               </div>
@@ -426,22 +426,22 @@ export default function CommunityPage() {
           )}
 
           {/* Search and Filter Bar */}
-          <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="mb-8 rounded-2xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-0 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Rechercher..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring focus:ring-primary/20 transition"
+                  className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 transition focus:border-primary focus:ring focus:ring-primary/20"
                 />
               </div>
 
               <Dialog open={showFilters} onOpenChange={setShowFilters}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="bg-white border-gray-300 text-gray-700 flex items-center">
+                  <Button variant="outline" className="flex items-center">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtres
                   </Button>
@@ -504,7 +504,7 @@ export default function CommunityPage() {
                           onValueChange={setTimeRange}
                           className="mb-6"
                         />
-                        <div className="flex justify-between text-sm text-gray-600">
+                        <div className="flex justify-between text-sm text-muted-foreground">
                           <span>{timeRange[0]} min</span>
                           <span>à</span>
                           <span>{timeRange[1]} min</span>
@@ -533,7 +533,7 @@ export default function CommunityPage() {
                   </div>
 
                   {/* Sort */}
-                  <div className="border-t border-gray-200 pt-4">
+                  <div className="border-t border-border pt-4">
                     <h4 className="font-medium mb-3">Trier par</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {[
@@ -556,7 +556,7 @@ export default function CommunityPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-6 border-t border-gray-200 pt-4">
+                  <div className="flex justify-end gap-2 mt-6 border-t border-border pt-4">
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -578,25 +578,25 @@ export default function CommunityPage() {
 
               {/* Quick filters */}
               <div className="flex flex-wrap gap-2 mt-3 w-full">
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Tous
                 </Badge>
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Desserts
                 </Badge>
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Plats principaux
                 </Badge>
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Entrées
                 </Badge>
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Végétarien
                 </Badge>
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Facile
                 </Badge>
-                <Badge variant="outline" className="bg-white cursor-pointer hover:bg-gray-50">
+                <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted">
                   Tendance
                 </Badge>
               </div>
@@ -642,7 +642,7 @@ export default function CommunityPage() {
                         >
                           <div className={cn("relative", index === 0 ? "h-64 md:h-80" : "h-48")}>
                             {recipe.imageUrl ? (
-                              <Link to={`/recipe/${recipe.id}`}>
+                              <Link to={recipePath(recipe)}>
                                 <Image
                                   src={`${env.uploadsUrl}/${recipe.imageUrl}`}
                                   alt={recipe.title}
@@ -653,17 +653,17 @@ export default function CommunityPage() {
                             ) : user?.id === recipe.user?.id ? (
                               <div
                                 onClick={() => handleAddImageClick(recipe.id)}
-                                className="w-full h-full flex flex-col items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
+                                className="flex h-full w-full cursor-pointer flex-col items-center justify-center bg-muted transition-colors hover:bg-muted/80"
                               >
-                                <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
+                                <div className="bg-card p-3 rounded-full mb-3 shadow-sm">
                                   <Plus className="h-6 w-6 text-primary" />
                                 </div>
-                                <p className="text-sm font-medium text-gray-700">Ajouter une image</p>
-                                <p className="text-xs text-gray-500 mt-1">Cliquez pour télécharger</p>
+                                <p className="text-sm font-medium text-foreground">Ajouter une image</p>
+                                <p className="text-xs text-muted-foreground mt-1">Cliquez pour télécharger</p>
                               </div>
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                <p className="text-sm text-gray-400">Aucune image</p>
+                              <div className="flex h-full w-full items-center justify-center bg-muted">
+                                <p className="text-sm text-muted-foreground">Aucune image</p>
                               </div>
                             )}
                             {recipe.averageRating >= 4.5 && (
@@ -674,7 +674,7 @@ export default function CommunityPage() {
                             <div className="absolute top-2 right-2 p-2 flex space-x-1">
                               <button
                                 type="button"
-                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                className="p-1.5 bg-card/80 hover:bg-card rounded-full transition-colors"
                                 onClick={(event) => {
                                   event.preventDefault()
                                   event.stopPropagation()
@@ -684,14 +684,14 @@ export default function CommunityPage() {
                                 <Heart
                                   className={cn(
                                     "h-4 w-4 transition-colors",
-                                    recipe.isLiked ? "text-primary" : "text-gray-600 hover:text-primary",
+                                    recipe.isLiked ? "text-primary" : "text-muted-foreground hover:text-primary",
                                   )}
                                   fill={recipe.isLiked ? "currentColor" : "none"}
                                 />
                               </button>
                               <button
                                 type="button"
-                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                className="p-1.5 bg-card/80 hover:bg-card rounded-full transition-colors"
                                 onClick={(event) => {
                                   event.preventDefault()
                                   event.stopPropagation()
@@ -699,11 +699,11 @@ export default function CommunityPage() {
                                 }}
                                 aria-label="Signaler la recette"
                               >
-                                <Flag className="h-4 w-4 text-gray-600 hover:text-primary" />
+                                <Flag className="h-4 w-4 text-muted-foreground hover:text-primary" />
                               </button>
                               <button
                                 type="button"
-                                className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                className="p-1.5 bg-card/80 hover:bg-card rounded-full transition-colors"
                                 onClick={(event) => {
                                   event.preventDefault()
                                   event.stopPropagation()
@@ -713,7 +713,7 @@ export default function CommunityPage() {
                                 <BookmarkIcon
                                   className={cn(
                                     "h-4 w-4 transition-colors",
-                                    recipe.isSaved ? "text-primary" : "text-gray-600 hover:text-primary",
+                                    recipe.isSaved ? "text-primary" : "text-muted-foreground hover:text-primary",
                                   )}
                                   fill={recipe.isSaved ? "currentColor" : "none"}
                                 />
@@ -724,30 +724,30 @@ export default function CommunityPage() {
                                 <>
                                   <Link
                                     to={`/edit-recipe/${recipe.id}`}
-                                    className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                    className="p-1.5 bg-card/80 hover:bg-card rounded-full transition-colors"
                                   >
-                                    <Edit className="h-4 w-4 text-gray-600 hover:text-primary" />
+                                    <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
                                   </Link>
                                   <button
-                                    className="p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors"
+                                    className="p-1.5 bg-card/80 hover:bg-card rounded-full transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       confirmDelete(recipe.id)
                                     }}
                                   >
-                                    <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-500" />
+                                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-red-500" />
                                   </button>
                                 </>
                               )}
                             </div>
                           </div>
                           <CardContent className="p-4">
-                            <Link to={`/recipe/${recipe.id}`}>
+                            <Link to={recipePath(recipe)}>
                               <h3 className="text-lg font-medium mb-1 group-hover:text-primary transition-colors">
                                 {recipe.title}
                               </h3>
                             </Link>
-                            <div className="flex justify-between text-sm text-gray-500 mb-2">
+                            <div className="flex justify-between text-sm text-muted-foreground mb-2">
                               <span>
                                 Par{" "}
                                 {[recipe.user?.username, recipe.user?.lastName].filter(Boolean).join(" ") ||
@@ -757,7 +757,7 @@ export default function CommunityPage() {
                                 <Clock className="h-3 w-3 mr-1" /> {recipe.preparationTime} min
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
+                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{recipe.description}</p>
 
                             {index === 0 && recipe.categories && (
                               <div className="flex flex-wrap gap-2 mb-4">
@@ -793,9 +793,9 @@ export default function CommunityPage() {
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-muted-foreground">
                                       Partagé le{" "}
-                                      <span className="text-sm text-gray-500">{formatDate(recipe.creationDate)}</span>
+                                      <span className="text-sm text-muted-foreground">{formatDate(recipe.creationDate)}</span>
                                     </p>
                                   </div>
                                 </div>
@@ -812,7 +812,7 @@ export default function CommunityPage() {
                                 >
                                   <MessageCircle className="h-4 w-4 mr-1" /> Commenter
                                 </Button>
-                                <Link to={`/recipe/${recipe.id}`}>
+                                <Link to={recipePath(recipe)}>
                                   <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Voir la recette</Button>
                                 </Link>
                               </div>
@@ -820,9 +820,9 @@ export default function CommunityPage() {
                           </CardContent>
 
                           {index !== 0 && (
-                            <CardFooter className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                            <CardFooter className="px-4 py-3 border-t border-border bg-muted">
                               <div className="flex justify-between items-center w-full">
-                                <div className="flex items-center text-sm text-gray-500">
+                                <div className="flex items-center text-sm text-muted-foreground">
                                   <span className="flex items-center mr-3">
                                     <Heart className="h-3 w-3 mr-1" /> {recipe.optimisticRatingCount ?? recipe.totalRatings ?? 0}
                                   </span>
@@ -897,8 +897,8 @@ export default function CommunityPage() {
                 </Button>
               </div>
             ) : comments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageCircle className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageCircle className="mx-auto mb-2 h-12 w-12 text-muted-foreground/40" />
                 <p>Aucun commentaire pour cette recette</p>
                 <p className="text-sm mt-1">Soyez le premier à donner votre avis !</p>
               </div>
@@ -923,7 +923,7 @@ export default function CommunityPage() {
                 </Avatar>
                           <div>
                             <p className="font-medium text-sm">{comment.user?.username || "Utilisateur"}</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
                                 year: "numeric",
                                 month: "long",
@@ -934,7 +934,7 @@ export default function CommunityPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center text-gray-500">
+                        <div className="flex items-center text-muted-foreground">
                           <button className="p-1 hover:text-primary">
                             <Heart className="h-4 w-4" />
                           </button>
@@ -951,20 +951,20 @@ export default function CommunityPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-2">
-                      <p className="text-sm text-gray-700">{comment.content}</p>
+                      <p className="text-sm text-foreground">{comment.content}</p>
                     </CardContent>
                     <CardFooter className="p-3 pt-0 flex justify-between">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-gray-500 hover:text-primary"
+                        className="text-xs text-muted-foreground hover:text-primary"
                         onClick={() => setActiveCommentId(comment.id)}
                       >
                         Répondre
                       </Button>
 
                       {activeCommentId === comment.id && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-white p-3 border-t border-gray-100 shadow-md z-10">
+                        <div className="absolute bottom-0 left-0 right-0 bg-card p-3 border-t border-border shadow-md z-10">
                           <div className="flex gap-2">
                             <Avatar className="h-6 w-6 flex-shrink-0 border">
                               <Image
@@ -1014,7 +1014,7 @@ export default function CommunityPage() {
           </div>
 
           {/* Add Comment */}
-          <div className="border-t border-gray-200 pt-4">
+          <div className="border-t border-border pt-4">
             <div className="flex gap-3">
             <Avatar className="h-8 w-8 border">
                  {user?.profilePicture ? (
@@ -1037,7 +1037,7 @@ export default function CommunityPage() {
                 />
                 <Button
                   className={`absolute bottom-3 right-3 p-2 rounded-full ${
-                    commentText.trim() ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-gray-100 text-gray-400"
+                    commentText.trim() ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-muted text-muted-foreground"
                   }`}
                   size="sm"
                   disabled={!commentText.trim()}
