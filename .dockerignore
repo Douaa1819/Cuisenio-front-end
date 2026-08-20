@@ -1,8 +1,0 @@
-node_modules
-dist
-.git
-Cuise-nio
-*.md
-.env
-.cypress
-test

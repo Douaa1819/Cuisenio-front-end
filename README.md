@@ -12,25 +12,22 @@ Cuisenio combines community recipes, meal planning, favorites, ratings, and an a
 
 ---
 
-## Quick start (frontend)
+## Quick start
 
 ```bash
-# 1. Install
+# Frontend
+cd frontend
 npm install
+cp .env.example .env   # VITE_API_URL=http://localhost:8080
+npm run dev            # http://localhost:5173
 
-# 2. Environment
+# Backend (from repo root, in another terminal)
+cd backend
 cp .env.example .env
-# VITE_API_URL=http://localhost:8080
-
-# 3a. With real backend (see docs/INSTALLATION.md)
-# 3b. Or mock API for frontend-only work:
-node mock-server.cjs
-
-# 4. Dev server
-npm run dev
+./mvnw spring-boot:run   # http://localhost:8080
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+See [frontend/docs/INSTALLATION.md](frontend/docs/INSTALLATION.md) for PostgreSQL, Docker, and the mock API.
 
 ---
 
@@ -75,18 +72,16 @@ Open [http://localhost:5173](http://localhost:5173).
 ## Project structure
 
 ```
-Cuisenio-front-end/          # React SPA (this repo)
-├── src/
-│   ├── api/                 # HTTP clients & services
-│   ├── components/          # UI, layout, recipe widgets
-│   ├── pages/               # Route-level screens
-│   ├── store/               # Zustand stores
-│   ├── hooks/               # Data & UX hooks
-│   └── types/               # Shared TypeScript types
-├── public/                  # robots.txt, sitemap, PWA icons
-├── docs/                    # Full documentation suite
-├── mock-server.cjs          # Local mock API (port 8080)
-└── Cuise-nio/               # Spring Boot backend (nested)
+├── frontend/                # React SPA (Vite)
+│   ├── src/                 # components, pages, api, store, hooks
+│   ├── public/              # robots.txt, sitemap, PWA icons
+│   ├── docs/                # Product documentation
+│   ├── mock-server.cjs      # Local mock API (port 8080)
+│   └── package.json
+└── backend/                 # Spring Boot API
+    ├── src/                 # controllers, services, entities, tests
+    ├── pom.xml
+    └── compose.yaml         # API + PostgreSQL
 ```
 
 ---
@@ -95,27 +90,29 @@ Cuisenio-front-end/          # React SPA (this repo)
 
 | Document | Path |
 |----------|------|
-| Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Features | [docs/FEATURES.md](docs/FEATURES.md) |
-| API | [docs/API.md](docs/API.md) |
-| Auth flow | [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) |
-| Database schema | [docs/DATABASE.md](docs/DATABASE.md) |
-| Installation | [docs/INSTALLATION.md](docs/INSTALLATION.md) |
-| Deployment | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
-| Environment variables | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) |
-| User guide | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) |
-| Admin guide | [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) |
-| Security report | [docs/SECURITY.md](docs/SECURITY.md) |
-| SEO report | [docs/SEO.md](docs/SEO.md) |
-| Performance | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) |
-| Testing | [docs/TESTING.md](docs/TESTING.md) |
-| UX report | [docs/UX.md](docs/UX.md) |
-| Roadmap & improvements | [docs/ROADMAP.md](docs/ROADMAP.md) |
-| Portfolio deliverable | [docs/DELIVERABLE.md](docs/DELIVERABLE.md) |
+| Architecture | [frontend/docs/ARCHITECTURE.md](frontend/docs/ARCHITECTURE.md) |
+| Features | [frontend/docs/FEATURES.md](frontend/docs/FEATURES.md) |
+| API | [frontend/docs/API.md](frontend/docs/API.md) |
+| Auth flow | [frontend/docs/AUTHENTICATION.md](frontend/docs/AUTHENTICATION.md) |
+| Database schema | [frontend/docs/DATABASE.md](frontend/docs/DATABASE.md) |
+| Installation | [frontend/docs/INSTALLATION.md](frontend/docs/INSTALLATION.md) |
+| Deployment | [frontend/docs/DEPLOYMENT.md](frontend/docs/DEPLOYMENT.md) |
+| Environment variables | [frontend/docs/ENVIRONMENT.md](frontend/docs/ENVIRONMENT.md) |
+| User guide | [frontend/docs/USER_GUIDE.md](frontend/docs/USER_GUIDE.md) |
+| Admin guide | [frontend/docs/ADMIN_GUIDE.md](frontend/docs/ADMIN_GUIDE.md) |
+| Security report | [frontend/docs/SECURITY.md](frontend/docs/SECURITY.md) |
+| SEO report | [frontend/docs/SEO.md](frontend/docs/SEO.md) |
+| Performance | [frontend/docs/PERFORMANCE.md](frontend/docs/PERFORMANCE.md) |
+| Testing | [frontend/docs/TESTING.md](frontend/docs/TESTING.md) |
+| UX report | [frontend/docs/UX.md](frontend/docs/UX.md) |
+| Roadmap & improvements | [frontend/docs/ROADMAP.md](frontend/docs/ROADMAP.md) |
+| Portfolio deliverable | [frontend/docs/DELIVERABLE.md](frontend/docs/DELIVERABLE.md) |
 
 ---
 
 ## Scripts
+
+From `frontend/`:
 
 ```bash
 npm run dev          # Vite dev server
@@ -125,6 +122,14 @@ npm run lint         # ESLint
 npm test             # Unit tests (Jest)
 npm run test:e2e     # Cypress (when specs exist)
 npm run mock         # Start mock API on :8080
+```
+
+From `backend/`:
+
+```bash
+./mvnw spring-boot:run
+./mvnw test
+docker compose up --build
 ```
 
 ---

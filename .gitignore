@@ -10,7 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.vite
 *.local
+
+# Backend build output
+backend/target
+backend/.idea
+backend/uploads
 
 # Editor directories and files
 .vscode/*
