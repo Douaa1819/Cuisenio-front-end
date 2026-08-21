@@ -29,11 +29,17 @@ export function mapRecipeImportError(err: unknown): { title: string; message: st
       return failed("Le site met trop de temps à répondre. Réessayez dans quelques instants.")
     }
     const status = err.response?.status
-    const data = (err.response?.data ?? {}) as RecipeImportErrorBody
-    if (status === 400 || data.reason === "INVALID_URL") {
+    const data = (err.response?.data ?? {}) as RecipeImportErrorBody & {
+      success?: boolean
+      error?: { code?: string; message?: string }
+    }
+    const reason = data.error?.code || data.reason || data.code
+    const apiMessage = data.error?.message || data.message
+
+    if (status === 400 || reason === "INVALID_URL") {
       return failed("Le lien fourni n'est pas une adresse valide.", "URL invalide")
     }
-    switch (data.reason) {
+    switch (reason) {
       case "UNSUPPORTED_DOMAIN":
         return failed("Ce site n'est pas encore pris en charge.")
       case "ACCESS_BLOCKED":
@@ -44,6 +50,18 @@ export function mapRecipeImportError(err: unknown): { title: string; message: st
           return failed("Cette page Instagram ne peut pas être consultée automatiquement. Essayez avec un lien public.")
         }
         return failed("Cette page ne peut pas être consultée automatiquement.")
+      case "INSUFFICIENT_RECIPE_DATA":
+        return failed(
+          apiMessage ||
+            "The available TikTok content does not contain enough information to extract the recipe.",
+        )
+      case "LOW_CONFIDENCE":
+        return failed(
+          apiMessage ||
+            "The video does not contain enough reliable information to extract a recipe.",
+        )
+      case "RECIPE_NOT_FOUND":
+        return failed(apiMessage || "We could not identify the recipe from this video.")
       case "RECIPE_DATA_NOT_FOUND":
       case "PARSER_FAILED":
         return failed("Nous n'avons pas pu extraire cette recette depuis cette page.")

@@ -295,7 +295,7 @@
   "demo.importLabel": "استخراج وصفة من رابط",
   "demo.import": "استخراج الوصفة",
   "demo.imported": "الوصفة جاهزة",
-  "demo.importedDetail": "دجاج مشوي سريع · 4 أشخاص · 35 دقيقة. أزيلت الإعلانات.",
+  "demo.importedDetail": "Extracted from page evidence — not invented.",
   "demo.voiceLabel": "مساعد الطبخ الصوتي",
   "demo.voice": "جرّب الصوت",
   "demo.listening": "جاري الاستماع…",
@@ -409,5 +409,8 @@
   "legal.cookies.s2.title": "Non essentiels",
   "legal.cookies.s2.p1": "Analytics si Accept.",
   "legal.cookies.s3.title": "Gérer",
-  "legal.cookies.s3.p1": "Effacer cuisenio-cookie-consent dans localStorage."
+  "legal.cookies.s3.p1": "Effacer cuisenio-cookie-consent dans localStorage.",
+  "demo.importFailed": "Could not extract recipe",
+  "demo.importNeedUrl": "Paste a recipe URL first.",
+  "demo.importInsufficient": "We could not identify the recipe from this video. Title and hashtags alone are not enough."
 }

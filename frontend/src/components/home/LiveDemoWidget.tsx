@@ -7,12 +7,29 @@ import { Label } from "../ui/label"
 import { ButtonWithAnimatedIcon } from "../ui/ButtonWithAnimatedIcon"
 import { useNotification } from "../../context/NotificationContext"
 import { cancelSpeech, isSpeechSynthesisSupported, localeToSpeechLang, speak } from "../../lib/speech"
+import { mapRecipeImportError, recipeImportService } from "../../api/recipe-import.service"
+import axios from "axios"
+
+type DemoImportState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "success"; title: string; detail: string }
+  | { kind: "error"; message: string }
+
+function isSocialVideoUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return host.includes("tiktok.com") || host.includes("instagram.com")
+  } catch {
+    return false
+  }
+}
 
 export function LiveDemoWidget() {
   const { t, i18n } = useTranslation()
   const { error: notifyError } = useNotification()
   const [link, setLink] = useState("")
-  const [imported, setImported] = useState(false)
+  const [importState, setImportState] = useState<DemoImportState>({ kind: "idle" })
   const [speaking, setSpeaking] = useState(false)
   const [voiceLine, setVoiceLine] = useState<string | null>(null)
 
@@ -22,11 +39,42 @@ export function LiveDemoWidget() {
     return () => cancelSpeech()
   }, [])
 
-  const runImport = () => {
-    if (!link.trim()) {
-      setLink("https://exemple.com/recette-facile-poulet")
+  const runImport = async () => {
+    const url = link.trim()
+    if (!url) {
+      setImportState({ kind: "error", message: t("demo.importNeedUrl") })
+      return
     }
-    setImported(true)
+
+    setImportState({ kind: "loading" })
+
+    // Demo must never invent a recipe from a social URL with only metadata.
+    // Call the real API when possible; fall back to an honest insufficient-data message.
+    try {
+      const preview = await recipeImportService.preview(url)
+      const detail = [
+        preview.title,
+        preview.ingredients?.length ? `${preview.ingredients.length} ingredients` : null,
+        preview.steps?.length ? `${preview.steps.length} steps` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+      setImportState({ kind: "success", title: t("demo.imported"), detail })
+    } catch (err) {
+      const mapped = mapRecipeImportError(err)
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined
+      if (isSocialVideoUrl(url) && (status === 401 || status === 403 || status === 422)) {
+        setImportState({
+          kind: "error",
+          message:
+            status === 422
+              ? mapped.message
+              : t("demo.importInsufficient"),
+        })
+      } else {
+        setImportState({ kind: "error", message: mapped.message })
+      }
+    }
   }
 
   const runVoice = () => {
@@ -79,7 +127,7 @@ export function LiveDemoWidget() {
               value={link}
               onChange={(e) => {
                 setLink(e.target.value)
-                setImported(false)
+                setImportState({ kind: "idle" })
               }}
               placeholder={t("demo.linkPlaceholder")}
               className="rounded-xl border-border bg-card"
@@ -90,20 +138,33 @@ export function LiveDemoWidget() {
             iconMotion="sparkle"
             variant="primary"
             className="w-full"
-            onClick={runImport}
+            onClick={() => void runImport()}
+            disabled={importState.kind === "loading"}
+            isLoading={importState.kind === "loading"}
           >
             {t("demo.import")}
           </ButtonWithAnimatedIcon>
           <AnimatePresence>
-            {imported && (
+            {importState.kind === "success" && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className="rounded-2xl border border-primary/20 bg-secondary p-4 text-sm"
               >
-                <p className="font-semibold text-primary">{t("demo.imported")}</p>
-                <p className="mt-1 text-foreground">{t("demo.importedDetail")}</p>
+                <p className="font-semibold text-primary">{importState.title}</p>
+                <p className="mt-1 text-foreground">{importState.detail}</p>
+              </motion.div>
+            )}
+            {importState.kind === "error" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm"
+              >
+                <p className="font-semibold text-destructive">{t("demo.importFailed")}</p>
+                <p className="mt-1 text-foreground">{importState.message}</p>
               </motion.div>
             )}
           </AnimatePresence>

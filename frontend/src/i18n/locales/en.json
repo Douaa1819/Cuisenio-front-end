@@ -295,7 +295,7 @@
   "demo.importLabel": "Extract a recipe from a URL",
   "demo.import": "Extract recipe",
   "demo.imported": "Recipe ready",
-  "demo.importedDetail": "Express roast chicken · serves 4 · 35 min. Ads removed.",
+  "demo.importedDetail": "Extracted from page evidence — not invented.",
   "demo.voiceLabel": "Hands-free cooking assistant",
   "demo.voice": "Try voice",
   "demo.listening": "Listening…",
@@ -409,5 +409,8 @@
   "legal.cookies.s3.title": "Manage my choice",
   "legal.cookies.s3.p1": "Clear localStorage key cuisenio-cookie-consent to show the banner again, or contact us.",
   "meta.title": "Cuisenio | Easy recipes, meal planning & hands-free cooking",
-  "meta.description": "Plan meals, build an automatic shopping list, cook with voice, and keep your fridge organized. Cuisenio is the chef friend who simplifies weeknights."
+  "meta.description": "Plan meals, build an automatic shopping list, cook with voice, and keep your fridge organized. Cuisenio is the chef friend who simplifies weeknights.",
+  "demo.importFailed": "Could not extract recipe",
+  "demo.importNeedUrl": "Paste a recipe URL first.",
+  "demo.importInsufficient": "We could not identify the recipe from this video. Title and hashtags alone are not enough."
 }

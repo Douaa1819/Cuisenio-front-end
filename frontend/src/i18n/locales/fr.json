@@ -297,7 +297,7 @@
   "demo.importLabel": "Extraire une recette depuis une URL",
   "demo.import": "Extraire la recette",
   "demo.imported": "Recette prête",
-  "demo.importedDetail": "Poulet rôti express · 4 personnes · 35 min. Publicités retirées.",
+  "demo.importedDetail": "Extrait à partir de preuves réelles — jamais inventé.",
   "demo.voiceLabel": "Assistant vocal de cuisine",
   "demo.voice": "Tester la voix",
   "demo.listening": "Écoute en cours…",
@@ -411,5 +411,8 @@
   "legal.cookies.s3.title": "Gérer mon choix",
   "legal.cookies.s3.p1": "Effacez la clé localStorage cuisenio-cookie-consent pour réafficher la bannière, ou contactez-nous.",
   "meta.title": "Cuisenio | Recettes faciles, planning repas & cuisine vocale",
-  "meta.description": "Planifiez vos repas, générez une liste de courses automatique, cuisinez à la voix et organisez votre frigo. Cuisenio, l'ami chef qui simplifie vos soirées."
+  "meta.description": "Planifiez vos repas, générez une liste de courses automatique, cuisinez à la voix et organisez votre frigo. Cuisenio, l'ami chef qui simplifie vos soirées.",
+  "demo.importFailed": "Extraction impossible",
+  "demo.importNeedUrl": "Collez d'abord un lien de recette.",
+  "demo.importInsufficient": "Nous n'avons pas pu identifier la recette dans cette vidéo. Le titre et les hashtags seuls ne suffisent pas."
 }
